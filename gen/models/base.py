@@ -98,7 +98,22 @@ class base(renderable_object, metaclass=abc.ABCMeta):
         model = None
         # See if the model is stored in the database  cache stored on disk:
         with model_cache_database() as db:
-            model = db.get_model(filename)  # This can return None
+            # Get the time when we last cached the model from this file:
+            cache_time_stamp = db.get_model_time_stamp(filename)
+            if cache_time_stamp is None:
+                return None
+
+            #import sys
+            #sys.stderr.write(str(type(cache_time_stamp)) + "\n")
+            #sys.stderr.write(str(type(file_time_stamp)) + "\n")
+            #sys.stderr.write(str(cache_time_stamp) + "\n")
+            #sys.stderr.write(str(file_time_stamp) + "\n")
+
+            # If the cache time is newer than the file modification time
+            # then we can safely use the cached model:
+            file_time_stamp = os.path.getmtime(filename)
+            if cache_time_stamp >= file_time_stamp:
+                model = db.get_model(filename)  # This can return None
         return model
 
     def save_to_cache(self):
@@ -116,6 +131,11 @@ class base(renderable_object, metaclass=abc.ABCMeta):
     def __new__(cls, filename, *args, **kwargs):
         # Try to load the model from the cache:
         if filename:
+            #import sys
+            #sys.stderr.write("__new__ " + str(filename) + "\n")
+            #import traceback
+            #raise Exception("wrong")
+            #traceback.print_exc()
             full_filename = os.path.abspath(filename)
             model = cls.load_from_cache(cls, full_filename)
             if model:
@@ -125,6 +145,8 @@ class base(renderable_object, metaclass=abc.ABCMeta):
                 self.filename = os.path.basename(filename)
                 self.full_filename = full_filename
                 self.do_save_to_cache = True
+                import sys
+                sys.stderr.write("lcache " + self.filename + "\n")
             else:
                 # Create from scratch:
                 self = super(base, cls).__new__(cls)
@@ -132,6 +154,8 @@ class base(renderable_object, metaclass=abc.ABCMeta):
                 self.filename = os.path.basename(filename)
                 self.full_filename = full_filename
                 self.do_save_to_cache = True
+                import sys
+                sys.stderr.write("lfile " + self.filename + "\n")
         else:
             # Create from scratch. This is usually only called when
             # reconstructing the object from cache.

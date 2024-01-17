@@ -1,6 +1,7 @@
 from database.database import database
 from database.database import DATABASE_MODE
 from database import util
+from time import time as curr_time
 
 # The purpose of the model cache is to save off YAML file model load
 # data structures after they have been read from a file, validated, and
@@ -11,7 +12,9 @@ from database import util
 
 
 def get_model_cache_filename():
-    return util.get_database_file("model_cache")
+    from os import environ, sep
+    cache_file = environ["ADAMANT_TMP_DIR"] + sep + "model_cache.db"
+    return cache_file
 
 
 class model_cache_database(database):
@@ -21,9 +24,13 @@ class model_cache_database(database):
 
     def store_model(self, model_file, model_object):
         self.store(model_file, model_object)
+        self.store(model_file + "_time@st@@", curr_time())
 
     def get_model(self, model_file):
         return self.try_fetch(model_file)
+
+    def get_model_time_stamp(self, model_file):
+        return self.try_fetch(model_file + "_time@st@@")
 
 
 # Create an empty model cache database file, if one does
