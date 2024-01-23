@@ -109,6 +109,20 @@ def _generate(output_filename):
 # file.
 class build_via_generator(build_rule_base):
     def _build(self, redo_1, redo_2, redo_3):
+        # First check if this was prebuilt:
+        # TODO make directory here? or in the prebuild?
+        src_basename = os.path.basename(redo_1)
+        dirname = os.path.dirname(redo_1)
+        filesystem.safe_makedir(dirname)
+        src_redo_3 = os.environ["SOURCE_PRE_BUILD_DIR"] + os.sep + src_basename
+        if os.path.exists(src_redo_3):
+            import sys
+            sys.stderr.write("moving " + src_redo_3 + " to " + redo_3 + "\n")
+            os.rename(src_redo_3, redo_3)
+        else:
+            _generate(redo_1)
+
+    def _pre_build(self, redo_1):
         _generate(redo_1)
 
     # No need to provide these for generators

@@ -1,6 +1,7 @@
 from base_classes.generator_base import generator_base
 from generators.basic import basic_generator
 from models import tests
+from models import component
 from util import error
 from util import model_loader
 import os.path
@@ -134,7 +135,9 @@ class tester_generator(basic_generator):
             component_name, model_types="component"
         )
         if component_model_path:
+            self.model_cls = component.component
             basic_generator.generate(self, component_model_path)
+            self.model_cls = tests.tests
 
     # Depend on the component model and any commands, data products, events models that the component uses:
     def depends_on(self, input_filename):

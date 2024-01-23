@@ -270,6 +270,12 @@ def _setup(redo_1, redo_2, redo_3, sandbox=False):
     db_dir = linkdir + os.sep + "db"
     filesystem.safe_makedir(db_dir)
 
+    # TODO talk about this
+    source_pre_build_dir = linkdir + os.sep + "src_pre"
+    # Set environment variable so that object compilation can retrieve this location:
+    os.environ["SOURCE_PRE_BUILD_DIR"] = source_pre_build_dir
+    filesystem.safe_makedir(source_pre_build_dir)
+
     # Some database entities can be created without
     # the build path. Let's create these now. In fact,
     # we may need some of them in order to calculate

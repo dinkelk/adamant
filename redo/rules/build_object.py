@@ -93,6 +93,42 @@ def _build_all_ada_dependencies(ada_source_files, source_db):
 
         return ads_sources, adb_sources
 
+    def _prebuild_sources(source_files):
+        num_sources = len(source_files)
+        redo.info_print(
+            "Generating "
+            + str(num_sources)
+            + " source file"
+            + ("s..." if num_sources > 1 else "...")
+        )
+
+        from rules.build_via_generator import build_via_generator as rule_cls
+        rule = rule_cls()
+
+        # Save the original stdout
+        import sys
+        original_stdout = sys.stdout
+
+        for source in source_files:
+            sys.stderr.write("Generating: " + source + "\n")
+            src_basename = os.path.basename(source)
+            src_redo_3 = os.environ["SOURCE_PRE_BUILD_DIR"] + os.sep + src_basename
+            filesystem.safe_makedir(os.path.dirname(src_redo_3))
+            with open(src_redo_3, 'w') as f:
+                # Redirect stdout to the file
+                sys.stdout = f
+                rule._pre_build(source)
+
+        # Restore the original stdout
+        sys.stdout = original_stdout
+
+        redo.info_print(
+            "Moving "
+            + str(num_sources)
+            + " source file"
+            + ("s..." if num_sources > 1 else "...")
+        )
+
     def _get_all_dependencies(source_files):
         sources = _get_immediate_dependencies(source_files)
         # Filter out sources that are already in the deps:
@@ -126,6 +162,16 @@ def _build_all_ada_dependencies(ada_source_files, source_db):
 
         if new_ads_sources:
             if fast_compile:
+
+                # TODO
+                batch_generate = True
+                if batch_generate:
+                    # Get all autocoded source that has not yet been built.
+                    prebuild_dir = os.environ["SOURCE_PRE_BUILD_DIR"] + os.sep
+                    non_existant_sources = [f for f in new_ads_sources if redo_arg.in_build_dir(f) and not os.path.exists(f) and not os.path.exists(prebuild_dir + os.path.basename(f))]
+                    if len(non_existant_sources) > 3:
+                        _prebuild_sources(non_existant_sources)
+
                 # Depend on new sources:
                 redo.redo_ifchange(new_ads_sources)
 
@@ -150,6 +196,15 @@ def _build_all_ada_dependencies(ada_source_files, source_db):
                         for adb_source in new_adb_sources:
                             if adb_source.endswith(adb_basename):
                                 required_adb_sources.append(adb_source)
+
+                # TODO
+                batch_generate = True
+                if batch_generate:
+                    # Get all autocoded source that has not yet been built.
+                    prebuild_dir = os.environ["SOURCE_PRE_BUILD_DIR"] + os.sep
+                    non_existant_sources = [f for f in new_adb_sources if redo_arg.in_build_dir(f) and not os.path.exists(f) and not os.path.exists(prebuild_dir + os.path.basename(f))]
+                    if len(non_existant_sources) > 3:
+                        _prebuild_sources(non_existant_sources)
 
                 # Depend on adb sources:
                 redo.redo_ifchange(required_adb_sources)

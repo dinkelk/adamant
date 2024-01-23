@@ -16,7 +16,7 @@ def get_model_cache_filename():
     cache_file = environ["ADAMANT_TMP_DIR"] + sep + "model_cache.db"
     return cache_file
 
-
+_memory_cache = {}
 class model_cache_database(database):
     # Initialize the database:
     def __init__(self, mode=DATABASE_MODE.READ_ONLY):
@@ -34,15 +34,32 @@ class model_cache_database(database):
     def mark_cached_model_up_to_date_for_session(self, model_file):
         self.store(model_file + "_sess@id@@", environ["ADAMANT_SESSION_ID"])
 
+    def _get_cached(self, thing):
+        if thing in _memory_cache:
+            import sys
+            #sys.stderr.write("memcache: " + thing + "\n")
+            #sys.stderr.write("memcache: " + str(_memory_cache[thing]) + "\n")
+            return _memory_cache[thing]
+        else:
+            model = self.try_fetch(thing)
+            _memory_cache[thing] = model
+            import sys
+            #sys.stderr.write("nvcache: " + thing + "\n")
+            #sys.stderr.write("nvcache: " + str(model) + "\n")
+            return model
+
     # Getters for cached model, session id of save, and time of save
     def get_model(self, model_file):
-        return self.try_fetch(model_file)
+        #return self.try_fetch(model_file)
+        return self._get_cached(model_file)
 
     def get_model_session_id(self, model_file):
-        return self.try_fetch(model_file + "_sess@id@@")
+        #return self.try_fetch(model_file + "_sess@id@@")
+        return self._get_cached(model_file + "_sess@id@@")
 
     def get_model_time_stamp(self, model_file):
-        return self.try_fetch(model_file + "_time@st@@")
+        #return self.try_fetch(model_file + "_time@st@@")
+        return self._get_cached(model_file + "_time@st@@")
 
 
 # Create an empty model cache database file, if one does
