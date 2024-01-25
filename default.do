@@ -35,6 +35,8 @@ if __name__ == "__main__":
         from rules.build_clean import build_clean as rule_cls
     elif base == "clean_all":
         from rules.build_clean_all import build_clean_all as rule_cls
+    elif base == "clear_cache":
+        from rules.build_clear_cache import build_clear_cache as rule_cls
     elif base == "what":
         from rules.build_what import build_what as rule_cls
     elif base == "prove":
