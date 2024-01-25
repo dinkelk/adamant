@@ -1,6 +1,5 @@
 from database.database import database
 from database.database import DATABASE_MODE
-from database import util
 from time import time as curr_time
 from os import environ, sep
 

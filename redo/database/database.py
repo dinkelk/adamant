@@ -63,6 +63,7 @@ def _destroy(filename):
     except OSError:
         pass
 
+
 def _create(filename):
     # Create a database from a fresh file every time. If the user
     # does not want this they can call open_rw instead.

@@ -140,7 +140,7 @@ class base(renderable_object, metaclass=abc.ABCMeta):
             model = do_load_from_cache(filename)
 
         # We have a model we can use from cache. It was written in a previous
-        # session. This is only safe to use if none of the model dependencies 
+        # session. This is only safe to use if none of the model dependencies
         # have not changed on disk either.
         if model is not None:
             for dep_model_filename in model.get_dependencies():

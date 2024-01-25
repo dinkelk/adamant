@@ -5,6 +5,7 @@ from os import environ
 # variable is set.
 profiler = None
 
+
 # This modules provides some performance enhancement to .do files:
 def optimize_path():
     def _optimize_path():
