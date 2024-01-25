@@ -142,15 +142,12 @@ class base(renderable_object, metaclass=abc.ABCMeta):
         # We have a model we can use from cache. It was written in a previous
         # session. This is only safe to use if none of the model dependencies 
         # have not changed on disk either.
-        import sys
         if model is not None:
             for dep_model_filename in model.get_dependencies():
-                sys.stderr.write("checking: " + str(dep_model_filename) + "\n")
                 if not is_cached_model_up_to_date(dep_model_filename):
                     # One of the dependencies models has recently changed on disk,
                     # so we need to reload this model from scratch. We cannot safely
                     # use the cached version.
-                    sys.stderr.write("CHANGED!\n")
                     return None
 
         # This cached model has been fully validated for this session. So if we use it again
@@ -184,8 +181,8 @@ class base(renderable_object, metaclass=abc.ABCMeta):
                 self.filename = os.path.basename(filename)
                 self.full_filename = full_filename
                 self.do_save_to_cache = True
-                import sys
-                sys.stderr.write("lcache " + self.filename + "\n")
+                # import sys
+                # sys.stderr.write("lcache " + self.filename + "\n")
             else:
                 # Create from scratch:
                 self = super(base, cls).__new__(cls)
@@ -193,8 +190,8 @@ class base(renderable_object, metaclass=abc.ABCMeta):
                 self.filename = os.path.basename(filename)
                 self.full_filename = full_filename
                 self.do_save_to_cache = True
-                import sys
-                sys.stderr.write("lfile " + self.filename + "\n")
+                # import sys
+                # sys.stderr.write("lfile " + self.filename + "\n")
         else:
             # Create from scratch. This is usually only called when
             # reconstructing the object from cache.
