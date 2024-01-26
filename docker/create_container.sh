@@ -19,7 +19,6 @@ execute "docker run -d \
   sleep infinity"
 
 echo "Finished creating container \"$DOCKER_CONTAINER_NAME\"."
-execute "docker ps -a"
 
 echo ""
 echo "Run ./login_container.sh to log in."

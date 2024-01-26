@@ -49,6 +49,30 @@ then
   export ADAMANT_CONFIGURATION_YAML=$config_file
 fi
 
+# Set up python. If the ADAMANT_PYTHON_ENV is not specified
+# then we set it to a default
+if test -z "$ADAMANT_PYTHON_ENV" # ie. ~/.adamant_py_env
+then
+  export ADAMANT_PYTHON_ENV=$HOME/.adamant_py_env
+fi
+
+# See if the python environment already exists, if it does
+# then use it. Else, create it, and then use it.
+py_activate=$ADAMANT_PYTHON_ENV/bin/activate
+if test -f "$py_activate"
+then
+  . $py_activate
+else
+  echo "Setting up python environment in $ADAMANT_PYTHON_ENV..."
+  python3 -m venv $ADAMANT_PYTHON_ENV
+  . $py_activate
+  pip3 install --upgrade pip
+  pip3 install wheel
+  pip3 install -r $ADAMANT_DIR/docker/provision/requirements1.txt
+  pip3 install -r $ADAMANT_DIR/docker/provision/requirements2.txt
+  echo "Done."
+fi
+
 # Set up path:
 GROUND_BIN=$ADAMANT_DIR/gnd/bin
 export PATH=$GROUND_BIN:$PATH
@@ -64,7 +88,7 @@ export ADAMANT_TMP_DIR
 mkdir -p $ADAMANT_TMP_DIR
 
 # Set up Alire toolchain if it is not set up.
-if ! test -d "$ADAMANT_DIR/alire"
+if ! test -d "$ADAMANT_DIR/alire" || ! test -d "$HOME/.config/alire"
 then
   echo "Setting up alire toolchain..."
   alr -n toolchain --select gnat_native
@@ -77,6 +101,7 @@ echo ""
 echo "Configuring build roots: ${paths[@]}"
 for path in "${paths[@]}"; do
   echo -n "  Setting up $path...  "
+  cd $path
 
   # Mark path as safe git directory if it is not already marked.
   if ! git config --global --get-regexp '^safe\.directory' | grep -q "^safe\.directory $path$"; then
@@ -99,12 +124,12 @@ for path in "${paths[@]}"; do
   # Also update PATH. Alire will include the current PATH set by the Adamant
   # environment plus some alire specific paths.
   #
-  cd $path
-  eval `alr printenv | grep PATH`
-  cd - &> /dev/null
+  eval `alr -n printenv | grep PATH`
 
   # Activate the local python configuration:
   . $ADAMANT_DIR/env/set_python_path.sh $path
+
+  cd - &> /dev/null
   echo "Done."
 done
 echo "Done."
@@ -112,9 +137,10 @@ echo ""
 echo "-- Adamant Configuration --"
 echo "ADAMANT_DIR=$ADAMANT_DIR"
 echo "ADAMANT_CONFIGURATION_YAML=$ADAMANT_CONFIGURATION_YAML"
-echo "python=`which python`"
+echo "ADAMANT_PYTHON_ENV=$ADAMANT_PYTHON_ENV"
 echo ""
 echo "Adamant environment activated successfully."
+echo ""
 
 # Signify the environment is set up
 export ADAMANT_ENVIRONMENT_SET="yes"

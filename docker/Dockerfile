@@ -1,4 +1,5 @@
-#
+#else
+
 # This Dockerfile needs to be run from within the project/ directory (AKA ../../ from here)
 # so that docker has access to all the files it needs. ie.
 #
@@ -67,25 +68,6 @@ RUN cat /dev/zero | ssh-keygen -q -N "" \
     && DEBIAN_FRONTEND=noninteractive apt install -yq texlive-lang-english texlive-lang-european texlive-fonts-recommended \
     && DEBIAN_FRONTEND=noninteractive apt-get -yq clean
 
-# Install python:
-# Do to this issue: https://bugs.python.org/issue40350
-# We need to use python 3.7 until it is resolved.
-# By default this version of Ubuntu uses 3.8 which
-# exhibits the bug.
-ENV ENV_DIR=$HOME/env
-RUN mkdir -p $ENV_DIR
-ENV PYTHON_ENV_DIR=$ENV_DIR/python
-COPY provision $ENV_DIR/provision
-RUN DEBIAN_FRONTEND=noninteractive sudo apt-get -yq install python3 \
-    && python3 -m venv $PYTHON_ENV_DIR \
-    && . $PYTHON_ENV_DIR/bin/activate \
-    && pip3 install --upgrade pip \
-    && pip3 install wheel \
-    && pip3 install -r $ENV_DIR/provision/requirements1.txt \
-    && pip3 install -r $ENV_DIR/provision/requirements2.txt \
-    && echo ". $PYTHON_ENV_DIR/bin/activate && cd" >> $HOME/.bashrc \
-    && chown -R $DOCKER_USER:$DOCKER_USER $PYTHON_ENV_DIR
-
 # Install elf2uf2
 #
 #   source: https://circuitdigest.com/microcontroller-projects/how-to-program-raspberry-pi-pico-using-c
@@ -145,6 +127,7 @@ COPY --from=install_libadalang /root/libadalang/libadalang_tool_builder/tools/* 
 COPY --from=install_alire /root/alire/bin/alr $BIN_DIR
 COPY --from=install_elf2uf2 /root/pico/pico-sdk/tools/elf2uf2/build/elf2uf2 $BIN_DIR
 COPY --from=install_sequence_builder /root/adamant_seq/bin/* $BIN_DIR
+RUN echo "cd" >> $HOME/.bashrc
 
 # Make sure user is root at end.
 USER root
