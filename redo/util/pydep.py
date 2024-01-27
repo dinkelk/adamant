@@ -5,6 +5,7 @@ from database.py_source_database import py_source_database
 from base_classes.build_rule_base import build_rule_base
 from util import shell
 
+
 # Return dependencies for a given python source file.
 # Two lists are returned to the user. The first list is
 # the modules found whose source files actually exist on
