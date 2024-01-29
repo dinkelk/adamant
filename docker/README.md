@@ -30,7 +30,7 @@ This procedure is used to create a new Docker container that hosts the Adamant b
    $ ./login_container.sh
    ```
 
-The first time you log in, the envrionment will be set up automatically. This can take a few minutes. Note that the `adamant/` directory on your host is shared with the docker container at `~/adamant/`. This allows you to modify files on your host and compile those same files on the container.
+The first time you log in, the environment will be set up automatically. This can take a few minutes. Note that the `adamant/` directory on your host is shared with the docker container at `~/adamant/`. This allows you to modify files on your host and compile those same files on the container.
 
 ## Starting and Stopping the Container 
 
