@@ -16,6 +16,10 @@ then
   export ADAMANT_DIR=`readlink -f "${BASH_SOURCE[0]}" | xargs dirname | xargs dirname`
 fi
 
+echo "------------------------------------------------------------------"
+echo "Activating Adamant environment at $ADAMANT_DIR."
+echo "------------------------------------------------------------------"
+
 # We expect input arguments to be a list of build roots
 # (not including the adamant directory) in the form:
 #
@@ -51,9 +55,9 @@ fi
 
 # Set up python. If the ADAMANT_PYTHON_ENV is not specified
 # then we set it to a default
-if test -z "$ADAMANT_PYTHON_ENV" # ie. ~/.adamant_py_env
+if test -z "$ADAMANT_PYTHON_ENV" # ie. ~/.py_env
 then
-  export ADAMANT_PYTHON_ENV=$HOME/.adamant_py_env
+  export ADAMANT_PYTHON_ENV=$HOME/.py_env
 fi
 
 # See if the python environment already exists, if it does
@@ -68,8 +72,8 @@ else
   . $py_activate
   pip3 install --upgrade pip
   pip3 install wheel
-  pip3 install -r $ADAMANT_DIR/docker/provision/requirements1.txt
-  pip3 install -r $ADAMANT_DIR/docker/provision/requirements2.txt
+  pip3 install -r $ADAMANT_DIR/env/requirements1.txt
+  pip3 install -r $ADAMANT_DIR/env/requirements2.txt
   echo "Done."
 fi
 
@@ -91,8 +95,11 @@ mkdir -p $ADAMANT_TMP_DIR
 if ! test -d "$ADAMANT_DIR/alire" || ! test -d "$HOME/.config/alire"
 then
   echo "Setting up alire toolchain..."
+  cd $ADAMANT_DIR
   alr -n toolchain --select gnat_native
   alr -n toolchain --select gprbuild
+  alr -n build --release
+  cd - > /dev/null
   echo "Done."
 fi
 
@@ -108,7 +115,8 @@ for path in "${paths[@]}"; do
     git config --global --add safe.directory "$path"
   fi
 
-  # Set up alire configuration if it is not yet set up.
+  # Set up alire configuration if it is not yet set up. We already did this for
+  # Adamant (the alire/ directory exists), so only do this for project directories.
   if ! test -d "$path/alire"
   then
     echo "Building alire dependencies..."

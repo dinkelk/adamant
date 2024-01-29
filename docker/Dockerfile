@@ -38,7 +38,6 @@ RUN mkdir -p $HOME \
     && mkdir -p /etc/sudoers.d \
     && echo "$DOCKER_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$DOCKER_USER \
     && chmod 0440 /etc/sudoers.d/$DOCKER_USER \
-    && cp /root/.bashrc $HOME/.bashrc \
     && chown -R $DOCKER_USER:$DOCKER_USER $HOME
 
 RUN rm /etc/apt/apt.conf.d/docker-clean
@@ -127,7 +126,11 @@ COPY --from=install_libadalang /root/libadalang/libadalang_tool_builder/tools/* 
 COPY --from=install_alire /root/alire/bin/alr $BIN_DIR
 COPY --from=install_elf2uf2 /root/pico/pico-sdk/tools/elf2uf2/build/elf2uf2 $BIN_DIR
 COPY --from=install_sequence_builder /root/adamant_seq/bin/* $BIN_DIR
-RUN echo "cd" >> $HOME/.bashrc
+
+# Set up .bashrc to automatically activate the Adamant environment
+RUN cp /root/.bashrc $HOME/.bashrc \
+    && echo "cd $HOME && [ -f "~/adamant/env/activate" ] && source adamant/env/activate" >> $HOME/.bashrc \
+    && chown -R $DOCKER_USER:$DOCKER_USER $HOME
 
 # Make sure user is root at end.
 USER root
