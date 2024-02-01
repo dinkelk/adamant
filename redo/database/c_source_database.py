@@ -101,11 +101,11 @@ class c_source_database(database):
             record[1] = model_filename
 
         # Insert record into database:
-        self.store(basename, record)
+        self.store(basename.lower(), record)
 
     # Given a basename, return the associated source files:
     def get_source(self, basename):
-        return self.fetch(basename)[0]
+        return self.fetch(basename.lower())[0]
 
     # Given a basename, try to return the associated source files
     # otherwise return an empty list.
@@ -140,6 +140,10 @@ class c_source_database(database):
         objects = []
         for name in names:
             sources = self.try_get_source(name)
+            # We assume common convention where C/C++ header files do not
+            # get compiled into objects.
+            if sources:
+                sources = [filename for filename in sources if not filename.endswith((".h", ".hpp"))]
             if sources:
                 source = next(
                     iter(sources)
