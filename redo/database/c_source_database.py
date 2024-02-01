@@ -38,6 +38,7 @@ class c_source_database(database):
     # that every source in the build path must have a unique filename. This is a
     # restriction of coding in C/C++ within Adamant do to the Ada interface.
     def insert_source(self, source_filename, model_filename=None):
+
         # Error functions:
         def _duplicate_source_error(file1, file2):
             error.error_abort(
@@ -60,7 +61,8 @@ class c_source_database(database):
         # Get a basename from the filename and try to
         # fetch a record if it exists.
         basename = redo_arg.get_base_no_ext(source_filename)
-        record = self.try_fetch(basename)
+        key = basename.lower()
+        record = self.try_fetch(key)
 
         # If the record already exists, we need to be very careful about adding another source
         # file. It must be the compliment to the source file that already exists. For example,
@@ -101,7 +103,7 @@ class c_source_database(database):
             record[1] = model_filename
 
         # Insert record into database:
-        self.store(basename.lower(), record)
+        self.store(key, record)
 
     # Given a basename, return the associated source files:
     def get_source(self, basename):
