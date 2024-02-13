@@ -6,13 +6,6 @@
 
 -- Standard Includes:
 with Ada.Unchecked_Conversion;
-{% if includes %}
-
--- Custom Includes:
-{% for include in includes %}
-with {{ include }};
-{% endfor %}
-{% endif %}
 {% if type_includes %}
 
 -- Record Component Includes:
@@ -25,25 +18,6 @@ with {{ include }};
 {{ printMultiLine(description, '-- ') }}
 {% endif %}
 package {{ name }}.C is
-{% if preamble %}
-
-   -- Preamble code:
-   -- TODO, alias this !!
-{{ printMultiLine(preamble, '   ', 10000) }}
-{% endif %}
-
-   -- Fields that are 8-bit types or 8-bit array types trigger the following warning. Obviously endianness does
-   -- not apply for types of 1 byte or less, so we can ignore this warning.
-   pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""T_Le"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
-{% if size == 32 or size == 16 or size == 8 %}
-   pragma Warnings (Off, "scalar storage order specified for ""Atomic_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Register_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
-{% endif %}
 
    -- Unpacked C/C++ compatible type:
    type U_C is record
@@ -56,18 +30,6 @@ package {{ name }}.C is
    end record
       with Convention => C_Pass_By_Copy;
 
-   -- Re-enable warning.
-   pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""T_Le"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
-{% if size == 32 or size == 16 or size == 8 %}
-   pragma Warnings (On, "scalar storage order specified for ""Atomic_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Register_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
-{% endif %}
-
    -- Access type for U_C.
    type U_C_Access is access all U_C;
 
@@ -77,9 +39,9 @@ package {{ name }}.C is
 
    -- The .C package is not supported for all Adamant packed records. We do not allow compilation in
    -- these cases.
-   pragma Compile_Time_Error ({{ name }}.U'Size /= U_C'Size, "C type size not as expected.");
 {% if packed_type_includes %}
-   pragma Compile_Time_Error (False, "{{ name }}.C package not supported for records that contain packed type fields.");
+   pragma Compile_Time_Error (True, "{{ name }}.C package not supported for records that contain fields of packed types.");
 {% endif %}
+   pragma Compile_Time_Error ({{ name }}.U'Size /= U_C'Size, "C type size not compatible with Ada type size.");
 
 end {{ name }}.C;
