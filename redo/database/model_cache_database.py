@@ -24,7 +24,7 @@ class model_cache_database(database):
 
     # Store cached version of model object along with timestamp of save and session ID
     # for save.
-    def store_model(self, model_file, model_object, submodel_paths=[]):
+    def store_model(self, model_file, model_object):
         self.store(model_file, model_object)
         self.store(model_file + "_time@st@@", curr_time())
         self.store(model_file + "_sess@id@@", environ["ADAMANT_SESSION_ID"])
