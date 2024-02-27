@@ -12,8 +12,8 @@ procedure Test is
 
    procedure Go (Buf : in out Circular_Buffer.Circular) is
       use Circular_Buffer;
-      package Push_Assert is new Smart_Assert.Basic (Circular_Buffer.Push_Status, Circular_Buffer.Push_Status'Image);
-      package Pop_Assert is new Smart_Assert.Basic (Circular_Buffer.Pop_Status, Circular_Buffer.Pop_Status'Image);
+      package Push_Assert is new Smart_Assert.Basic (Circular_Buffer.Push_Return_Status, Circular_Buffer.Push_Return_Status'Image);
+      package Pop_Assert is new Smart_Assert.Basic (Circular_Buffer.Pop_Return_Status, Circular_Buffer.Pop_Return_Status'Image);
 
       Max_Bytes_Used : Natural := 0;
       procedure Check_Meta (The_Num_Bytes_Used : in Natural; Filename : in String := Smart_Assert.Sinfo.File; Line : in Natural := Smart_Assert.Sinfo.Line) is

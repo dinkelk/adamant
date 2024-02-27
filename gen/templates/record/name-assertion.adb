@@ -20,9 +20,11 @@ package body {{ name }}.Assertion is
 {% else %}
 {% if variable_length %}
    procedure Assert_Eq (T1 : in T; T2 : in T) is
+      pragma Warnings (Off, "hides homonym from use clause");
 {% for include in type_uses %}
       use {{ include }};
 {% endfor %}
+      pragma Warnings (On, "hides homonym from use clause");
    begin
       -- Assert on all fields individually:
 {% for field in fields.values() %}
@@ -39,9 +41,11 @@ package body {{ name }}.Assertion is
    end Assert_Eq;
 
    procedure Assert_Neq (T1 : in T; T2 : in T) is
+      pragma Warnings (Off, "hides homonym from use clause");
 {% for include in type_uses %}
       use {{ include }};
 {% endfor %}
+      pragma Warnings (On, "hides homonym from use clause");
    begin
       -- Assert on all fields individually:
 {% for field in fields.values() %}

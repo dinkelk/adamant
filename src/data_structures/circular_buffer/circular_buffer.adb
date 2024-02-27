@@ -194,7 +194,7 @@ package body Circular_Buffer is
       return To_Return;
    end Dump_Memory;
 
-   function Push (Self : in out Base; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
+   function Push (Self : in out Base; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Return_Status is
       Tail : constant Natural := (Self.Head + Self.Count) mod Self.Bytes'Length;
       -- Compute negative length to handle empty array gracefully
       Bytes_Length : constant Integer := Bytes'Last - Bytes'First + 1;
@@ -251,7 +251,7 @@ package body Circular_Buffer is
       return Success;
    end Push;
 
-   function Peek (Self : in Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
+   function Peek (Self : in Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
       Current_Head : constant Natural := Self.Head + Offset;
       -- Compute negative length to handle empty array gracefully
       Bytes_Length : constant Integer := Bytes'Last - Bytes'First + 1;
@@ -317,8 +317,8 @@ package body Circular_Buffer is
       return Success;
    end Peek;
 
-   function Pop (Self : in out Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
-      Stat : constant Pop_Status := Self.Peek (Bytes, Num_Bytes_Returned);
+   function Pop (Self : in out Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Return_Status is
+      Stat : constant Pop_Return_Status := Self.Peek (Bytes, Num_Bytes_Returned);
    begin
       if Stat /= Success then
          return Stat;
@@ -343,17 +343,17 @@ package body Circular_Buffer is
    -- Subprograms for Circular
    --
 
-   overriding function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
+   overriding function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Return_Status is
    begin
       return Base (Self).Push (Bytes, Overwrite);
    end Push;
 
-   overriding function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
+   overriding function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Return_Status is
    begin
       return Base (Self).Pop (Bytes, Num_Bytes_Returned);
    end Pop;
 
-   overriding function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
+   overriding function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
    begin
       return Base (Self).Peek (Bytes, Num_Bytes_Returned, Offset);
    end Peek;
@@ -369,7 +369,7 @@ package body Circular_Buffer is
    --
    --
 
-   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status is
+   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Return_Status is
    begin
       -- Make sure there is data on the queue:
       if Self.Item_Count = 0 then
@@ -379,7 +379,7 @@ package body Circular_Buffer is
       end if;
 
       declare
-         Stat : Pop_Status;
+         Stat : Pop_Return_Status;
          Num_Bytes_Returned : Natural;
          -- Optimization: create a byte array that overlays the length variable then
          -- pass this byte array into the peek function to get filled with the length.
@@ -399,7 +399,7 @@ package body Circular_Buffer is
       Bytes_To_Pop : constant Integer := Element_Length + Length_Serializer.Serialized_Length;
       Ignore_Bytes : Basic_Types.Byte_Array (0 .. Bytes_To_Pop - 1);
       Num_Bytes_Popped : Natural;
-      Stat : constant Pop_Status := Base (Self).Pop (Ignore_Bytes, Num_Bytes_Popped);
+      Stat : constant Pop_Return_Status := Base (Self).Pop (Ignore_Bytes, Num_Bytes_Popped);
    begin
       pragma Assert (Stat = Success, "Popping bytes failed. This can only be false if there is a software bug.");
       pragma Assert (Num_Bytes_Popped = Bytes_To_Pop, "Popping bytes returned too few bytes. This can only be false if there is a software bug.");
@@ -408,9 +408,9 @@ package body Circular_Buffer is
       Self.Item_Count := Self.Item_Count - 1;
    end Do_Pop;
 
-   function Pop (Self : in out Queue_Base) return Pop_Status is
+   function Pop (Self : in out Queue_Base) return Pop_Return_Status is
       Element_Length : Natural;
-      Stat : constant Pop_Status := Self.Peek_Length (Element_Length);
+      Stat : constant Pop_Return_Status := Self.Peek_Length (Element_Length);
    begin
       -- Check return status:
       if Stat /= Success then
@@ -422,9 +422,9 @@ package body Circular_Buffer is
       return Success;
    end Pop;
 
-   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Status is
+   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Return_Status is
       Len : constant Natural := Element_Length + Length_Serializer.Serialized_Length;
-      Stat : Push_Status;
+      Stat : Push_Return_Status;
    begin
       -- Make sure we can fit the data and the length:
       if Len > Self.Num_Bytes_Free then
@@ -460,7 +460,7 @@ package body Circular_Buffer is
       if Num_Bytes_To_Read > Offset then
          declare
             Num_Bytes_Returned : Natural;
-            Stat : Pop_Status;
+            Stat : Pop_Return_Status;
             Bytes_To_Peek : Natural := Num_Bytes_To_Read - Offset;
          begin
             -- Modify bytes to peek if it is longer than caller's byte array:
@@ -502,8 +502,8 @@ package body Circular_Buffer is
    --
    --
 
-   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status is
-      Stat : Push_Status := Queue_Base (Self).Push_Length (Bytes'Length);
+   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Return_Status is
+      Stat : Push_Return_Status := Queue_Base (Self).Push_Length (Bytes'Length);
    begin
       -- Check return status:
       if Stat /= Success then
@@ -517,8 +517,8 @@ package body Circular_Buffer is
       return Success;
    end Push;
 
-   function Do_Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Status is
-      Stat : constant Pop_Status := Self.Peek_Length (Length);
+   function Do_Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
+      Stat : constant Pop_Return_Status := Self.Peek_Length (Length);
    begin
       -- Initialize the element length to zero:
       Element_Length := 0;
@@ -541,16 +541,16 @@ package body Circular_Buffer is
       return Success;
    end Do_Peek;
 
-   overriding function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   overriding function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
       Ignore : Natural;
    begin
       return Self.Do_Peek (Bytes, Length, Ignore, Offset);
    end Peek;
 
-   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
       -- Peek some bytes:
       Element_Length : Natural;
-      Stat : constant Pop_Status := Self.Do_Peek (Bytes, Length, Element_Length, Offset);
+      Stat : constant Pop_Return_Status := Self.Do_Peek (Bytes, Length, Element_Length, Offset);
    begin
       -- Check return status:
       if Stat /= Success then

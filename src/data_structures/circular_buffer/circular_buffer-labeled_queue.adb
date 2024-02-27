@@ -6,8 +6,8 @@ package body Circular_Buffer.Labeled_Queue is
    -- Subprograms for Labeled Queue:
    --
 
-   function Push (Self : in out Instance; Label : in Label_Type; Bytes : in Basic_Types.Byte_Array) return Push_Status is
-      Stat : Push_Status := Queue_Base (Self).Push_Length (Label_Serializer.Serialized_Length + Bytes'Length);
+   function Push (Self : in out Instance; Label : in Label_Type; Bytes : in Basic_Types.Byte_Array) return Push_Return_Status is
+      Stat : Push_Return_Status := Queue_Base (Self).Push_Length (Label_Serializer.Serialized_Length + Bytes'Length);
    begin
       -- Check return status:
       if Stat /= Success then
@@ -32,9 +32,9 @@ package body Circular_Buffer.Labeled_Queue is
       return Success;
    end Push;
 
-   function Do_Peek_Label (Self : in Instance; Label : out Label_Type; Length : out Natural; Element_Length : out Natural) return Pop_Status is
+   function Do_Peek_Label (Self : in Instance; Label : out Label_Type; Length : out Natural; Element_Length : out Natural) return Pop_Return_Status is
       -- Peek the length:
-      Stat : Pop_Status := Queue_Base (Self).Peek_Length (Length);
+      Stat : Pop_Return_Status := Queue_Base (Self).Peek_Length (Length);
    begin
       -- Initialize element length to zero:
       Element_Length := 0;
@@ -68,9 +68,9 @@ package body Circular_Buffer.Labeled_Queue is
       return Success;
    end Do_Peek_Label;
 
-   function Do_Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   function Do_Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
       -- Peek the label:
-      Stat : constant Pop_Status := Do_Peek_Label (Self, Label, Length, Element_Length);
+      Stat : constant Pop_Return_Status := Do_Peek_Label (Self, Label, Length, Element_Length);
    begin
       -- Check return status:
       if Stat /= Success then
@@ -85,22 +85,22 @@ package body Circular_Buffer.Labeled_Queue is
       return Success;
    end Do_Peek;
 
-   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
       Ignore : Natural;
    begin
       return Do_Peek (Self, Label, Bytes, Length, Ignore, Offset);
    end Peek;
 
-   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Status is
+   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Return_Status is
       Ignore : Natural;
    begin
       return Self.Peek (Label, Bytes, Ignore, Offset);
    end Peek;
 
-   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status is
       -- Peek some bytes:
       Element_Length : Natural;
-      Stat : constant Pop_Status := Do_Peek (Self, Label, Bytes, Length, Element_Length, Offset);
+      Stat : constant Pop_Return_Status := Do_Peek (Self, Label, Bytes, Length, Element_Length, Offset);
    begin
       -- Check return status:
       if Stat /= Success then
@@ -113,20 +113,20 @@ package body Circular_Buffer.Labeled_Queue is
       return Success;
    end Pop;
 
-   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Status is
+   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Return_Status is
       Ignore : Natural;
    begin
       return Self.Pop (Label, Bytes, Ignore, Offset);
    end Pop;
 
-   function Peek_Label (Self : in Instance; Label : out Label_Type) return Pop_Status is
+   function Peek_Label (Self : in Instance; Label : out Label_Type) return Pop_Return_Status is
       Ignore1, Ignore2 : Natural;
    begin
       return Do_Peek_Label (Self, Label, Ignore1, Ignore2);
    end Peek_Label;
 
-   overriding function Peek_Length (Self : in Instance; Length : out Natural) return Pop_Status is
-      Stat : Pop_Status;
+   overriding function Peek_Length (Self : in Instance; Length : out Natural) return Pop_Return_Status is
+      Stat : Pop_Return_Status;
       Total_Length : Natural;
    begin
       -- Initialize to zero:
