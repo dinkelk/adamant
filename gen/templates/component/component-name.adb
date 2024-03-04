@@ -229,56 +229,6 @@ package body Component.{{ name }} is
    ---------------------------------------------------------------
    -- Visible private dispatching procedures for component queue:
    ---------------------------------------------------------------
-   procedure Dispatch_Block (Self : in out Base_Instance) is
-      use Queue_Package;
-{% if connectors.requires_priority_queue() %}
-      Pri_Element : Priority_Element;
-{% else %}
-      Id_Record : Connector_Identifier_Type;
-{% endif %}
-      Length : Natural;
-      Bytes : Queue_Byte_Array;
-   begin
-      -- Pop an element off the queue and dispatch to the appropriate handler function
-      -- based on the element type. Note: This call blocks if there is nothing on the
-      -- queue.
-{% if connectors.requires_priority_queue() %}
-      case Self.Queue.Pop_Block (Priority => Pri_Element, Bytes => Bytes, Length => Length) is
-{% else %}
-      case Self.Queue.Pop_Block (Label => Id_Record, Bytes => Bytes, Length => Length) is
-{% endif %}
-         -- Dispatch message from queue to proper handler:
-         -- The dispatch function MUST release the lock when finished.
-         when Success =>
-            declare
-{% if connectors.requires_priority_queue() %}
-               Id_Record : Connector_Identifier_Type renames Pri_Element.Id_Record;
-{% endif %}
-               Dispatch_To : constant Dispatch_Procedure := Dispatch_Table (Id_Record.Id);
-            begin
-               Dispatch_To (Self{% if connectors.arrayed_invokee() %}, Id_Record.Index{% endif %}, Bytes (Bytes'First .. Bytes'First + Length - 1));
-               pragma Annotate (CodePeer, False_Positive, "range check", "We never put items on queue larger than Bytes'Length.");
-            end;
-         -- Error was returned:
-         when Error =>
-            -- Error was returned. This can only occur if another task was also waiting on this
-            -- queue. In practice, this should always be avoided, as it goes against Adamant
-            -- design practices. So, in practice the code below should never get executed.
-            -- However, to be safe, let's just sleep for a short amount of time
-            -- to give up the processor so we don't end up hogging the CPU if this is a high priority
-            -- task, and then we can try to pop again when this function is called next in Cycle().
-            --
-            -- Note: This cannot happen on a SFP runtime, the last chance handler will get called instead.
-            Sleep.Sleep_Ms (100);
-{% if connectors.requires_priority_queue() %}
-         -- Unexpected status was returned:
-         when Too_Small =>
-            -- The buffer should never be to small since it is sized to match the largest possible queue element size.
-            pragma Assert (False);
-{% endif %}
-      end case;
-   end Dispatch_Block;
-
    function Dispatch_Nonblock (Self : in out Base_Instance) return Boolean is
       use Queue_Package;
 {% if connectors.requires_priority_queue() %}
@@ -349,27 +299,19 @@ package body Component.{{ name }} is
 {% if connector.type_model %}
 {% if connector.type_model.variable_length %}
       function Typed_Push is new Queue_Package.Push_Variable_Length_Type ({{ connector.type }}, {{ connector.type_package }}.Serialized_Length);
-      function Typed_Push_Block is new Queue_Package.Push_Variable_Length_Type_Block ({{ connector.type }}, {{ connector.type_package }}.Serialized_Length);
 {% else %}
       function Typed_Push is new Queue_Package.Push_Type ({{ connector.type }});
-      function Typed_Push_Block is new Queue_Package.Push_Type_Block ({{ connector.type }});
 {% endif %}
 {% else %}
 {% if connector.generic and connector.generic_serialized_length_func %}
       function Typed_Push is new Queue_Package.Push_Variable_Length_Type ({{ connector.type }}, {{ connector.generic_serialized_length_func.name }});
-      function Typed_Push_Block is new Queue_Package.Push_Variable_Length_Type_Block ({{ connector.type }}, {{ connector.generic_serialized_length_func.name }});
 {% else %}
       function Typed_Push is new Queue_Package.Push_Type ({{ connector.type }});
-      function Typed_Push_Block is new Queue_Package.Push_Type_Block ({{ connector.type }});
 {% endif %}
 {% endif %}
       -- Form the meta data to put on the queue
       Id_Record : constant Connector_Identifier_Type := (Id => {{ connector.name }}{% if connectors.arrayed_invokee() %}, Index => Index{% endif %});
    begin
-      -- Enqueue the message differently based on the full queue behavior:
-      case Full_Queue_Behavior is
-         -- Drop message if queue full:
-         when Drop =>
 {% if connectors.requires_priority_queue() %}
             case Typed_Push (Self.Queue, (Priority => {{ connector.priority }}, Id_Record => Id_Record), Arg) is
 {% else %}
@@ -396,118 +338,11 @@ package body Component.{{ name }} is
                when Too_Full => return Message_Dropped;
 {% endif %}
             end case;
-
-         -- Block on full queue until it is not full anymore:
-         when Wait =>
-            declare
-               Count : Natural := 0;
-{% if (connector.type_model and connector.type_model.variable_length) or (connector.generic and connector.generic_serialized_length_func) %}
-               Push_Stat : Push_Variable_Length_Type_Block_Status;
-{% else %}
-               Push_Stat : Push_Block_Status;
-{% endif %}
-            begin
-{% if connectors.requires_priority_queue() %}
-               Push_Stat := Typed_Push_Block (Self.Queue, (Priority => {{ connector.priority }}, Id_Record => Id_Record), Arg);
-{% else %}
-               Push_Stat := Typed_Push_Block (Self.Queue, Id_Record, Arg);
-{% endif %}
-               while Push_Stat = Error loop
-                  -- Error was returned. This can only occur if another task was also waiting on this
-                  -- queue. In practice, this should always be avoided, as it goes against Adamant
-                  -- design practices. So, in practice the code below should never get executed.
-                  -- However, to be safe, let's just sleep for a short amount of time
-                  -- to give up the processor so we don't end up hogging the CPU if this is a high priority
-                  -- task.
-                  Count := Count + 1;
-                  if Count > 5 then
-                     -- We are still in an error condition after trying many time, something is terribly
-                     -- wrong, drop the message.
-                     return Message_Dropped;
-                  else
-                     Sleep.Sleep_Ms (100);
-                  end if;
-                  -- Try to push again.
-{% if connectors.requires_priority_queue() %}
-                  Push_Stat := Typed_Push_Block (Self.Queue, (Priority => {{ connector.priority }}, Id_Record => Id_Record), Arg);
-{% else %}
-                  Push_Stat := Typed_Push_Block (Self.Queue, Id_Record, Arg);
-{% endif %}
-               end loop;
-
-               -- Check the status:
-               case Push_Stat is
-                  when Success =>
-                     null;
-                  when Error =>
-                     -- This code is unreachable.
-                     pragma Assert (False);
-{% if (connector.type_model and connector.type_model.variable_length) or (connector.generic and connector.generic_serialized_length_func) %}
-                  when Serialization_Failure =>
-                     return Message_Dropped;
-{% endif %}
-{% if connectors.requires_priority_queue() %}
-                  when Too_Large =>
-                     -- The buffer should never be to large the queue elements are sized to match the largest possible type.
-                     pragma Assert (False);
-{% endif %}
-               end case;
-
-            end;
-      end case;
-
       return Success;
    end Enqueue_{{ connector.name }};
 
 {% endfor %}
 {% endif %}
-   ---------------------------------------------------------------
-   -- Visible public Cycle function which defines task execution:
-   ---------------------------------------------------------------
-{% if execution in ["active", "either"] %}
-{% if connectors.requires_queue() %}
-   overriding procedure Cycle (Self : in out Base_Instance) is
-   begin
-      Base_Instance'Class (Self).Dispatch_Block;
-   end Cycle;
-
-   not overriding procedure Stop_Task (Self : in out Base_Instance) is
-      use Queue_Package;
-      Quit_Id_Record : constant Connector_Identifier_Type := (Id => Quit{% if connectors.arrayed_invokee() %}, Index => Connector_Index_Type'First{% endif %});
-      Bytes : Basic_Types.Byte_Array (1 .. 0); -- Empty byte array
-   begin
-{% if connectors.requires_priority_queue() %}
-      while Self.Queue.Push_Block ((Priority => Queue_Priority_Type'Last, Id_Record => Quit_Id_Record), Bytes) /= Success loop
-{% else %}
-      while Self.Queue.Push_Block (Quit_Id_Record, Bytes) /= Success loop
-{% endif %}
-         -- Error was returned. This can only occur if another task was also waiting on this
-         -- queue. In practice, this should always be avoided, as it goes against Adamant
-         -- design practices. So, in practice the code below should never get executed.
-         -- However, to be safe, let's just sleep for a short amount of time
-         -- to give up the processor so we don't end up hogging the CPU if this is a high priority
-         -- task, and then we can try to push the exit again.
-         --
-         -- Note: This cannot happen on a SFP runtime, the last chance handler will get called instead.
-         Sleep.Sleep_Ms (100);
-      end loop;
-   end Stop_Task;
-{% else %}
-   -- "Cycle" method is abstract, and should be overridden in implementation.
-{% endif %}
-{% else %}
-   overriding procedure Cycle (Self : in out Base_Instance) is
-      pragma Annotate (CodePeer, Intentional, "subp always fails",
-         "Intentional - this subp should never be called on a component without a task.");
-      Ignore : Base_Instance renames Self;
-   begin
-      -- This is a passive component, meaning it CANNOT be tasked. If the component
-      -- is given a task we quit.
-      --
-      pragma Assert (False);
-   end Cycle;
-{% endif %}
-
 {% if tasks.has_subtasks %}
    -------------------------------------------------------
    -- Definition of subtasks:
@@ -802,7 +637,8 @@ package body Component.{{ name }} is
          pragma Annotate (CodePeer, False_Positive, "range check",
             "The command ID cannot be out of range since range checking is done in Set_Id_Bases.");
          -- Sleep a bit, so as to not stress out the command router component's queue.
-         Sleep.Sleep_Us (Configuration.Command_Registration_Delay);
+         -- Sleep.Sleep_Us (Configuration.Command_Registration_Delay);
+         null;
       end loop;
    end Register_Commands;
 

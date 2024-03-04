@@ -476,7 +476,7 @@ class component(base):
                     else []
                 )
                 + (
-                    ["Sleep"]
+                    []
                     if self.connectors.of_kind("recv_async") or self.commands
                     else []
                 )

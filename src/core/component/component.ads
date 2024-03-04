@@ -1,6 +1,3 @@
-with Task_Types;
-with Ada.Synchronous_Task_Control;
-with System;
 with Basic_Types;
 
 -- This is a base component. There is not much here, but
@@ -15,22 +12,6 @@ package Component is
    -- List type:
    type Component_List is array (Natural range <>) of Class_Access;
    type Component_List_Access is access all Component_List;
-
-   -- Component abstract method, executed cyclically in task:
-   procedure Cycle (Ignore : in out Core_Instance) is abstract;
-
-   -- Task type for active components:
-   task type Active_Task (
-      Task_Data : Task_Types.Task_Info_Access;
-      Class_Self : not null Class_Access;
-      Signal : not null access Ada.Synchronous_Task_Control.Suspension_Object;
-      Pri : System.Priority;
-      Stack_Size : Natural;
-      Secondary_Stack_Size : Natural
-   ) -- Set the priority and stack size for the task:
-      with Priority => Pri,
-             Storage_Size => Stack_Size,
-             Secondary_Stack_Size => Secondary_Stack_Size;
 
    -- Null method which can be overridden to provide some component
    -- set up code. This method is generally called by the assembly

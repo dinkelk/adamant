@@ -1,6 +1,5 @@
 with Circular_Buffer.Labeled_Queue;
 with Basic_Types;
-with Ada.Synchronous_Task_Control;
 with Serializer_Types;
 
 -- This is a protected (thread safe) queue that supports the pushing,
@@ -43,12 +42,8 @@ package Labeled_Queue is
    --
    type Push_Status is (Success, Too_Full);
    type Pop_Status is (Success, Empty);
-   type Push_Block_Status is (Success, Error);
-   type Pop_Block_Status is (Success, Error);
    type Push_Variable_Length_Type_Status is (Success, Too_Full, Serialization_Failure);
-   type Push_Variable_Length_Type_Block_Status is (Success, Serialization_Failure, Error);
    type Pop_Type_Status is (Success, Empty, Deserialization_Failure);
-   type Pop_Type_Block_Status is (Success, Deserialization_Failure, Error);
 
    --
    -- Initialization/destruction functions:
@@ -96,34 +91,6 @@ package Labeled_Queue is
       with Inline => True;
 
    --
-   -- Add/remove/look at data on the queue, blocking operations.
-   --
-   -- Note: The options below will either return Success or Error. Error may
-   -- be returned on Ravenscar systems only. Ravenscar has a restriction in that
-   -- only a single task may wait on a suspension object at any given time. If this
-   -- condition is ever violated a Program_Error is raised. In the functions below
-   -- we catch this condition and return the Error status, allowing the user to
-   -- handle the condition as they please, usually by either moving on, or trying
-   -- again. Proper usage of this queue in Adamant should avoid the possibility of
-   -- this condition ever occurring. Good design usually avoids more than one task
-   -- simultaneously popping or pushing to the same queue in a blocking manner. Use
-   -- the "no_wait" version of these functions above whenever possible.
-   --
-   -- Push data from a byte array onto the queue. If not enough space remains on the internal queue then
-   -- wait until there is space available.
-   function Push_Block (Self : in out Instance; Label : in Label_Type; Bytes : in Basic_Types.Byte_Array) return Push_Block_Status;
-   -- Same as "Pop" above but waits until an item is put onto the queue if the queue is currently empty:
-   function Pop_Block (Self : in out Instance; Label : out Label_Type; Bytes : out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Block_Status;
-   function Pop_Block (Self : in out Instance; Label : out Label_Type; Bytes : out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Block_Status;
-   -- Same as "Peek" above but waits until an item is put onto the queue if the queue is currently empty:
-   function Peek_Block (Self : in out Instance; Label : out Label_Type; Bytes : out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Block_Status;
-   function Peek_Block (Self : in out Instance; Label : out Label_Type; Bytes : out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Block_Status;
-   -- Same as "Peek_Length" above but waits until an item is put onto the queue if the queue is currently empty:
-   function Peek_Length_Block (Self : in out Instance; Length : out Natural) return Pop_Block_Status;
-   -- Same as "Peek_Label" above but waits until an item is put onto the queue if the queue is currently empty:
-   function Peek_Label_Block (Self : in out Instance; Label : out Label_Type) return Pop_Block_Status;
-
-   --
    -- Typed push functions.
    --
    -- These generic functions operate the same as "Push" above but they take a type, call and its serialization function as the bytes
@@ -136,23 +103,12 @@ package Labeled_Queue is
       type T is private;
    function Push_Type (Self : in out Instance; Label : in Label_Type; Src : in T) return Push_Status;
 
-   -- Blocking version of function above:
-   generic
-      type T is private;
-   function Push_Type_Block (Self : in out Instance; Label : in Label_Type; Src : in T) return Push_Block_Status;
-
    -- Push function for variable sized packed types. Pass in the type, serializer function, and a function which returns
    -- the serialized length of the type when serialized to instantiate the generic function.
    generic
       type T is private;
       with function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;
    function Push_Variable_Length_Type (Self : in out Instance; Label : in Label_Type; Src : in T) return Push_Variable_Length_Type_Status;
-
-   -- Blocking version of function above:
-   generic
-      type T is private;
-      with function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;
-   function Push_Variable_Length_Type_Block (Self : in out Instance; Label : in Label_Type; Src : in T) return Push_Variable_Length_Type_Block_Status;
 
    --
    -- Typed peek functions.
@@ -167,23 +123,12 @@ package Labeled_Queue is
       type T is private;
    function Peek_Type (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Status;
 
-   -- Blocking version of function above:
-   generic
-      type T is private;
-   function Peek_Type_Block (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Block_Status;
-
    -- Peek function for variable length packed types. Pass in the type, deserializer function, and a function
    -- which returns the serialized length of the type in order to instantiate the generic function.
    generic
       type T is private;
       with function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;
    function Peek_Variable_Length_Type (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Status;
-
-   -- Blocking version of function above:
-   generic
-      type T is private;
-      with function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;
-   function Peek_Variable_Length_Type_Block (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Block_Status;
 
    --
    -- Typed pop functions.
@@ -200,11 +145,6 @@ package Labeled_Queue is
       type T is private;
    function Pop_Type (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Status;
 
-   -- Blocking version of function above:
-   generic
-      type T is private;
-   function Pop_Type_Block (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Block_Status;
-
    -- Pop function for variable length packed types. Pass in the type, deserializer function, and a function
    -- which returns the serialized length of the type in order to instantiate the generic function.
    -- from the queue, the internal queue element is still removed from the internal queue. So you can always count
@@ -213,12 +153,6 @@ package Labeled_Queue is
       type T is private;
       with function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;
    function Pop_Variable_Length_Type (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Status;
-
-   -- Blocking version of function above:
-   generic
-      type T is private;
-      with function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;
-   function Pop_Variable_Length_Type_Block (Self : in out Instance; Label : out Label_Type; Dest : out T; Offset : in Natural := 0) return Pop_Type_Block_Status;
 
    --
    -- Meta data functions:
@@ -268,42 +202,8 @@ private
    -- Resolve the element storage overhead constant:
    Element_Storage_Overhead : constant Natural := Labeled_Queue_Package.Labeled_Queue_Element_Storage_Overhead;
 
-   -- Protected queue type to provide mutual exclusion of internal queue:
-   protected type Protected_Queue is
-      -- Functions that provide read-only access to the private data:
-      function Get_Count return Natural;
-      function Get_Max_Count return Natural;
-      function Num_Bytes_Free return Natural;
-      function Num_Bytes_Used return Natural;
-      function Max_Num_Bytes_Used return Natural;
-      function Num_Bytes_Total return Natural;
-      function Current_Percent_Used return Basic_Types.Byte;
-      function Max_Percent_Used return Basic_Types.Byte;
-      function Peek (Label : out Label_Type; Bytes : out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural) return Pop_Status;
-      function Peek_Length (Length : out Natural) return Pop_Status;
-      function Peek_Label (Label : out Label_Type) return Pop_Status;
-      -- Procedures requiring full mutual exclusion:
-      procedure Init (Size : in Natural);
-      procedure Init (Bytes : in Basic_Types.Byte_Array_Access);
-      procedure Destroy;
-      procedure Clear;
-      -- Note: We release the suspension objects inside of the protected object. This allows the scheduler
-      -- to immediately pop from a just-pushed queue if the popper is the highest priority task. If we did not
-      -- release the suspension objects inside of the protected object, then it is possible for another
-      -- task to run push before the other end of the queue has time to respond, even if it is higher
-      -- a higher priority task. This design ensures the most efficient use of memory on the queue.
-      procedure Push (Label : in Label_Type; Bytes : in Basic_Types.Byte_Array; Not_Empty : in out Ada.Synchronous_Task_Control.Suspension_Object; Status : out Push_Status);
-      procedure Pop (Label : out Label_Type; Bytes : out Basic_Types.Byte_Array; Not_Full : in out Ada.Synchronous_Task_Control.Suspension_Object; Length : out Natural; Offset : in Natural; Status : out Pop_Status);
-   private
-      Queue : Labeled_Queue_Package.Instance;
-   end Protected_Queue;
-
-   -- The queue instance contains an unprotected queue type, a binary semaphore for mutual exclusion,
-   -- and two suspension objects to provide synchronization (blocking operations) when trying to pop/peek
-   -- from an empty queue or trying to push to a full queue.
    type Instance is tagged limited record
-      Queue : Protected_Queue;
-      Not_Full, Not_Empty : Ada.Synchronous_Task_Control.Suspension_Object;
+      Queue : Labeled_Queue_Package.Instance;
    end record;
 
 end Labeled_Queue;

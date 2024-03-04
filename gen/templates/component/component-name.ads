@@ -439,8 +439,6 @@ private
    not overriding function Dispatch_N (Self : in out Base_Instance; N : in Natural := 1) return Natural;
    -- Function which tries to drain the queue. It returns the number of messages dispatched:
    not overriding function Dispatch_All (Self : in out Base_Instance) return Natural;
-   -- Function which waits on queue for message and then dispatches it.
-   procedure Dispatch_Block (Self : in out Base_Instance);
    -- Function dispatches message from queue if available, otherwise returns False.
    function Dispatch_Nonblock (Self : in out Base_Instance) return Boolean;
 
@@ -453,24 +451,6 @@ private
 {% endfor %}
 
 {% endif %}
-   ---------------------------------------------------
-   -- Definition of cycle function for task execution:
-   ---------------------------------------------------
-{% if execution in ["active", "either"] %}
-{% if connectors.requires_queue() %}
-   -- Active component queue implementation for cycle.
-   -- Component continuously waits for items to arrive on queue
-   -- and then executes when an item is received.
-   overriding procedure Cycle (Self : in out Base_Instance);
-{% else %}
-   -- "cycle" method is abstract, and should be overridden in implementation.
-{% endif %}
-{% else %}
-   -- Passive component queue implementation for cycle.
-   -- This method is implemented, but if called will throw an assertion.
-   overriding procedure Cycle (Self : in out Base_Instance);
-{% endif %}
-
 {% if connectors.invokee() %}
    ---------------------------------------
    -- Private invokee connector hooks which

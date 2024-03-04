@@ -893,7 +893,7 @@ class assembly(subassembly):
             self.ads_includes.extend(
                 list(
                     OrderedDict.fromkeys(
-                        ["Task_Types", "Interrupt_Types"]
+                        []
                         + (
                             [
                                 "Ada.Synchronous_Task_Control",

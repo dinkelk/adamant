@@ -126,9 +126,6 @@ package {{ name }} is
    );
 
 {% else %}
-   -- List of task infos for all tasks:
-   Task_List : aliased Task_Types.Task_Info_List := (1 .. 0 => null); -- empty
-
 {% endif %}
 {% if interrupt_list %}
    -- Remove some reference style checking to deal with incorrect capitalization in system packages.
@@ -146,9 +143,6 @@ package {{ name }} is
    pragma Style_Checks ("+rn");
 
 {% else %}
-   -- List of all interrupts used in the system:
-   Interrupt_List : aliased Interrupt_Types.Interrupt_Id_List := (1 .. 0 => 0); -- empty
-
 {% endif %}
 {% if component_kind_dict["queued"] %}
    -- List of all components with positive queue sizes in the system:
