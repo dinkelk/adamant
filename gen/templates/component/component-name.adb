@@ -14,61 +14,6 @@ with {{ include }};
 
 package body Component.{{ name }} is
 
-{% if parameters %}
-   -- A protected object is used to store the component's staged parameters. This is because
-   -- the staged parameters are accessed by both the execution thread of the component and the
-   -- execution thread of the parameter component responsible for updating the parameters.
-   -- The design of this protected object is to optimize the speed at which the copying of parameters
-   -- from the staged to the working variables is as fast as possible.
-   protected body Protected_Staged_Parameters is
-      -- Sets the parameters staged flag to True
-      procedure Set_Parameters_Staged is
-      begin
-         Parameters_Staged := True;
-      end Set_Parameters_Staged;
-
-      -- Returns true if the parameters have been staged:
-      function Have_Parameters_Been_Staged return Boolean is
-      begin
-         return Parameters_Staged;
-      end Have_Parameters_Been_Staged;
-
-      -- Staging functions for each parameter:
-{% for par in parameters %}
-      procedure Stage_{{ par.name }} (Par : in {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %}) is
-      begin
-         {{ par.name }}_Staged := Par;
-      end Stage_{{ par.name }};
-
-{% endfor %}
-{% for par in parameters %}
-      function Get_{{ par.name }} return {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %} is
-      begin
-         return {{ par.name }}_Staged;
-      end Get_{{ par.name }};
-
-{% endfor %}
-      -- Single update function to copy all the parameters from the
-      -- staged versions to the working copy passed in. This function
-      -- also resets the parameters_Updated boolean to False.
-      procedure Copy_From_Staged (
-{% for par in parameters %}
-         {{ par.name }} : out {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %}{{ ";" if not loop.last }}
-{% endfor %}
-      ) is
-      begin
-         if Parameters_Staged then
-            -- Copy over all the parameters from the staged to the passed in values:
-{% for par in parameters %}
-            {{ par.name }} := {{ par.name }}_Staged;
-{% endfor %}
-            -- We have now updated all the parameters, so reset the staged flag:
-            Parameters_Staged := False;
-         end if;
-      end Copy_From_Staged;
-   end Protected_Staged_Parameters;
-
-{% endif %}
 {% if connectors.requires_queue() %}
    ---------------------------------------
    -- Return max queue size element:
@@ -218,7 +163,7 @@ package body Component.{{ name }} is
    begin
       Self.Data_Dependencies.Set_Ids_And_Limits (
 {% for dd in data_dependencies %}
-         {{ dd.name }}_Id => {{ dd.name }}_Id,
+         {{ dd.name }}_Id => {{ dd.name }}_Id{{ "," if not loop.last }}
 {% endfor %}
       );
    end Map_Data_Dependencies;
@@ -761,19 +706,7 @@ package body Component.{{ name }} is
 
    not overriding procedure Update_Parameters (Self : in out Base_Instance) is
    begin
-      -- If parameters have finished being staged, then we need to update
-      -- our local working copy from the staged parameter store.
-      if Self.Staged_Parameters.Have_Parameters_Been_Staged then
-         -- Copy over staged parameters to working parameters:
-         Self.Staged_Parameters.Copy_From_Staged (
-{% for par in parameters %}
-            {{ par.name }} => Self.{{ par.name }}{{ "," if not loop.last }}
-{% endfor %}
-         );
-         -- Now that the parameters have been updated, call up to the user function to
-         -- implement any special action that needs to be run with the updated parameters.
-         Base_Instance'Class (Self).Update_Parameters_Action;
-      end if;
+      null;
    end Update_Parameters;
 
    not overriding procedure Process_Parameter_Update (Self : in out Base_Instance; Par_Update : in out Parameter_Update.T) is
@@ -785,8 +718,7 @@ package body Component.{{ name }} is
             -- Stage this parameter.
             Status := Self.Stage_Parameter (Par_Update.Param);
          when Update =>
-            -- All parameters have been staged, we can now update our local parameters:
-            Self.Staged_Parameters.Set_Parameters_Staged;
+            null;
          when Fetch =>
             Status := Self.Fetch_Parameter (Par_Update.Param);
       end case;
@@ -837,109 +769,19 @@ package body Component.{{ name }} is
 
 {% for par in parameters %}
    not overriding function Stage_{{ par.name }} (Self : in out Base_Instance; Par : in Parameter.T) return Parameter_Update_Status.E is
-      use Parameter_Types;
-{% if par.type_model %}
-      package Buffer_Deserializer renames {{ par.type_package }}.Serialization;
-{% else %}
-      package Buffer_Deserializer is new Serializer ({{ par.type }});
-{% endif %}
    begin
-      pragma Assert (Par.Header.Id = Self.Parameter_Id_Base + {{ loop.index0 }});
-      pragma Annotate (CodePeer, False_Positive, "assertion", "Internal routing ensures this is true.");
-
-      -- Check the parameter buffer length and make sure it is valid.
-      if Par.Header.Buffer_Length = Buffer_Deserializer.Serialized_Length then
-         declare
-            -- Deserialize the parameter buffer into the buffer type:
-            Par_To_Stage : constant {{ par.type }} := Buffer_Deserializer.From_Byte_Array (Par.Buffer (Par.Buffer'First .. Par.Buffer'First + Buffer_Deserializer.Serialized_Length - 1));
-{% if par.type_model %}
-            Errant_Field : Unsigned_32 := 0;
-            pragma Annotate (CodePeer, Intentional, "unused assignment", "Sometimes the type can never be invalid, and in that case Errant_Field will never be needed.");
-            Args_Valid : constant Boolean := {{ par.type_package }}.Validation.Valid (Par_To_Stage, Errant_Field);
-{% else %}
-            Errant_Field : constant Unsigned_32 := 0;
-            Args_Valid : constant Boolean := Par_To_Stage'Valid;
-{% endif %}
-         begin
-            -- Make sure the deserialized parameter values are valid.
-            if Args_Valid then
-               -- Stage the parameter:
-{% if par.type_package %}
-               Self.Staged_Parameters.Stage_{{ par.name }} ({{ par.type_package }}.U (Par_To_Stage));
-{% else %}
-               Self.Staged_Parameters.Stage_{{ par.name }} (Par_To_Stage);
-{% endif %}
-               return Parameter_Update_Status.Success;
-            else
-               -- Create a poly type with the invalid parameter and send it to the handler.
-               declare
-{% if par.type_model %}
-                  P_Type : constant Basic_Types.Poly_Type := {{ par.type_package }}.Get_Field (Par_To_Stage, Errant_Field);
-{% else %}
-                  P_Type : Basic_Types.Poly_Type := (others => 0);
-{% endif %}
-               begin
-{% if not par.type_model %}
-                  -- Copy parameter value into poly type:
-                  Byte_Array_Util.Safe_Right_Copy (P_Type, Par.Buffer (Par.Buffer'First .. Par.Buffer'First + Buffer_Deserializer.Serialized_Length - 1));
-{% endif %}
-                  -- Call up to the parameter_Invalid function for handling.
-                  Base_Instance'Class (Self).Invalid_Parameter (Par, Errant_Field, P_Type);
-                  return Parameter_Update_Status.Validation_Error;
-               end;
-            end if;
-         end;
-      else
-         Self.Handle_Parameter_Length_Error (Par);
-         return Parameter_Update_Status.Length_Error;
-      end if;
+      return Parameter_Update_Status.Success;
    end Stage_{{ par.name }};
 
 {% endfor %}
    not overriding function Fetch_Parameter (Self : in out Base_Instance; Par : in out Parameter.T) return Parameter_Update_Status.E is
-      use Parameter_Types;
-      use Parameter_Update_Status;
    begin
-      -- If ID is within the valid range then stage the parameter, otherwise do error routine:
-      declare
-         Integer_Param_Id : constant Integer := Integer (Par.Header.Id) - Integer (Self.Parameter_Id_Base);
-      begin
-         if Integer_Param_Id >= {{ parameters.name }}.Local_Parameter_Id_Type'Enum_Rep ({{ parameters.name }}.Local_Parameter_Id_Type'First) and then
-             Integer_Param_Id <= {{ parameters.name }}.Local_Parameter_Id_Type'Enum_Rep ({{ parameters.name }}.Local_Parameter_Id_Type'Last)
-         then
-            declare
-               Local_Id : constant {{ parameters.name }}.Local_Parameter_Id_Type := {{ parameters.name }}.Local_Parameter_Id_Type'Val (Par.Header.Id - Self.Parameter_Id_Base);
-               Fetch_From : constant Fetch_Function := Parameter_Id_Fetch_Table (Local_Id);
-            begin
-               return Fetch_From (Self, Par);
-            end;
-         else
-            -- Id is not valid for component so return the the error status:
-            return Id_Error;
-         end if;
-      end;
+      return Parameter_Update_Status.Success;
    end Fetch_Parameter;
 
 {% for par in parameters %}
    not overriding function Fetch_{{ par.name }} (Self : in out Base_Instance; Par : in out Parameter.T) return Parameter_Update_Status.E is
-      use Parameter_Types;
-{% if par.type_model %}
-      package Buffer_Deserializer renames {{ par.type_package }}.Serialization;
-      Value : constant {{ par.type_package }}.T := {{ par.type_package }}.T (Self.Staged_Parameters.Get_{{ par.name }});
-{% else %}
-      package Buffer_Deserializer is new Serializer ({{ par.type }});
-      Value : constant {{ par.type }} := Self.Staged_Parameters.Get_{{ par.name }};
-{% endif %}
-      pragma Annotate (CodePeer, False_Positive, "validity check",
-         "Defaults for parameter values are always initialized within Staged_Parameters protected object definition.");
    begin
-      pragma Assert (Par.Header.Id = Self.Parameter_Id_Base + {{ loop.index0 }});
-
-      -- Set the parameter length:
-      Par.Header.Buffer_Length := Buffer_Deserializer.Serialized_Length;
-
-      -- Set the parameter buffer data:
-      Par.Buffer (Par.Buffer'First .. Par.Buffer'First + Par.Header.Buffer_Length - 1) := Buffer_Deserializer.To_Byte_Array (Value);
       return Parameter_Update_Status.Success;
    end Fetch_{{ par.name }};
 

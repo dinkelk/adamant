@@ -580,45 +580,6 @@ private
 {% endfor %}
    );
 
-   -- A protected object is used to store the component's staged parameters. This is because
-   -- the staged parameters are accessed by both the execution thread of the component and the
-   -- execution thread of the parameter component responsible for updating the parameters.
-   -- The design of this protected object is to optimize the speed at which the copying of parameters
-   -- from the staged to the working variables is as fast as possible.
-   protected type Protected_Staged_Parameters is
-      -- Sets the parameters staged flag to True
-      procedure Set_Parameters_Staged;
-
-      -- Returns true if the parameters have been staged:
-      function Have_Parameters_Been_Staged return Boolean;
-
-      -- Staging functions for each parameter:
-{% for par in parameters %}
-      procedure Stage_{{ par.name }} (Par : in {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %});
-{% endfor %}
-
-      -- Fetching functions for each parameter:
-{% for par in parameters %}
-      function Get_{{ par.name }} return {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %};
-{% endfor %}
-
-      -- Single update function to copy all the parameters from the
-      -- staged versions to the working copy passed in. This function
-      -- also resets the parameters_Updated boolean to False.
-      procedure Copy_From_Staged (
-{% for par in parameters %}
-         {{ par.name }} : out {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %}{{ ";" if not loop.last }}
-{% endfor %}
-      );
-   private
-      -- Have the parameters been staged?
-      Parameters_Staged : Boolean := False;
-      -- Staged parameter store:
-{% for par in parameters %}
-      {{ par.name }}_Staged : {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %}{% if par.default_value %} := {{ par.default_value }}{% endif %};
-{% endfor %}
-   end Protected_Staged_Parameters;
-
 {% endif %}
 {% if data_dependencies %}
    -------------------------------------------
@@ -689,8 +650,6 @@ private
 {% if parameters %}
       -- Parameter variables:
       Parameter_Id_Base : Parameter_Types.Parameter_Id := 1; -- Should not be 0 since, "parameters set" is always 0
-      -- Staged parameters:
-      Staged_Parameters : Protected_Staged_Parameters;
       -- Working parameters:
 {% for par in parameters %}
       {{ par.name }} : {% if par.type_package %}{{ par.type_package }}.U{% else %}par.type{% endif %}{% if par.default_value %} := {{ par.default_value }}{% endif %};
