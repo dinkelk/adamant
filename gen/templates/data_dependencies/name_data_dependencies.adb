@@ -17,8 +17,7 @@ package body {{ name }} is
    not overriding procedure Set_Ids_And_Limits (
       Self : in out Instance;
 {% for dd in data_dependencies %}
-      {{ dd.name }}_Id : in Data_Product_Types.Data_Product_Id;
-      {{ dd.name }}_Stale_Limit : in Ada.Real_Time.Time_Span{{ ";" if not loop.last }}
+      {{ dd.name }}_Id : in Data_Product_Types.Data_Product_Id{{ ";" if not loop.last }}
 {% endfor %}
    ) is
    begin
@@ -44,7 +43,6 @@ package body {{ name }} is
 {% for dd in data_dependencies %}
    not overriding function Extract_{{ dd.name }} (Self : in Instance; Product : in Data_Product.T; Stale_Reference : in Sys_Time.T; Timestamp : out Sys_Time.T; Item : out {{ dd.type }}) return Status is
       use Data_Product_Types;
-      use Ada.Real_Time;
 {% if dd.type_model %}
       package Data_Product_Serializer renames {{ dd.type_package }}.Serialization;
 {% else %}
@@ -66,22 +64,6 @@ package body {{ name }} is
 
       -- Extract data:
       Item := Data_Product_Serializer.From_Byte_Array (Product.Buffer (Product.Buffer'First .. Product.Buffer'First + Data_Product_Serializer.Serialized_Length - 1));
-
-      -- Check if data product is stale:
-      if Self.{{ dd.name }}_Stale_Limit /= Ada.Real_Time.Time_Span_Zero then
-         declare
-            Ret : constant Stale_Status := Check_Data_Product_Stale (
-               Timestamp => Timestamp,
-               Stale_Reference => Stale_Reference,
-               Stale_Limit => Self.{{ dd.name }}_Stale_Limit
-            );
-         begin
-            case Ret is
-               when Success => null; -- Not stale.
-               when Stale => return Stale; -- Is stale.
-            end case;
-         end;
-      end if;
 
       return Success;
    end Extract_{{ dd.name }};

@@ -8,7 +8,6 @@
 with Data_Product;
 with Data_Product_Types;
 with Sys_Time;
-with Ada.Real_Time;
 {% if includes %}
 
 -- Data Product Type Includes
@@ -39,8 +38,7 @@ package {{ name }} is
    not overriding procedure Set_Ids_And_Limits (
       Self : in out Instance;
 {% for dd in data_dependencies %}
-      {{ dd.name }}_Id : in Data_Product_Types.Data_Product_Id;
-      {{ dd.name }}_Stale_Limit : in Ada.Real_Time.Time_Span{{ ";" if not loop.last }}
+      {{ dd.name }}_Id : in Data_Product_Types.Data_Product_Id{{ ";" if not loop.last }}
 {% endfor %}
    );
 
@@ -88,7 +86,6 @@ private
       -- Set_Ids_And_Limits procedure in a running assembly.
 {% for dd in data_dependencies %}
       {{ dd.name }}_Id : Data_Product_Types.Data_Product_Id := {{ loop.index0 }};
-      {{ dd.name }}_Stale_Limit : Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
 {% endfor %}
    end record;
 

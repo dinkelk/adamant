@@ -219,7 +219,6 @@ package body Component.{{ name }} is
       Self.Data_Dependencies.Set_Ids_And_Limits (
 {% for dd in data_dependencies %}
          {{ dd.name }}_Id => {{ dd.name }}_Id,
-         {{ dd.name }}_Stale_Limit => {{ dd.name }}_Stale_Limit{{ "," if not loop.last }}
 {% endfor %}
       );
    end Map_Data_Dependencies;

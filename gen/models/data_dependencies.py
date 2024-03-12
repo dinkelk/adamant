@@ -56,16 +56,6 @@ class data_dependencies(component_submodel, ided_suite):
                     + "' data dependency.",
                 )
             )
-            data_dependency_id_parameters.append(
-                parameter(
-                    name=dd.name + "_Stale_Limit",
-                    type="Ada.Real_Time.Time_Span",
-                    description="The stale limit used for the '"
-                    + dd.name
-                    + "' data dependency. If the fetched data product is older than the given "
-                    + "Time_Span then it is deemed stale and unfit for use by the component.",
-                )
-            )
             data_dependency_parameters.append(
                 parameter(
                     name=dd.name,
@@ -93,7 +83,6 @@ class data_dependencies(component_submodel, ided_suite):
                 self.name,
                 "Data_Product_Types",
                 "Data_Product_Return",
-                "Ada.Real_Time",
                 "Data_Product_Enums",
                 "Sys_Time",
             ]
@@ -144,9 +133,6 @@ class data_dependencies(component_submodel, ided_suite):
                 )
 
                 # Set the stale limit:
-                self.component.map_data_dependencies.set_parameter_value(
-                    data_dependency + "_Stale_Limit", stale_limit_str
-                )
                 self.entities[data_dependency].stale_limit = stale_limit
 
         # Check for missing:
@@ -219,5 +205,5 @@ class data_dependencies(component_submodel, ided_suite):
         super(data_dependencies, self).set_assembly(assembly)
 
         # Ok, add on to with list:
-        if "Ada.Real_Time" not in self.assembly.adb_includes:
-            self.assembly.adb_includes.append("Ada.Real_Time")
+        # if "Ada.Real_Time" not in self.assembly.adb_includes:
+        #     self.assembly.adb_includes.append("Ada.Real_Time")
