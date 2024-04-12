@@ -11,6 +11,84 @@ with Byte_Array_Util;
 {% endif %}
 package body {{ name }} is
 
+{% if not volatile_descriptor %}
+{% if endianness in ["either", "big"] %}
+   function Pack (Src : in U) return T is
+   begin
+{% if complex_type_models %}
+      return (
+{% for field in fields.values() %}
+{% if field.is_packed_type %}
+         {{ field.name }} => {{ field.type_package }}.Pack (Src.{{ field.name }}){{ "," if not loop.last }}
+{% else %}
+         {{ field.name }} => Src.{{ field.name }}{{ "," if not loop.last }}
+{% endif %}
+{% endfor %}
+      );
+{% else %}
+      return T (Src);
+{% endif %}
+   end Pack;
+
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Pack (Src : in U) return T_Le is
+   begin
+{% if complex_type_models %}
+      return (
+{% for field in fields.values() %}
+{% if field.is_packed_type %}
+         {{ field.name }} => {{ field.type_package }}.Pack (Src.{{ field.name }}){{ "," if not loop.last }}
+{% else %}
+         {{ field.name }} => Src.{{ field.name }}{{ "," if not loop.last }}
+{% endif %}
+{% endfor %}
+      );
+{% else %}
+      return T_Le (Src);
+{% endif %}
+   end Pack;
+
+{% endif %}
+{% if endianness in ["either", "big"] %}
+   function Unpack (Src : in T) return U is
+   begin
+{% if complex_type_models %}
+      return (
+{% for field in fields.values() %}
+{% if field.is_packed_type %}
+         {{ field.name }} => {{ field.type_package }}.Unpack (Src.{{ field.name }}){{ "," if not loop.last }}
+{% else %}
+         {{ field.name }} => Src.{{ field.name }}{{ "," if not loop.last }}
+{% endif %}
+{% endfor %}
+      );
+{% else %}
+      return U (Src);
+{% endif %}
+   end Unpack;
+
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Unpack (Src : in T_Le) return U is
+   begin
+{% if complex_type_models %}
+      return (
+{% for field in fields.values() %}
+{% if field.is_packed_type %}
+         {{ field.name }} => {{ field.type_package }}.Unpack (Src.{{ field.name }}){{ "," if not loop.last }}
+{% else %}
+         {{ field.name }} => Src.{{ field.name }}{{ "," if not loop.last }}
+{% endif %}
+{% endfor %}
+      );
+{% else %}
+      return U (Src);
+{% endif %}
+   end Unpack;
+
+{% endif %}
+{% endif %}
 {% if is_volatile_type %}
    -- We create this so that an .adb can be generated legally. This will
    -- get optimized out. Volatile packed records do not need regular packed
@@ -21,6 +99,7 @@ package body {{ name }} is
    end Dummy;
 {% else %}
 {% if variable_length %}
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serialization_Status is
 {% for include in variable_length_dynamically_sized_type_includes %}
       use {{ include }};
@@ -95,6 +174,8 @@ package body {{ name }} is
       end;
    end Serialized_Length;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in T_Le; Num_Bytes_Serialized : out Natural) return Serialization_Status is
 {% for include in variable_length_dynamically_sized_type_includes %}
       use {{ include }};
@@ -169,7 +250,9 @@ package body {{ name }} is
       end;
    end Serialized_Length_Le;
 
+{% endif %}
 {% else %}
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serialization_Status is
       Ignore : T renames Src;
    begin
@@ -177,6 +260,8 @@ package body {{ name }} is
       return Success;
    end Serialized_Length;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in T_Le; Num_Bytes_Serialized : out Natural) return Serialization_Status is
       Ignore : T_Le renames Src;
    begin
@@ -184,6 +269,8 @@ package body {{ name }} is
       return Success;
    end Serialized_Length_Le;
 
+{% endif %}
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status is
    begin
       if Max_Serialized_Length > Src'Length then
@@ -195,6 +282,8 @@ package body {{ name }} is
       return Success;
    end Serialized_Length;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status is
    begin
       if Max_Serialized_Length > Src'Length then
@@ -207,6 +296,8 @@ package body {{ name }} is
    end Serialized_Length_Le;
 
 {% endif %}
+{% endif %}
+{% if endianness in ["either", "big"] %}
    function Get_Field (Src : in T; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type is
 {% if packed_type_includes %}
       use Interfaces;
@@ -255,6 +346,8 @@ package body {{ name }} is
          return To_Return;
    end Get_Field;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Get_Field (Src : in T_Le; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type is
 {% if packed_type_includes %}
       use Interfaces;
@@ -302,6 +395,7 @@ package body {{ name }} is
       when Constraint_Error =>
          return To_Return;
    end Get_Field;
+{% endif %}
 {% endif %}
 
 end {{ name }};

@@ -25,6 +25,19 @@ class record(packed_type):
         self.statically_sized_fields = OrderedDict()
         self.variable_length_sizing_fields = OrderedDict()
 
+        #
+        # Define the endiannesses available for this packed record. Depending
+        # on the packed record definition, the endiannesses supported are:
+        #
+        #   big    - The single packed type T is big endian
+        #   little - The single packed type T_Le is little endian
+        #   either - Two packed types exists T, big endian, and T_Le, little endian
+        #   mixed  - The single packed type has both little and big endian parts
+        #             ^ This one is not yet supported, but could be in the future.
+        #
+        self.endianness = "either" # This is the default
+        self.nested = False
+
         # Populate the object with the contents of the
         # file data:
         start_bit = 0
@@ -45,6 +58,53 @@ class record(packed_type):
             self.fields[the_field.name] = the_field
             start_bit = the_field.end_bit + 1
             self.num_fields = the_field.end_field_number
+
+            # Todo check length (xN) fields and make sure they are <= 8 bits in size
+
+            # Handle fields that are packed records or arrays themselves, ie. (nested packed records)
+            if the_field.is_packed_type:
+                self.nested = True
+
+                # Check endianness. The endianness rules are as follows:
+                #
+                #   1. A simple packed record with no nesting of other packed records/arrays will support
+                #      "either" endianness
+                #   2. A nested packed record containing fields of .T types only support "big" endian
+                #   3. A nested packed record containing fields of .T_Le types only supports "little" endian
+                #   4. Packed records can not contain both little and big endian fields (for now) or unpacked
+                #      fields.
+                #
+                if self.endianness == "either":
+                   if the_field.type.endswith(".T"):
+                       self.endianness = "big"
+                   elif the_field.type.endswith(".T_Le"):
+                       self.endianness = "little"
+                   else:
+                       raise ModelException(
+                           "Record '"
+                           + self.name
+                           + '" cannot specify field "'
+                           + the_field.name
+                           + "' of type '"
+                           + the_field.type
+                           + "'. Nested packed types must either be '.T' or '.T_Le' types."
+                       )
+                else:
+                   if the_field.type.endswith(".T") and self.endianness == "big":
+                       pass # all is good
+                   elif the_field.type.endswith(".T_Le") and self.endianness == "little":
+                       pass # all is good
+                   else:
+                       raise ModelException(
+                           "Record '"
+                           + self.name
+                           + '" cannot specify field "'
+                           + the_field.name
+                           + "' of type '"
+                           + the_field.type
+                           + "'. Nested packed types must ALL be either '.T' or '.T_Le' types. "
+                           + "Mixed endianness is not currently supported for packed records."
+                       )
 
             # Handle variable length fields:
             if the_field.variable_length:
@@ -172,6 +232,10 @@ class record(packed_type):
                 + "(reserved) fields if necessary."
             )
 
+
+        # TODO, this needs to be revisited... i think we handle this differently now, in that we
+        # can force all nested packed records to be volatile
+        #
         # If a packed record has a volatile field, then all fields in the packed record must be
         # volatile. This is a strict requirement enforced by Adamant to ensure that records do
         # not mix volatile and non volatile record fields. There is no valid use case for this

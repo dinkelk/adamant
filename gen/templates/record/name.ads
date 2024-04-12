@@ -57,6 +57,7 @@ package {{ name }} is
    -- packed record.
    Num_Fields : constant Positive := {{ num_fields }};
 {% if volatile_descriptor %}
+   -- TODO remove this crap?^
 
    --
    -- Note: This is a {{ volatile_descriptor|lower }} type because it contains {{ volatile_descriptor|lower }} fields. This means
@@ -85,12 +86,12 @@ package {{ name }} is
 {% endfor %}
    end record
       with Bit_Order => System.High_Order_First,
-             Scalar_Storage_Order => System.High_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             Alignment => 4, -- Cannot be aligned at 1, must be aligned at word boundary
-             Volatile => True;
+           Scalar_Storage_Order => System.High_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           Alignment => 4, -- Cannot be aligned at 1, must be aligned at word boundary
+           Volatile => True;
 
    -- Re-enable warning.
    pragma Warnings (On, "scalar storage order specified for ""{{ volatile_descriptor }}_T"" does not apply to component");
@@ -119,12 +120,12 @@ package {{ name }} is
 {% endfor %}
    end record
       with Bit_Order => System.Low_Order_First,
-             Scalar_Storage_Order => System.Low_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             Alignment => 4, -- Cannot be aligned at 1, must be aligned at word boundary
-             Volatile => True;
+           Scalar_Storage_Order => System.Low_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           Alignment => 4, -- Cannot be aligned at 1, must be aligned at word boundary
+           Volatile => True;
 
    -- Re-enable warning.
    pragma Warnings (On, "scalar storage order specified for ""{{ volatile_descriptor }}_T_Le"" does not apply to component");
@@ -150,6 +151,7 @@ package {{ name }} is
 {% else %}
    -- Fields that are 8-bit types or 8-bit array types trigger the following warning. Obviously endianness does
    -- not apply for types of 1 byte or less, so we can ignore this warning.
+   -- TODO refine this. this is only OK for byte array components right?
    pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
    pragma Warnings (Off, "scalar storage order specified for ""T_Le"" does not apply to component");
    pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
@@ -167,7 +169,11 @@ package {{ name }} is
 {% if field.description %}
 {{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
+{% if field.is_packed_type %}
+      {{ field.name }} : {{ field.type_package }}.U{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% else %}
       {{ field.name }} : {{ field.type }}{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% endif %}
 {% endfor %}
    end record;
 
@@ -183,15 +189,28 @@ package {{ name }} is
    pragma Warnings (On, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
 {% endif %}
 
+{% if endianness in ["either", "big"] %}
    -- Packed type definition.
+{% if complex_type_models %}
+   type T is record
+{% for field in fields.values() %}
+{% if field.is_packed_type %}
+      {{ field.name }} : {{ field.type_package }}.T{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% else %}
+      {{ field.name }} : {{ field.type }}{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% endif %}
+{% endfor %}
+   end record
+{% else %}
    type T is new U
+{% endif %}
       with Bit_Order => System.High_Order_First,
-             Scalar_Storage_Order => System.High_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             Alignment => 1,
-             Volatile => False;
+           Scalar_Storage_Order => System.High_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           Alignment => 1,
+           Volatile => False;
 
    -- Packed type layout:
    for T use record
@@ -203,15 +222,29 @@ package {{ name }} is
 {% endfor %}
    end record;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    -- Packed type definition with little endian definition.
+{% if complex_type_models %}
+   type T_Le is record
+{% for field in fields.values() %}
+{% if field.is_packed_type %}
+      {{ field.name }} : {{ field.type_package }}.T_Le{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% else %}
+      {{ field.name }} : {{ field.type }}{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% endif %}
+{% endfor %}
+   end record
+{% else %}
    type T_Le is new U
+{% endif %}
       with Bit_Order => System.Low_Order_First,
-             Scalar_Storage_Order => System.Low_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             Alignment => 1,
-             Volatile => False;
+           Scalar_Storage_Order => System.Low_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           Alignment => 1,
+           Volatile => False;
 
    -- Packed type layout:
    for T_Le use record
@@ -223,6 +256,8 @@ package {{ name }} is
 {% endfor %}
    end record;
 
+{% endif %}
+{% if endianness in ["either", "big"] %}
    -- Volatile packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
    -- variable in question may suddenly change in value. For example, this may
@@ -231,25 +266,17 @@ package {{ name }} is
    -- correct reading of the volatile variables. For example, two successive
    -- readings of the same variable cannot be optimized to just one or reordered.
    -- Important: You should use the Register type for accessing hardware registers.
-   type Volatile_T is new U
+   type Volatile_T is new T
       with Bit_Order => System.High_Order_First,
-             Scalar_Storage_Order => System.High_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             Alignment => 1,
-             Volatile => True;
+           Scalar_Storage_Order => System.High_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           Alignment => 1,
+           Volatile => True;
 
-   -- Volatile packed type layout:
-   for Volatile_T use record
-{% for field in fields.values() %}
-{% if field.description %}
-{{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
-      {{ field.name }} at 0 range {{ field.start_bit }} .. {{ field.end_bit }};
-{% endfor %}
-   end record;
-
+{% if endianness in ["either", "little"] %}
    -- Volatile little endian packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
    -- variable in question may suddenly change in value. For example, this may
@@ -258,31 +285,23 @@ package {{ name }} is
    -- correct reading of the volatile variables. For example, two successive
    -- readings of the same variable cannot be optimized to just one or reordered.
    -- Important: You should use the Register type for accessing hardware registers.
-   type Volatile_T_Le is new U
+   type Volatile_T_Le is new T_Le
       with Bit_Order => System.Low_Order_First,
-             Scalar_Storage_Order => System.Low_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             Alignment => 1,
-             Volatile => True;
+           Scalar_Storage_Order => System.Low_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           Alignment => 1,
+           Volatile => True;
 
-   -- Volatile packed type layout:
-   for Volatile_T_Le use record
-{% for field in fields.values() %}
-{% if field.description %}
-{{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
-      {{ field.name }} at 0 range {{ field.start_bit }} .. {{ field.end_bit }};
-{% endfor %}
-   end record;
-
    --
    -- Atomic and Register type definitions. These are only supported for types that are
    -- either 8, 16, or 32 bits in size.
    --
 
 {% if size == 32 or size == 16 or size == 8 %}
+{% if endianness in ["either", "big"] %}
    -- Atomic packed type definition:
    -- Note: This type is atomic. Use this type to specify that the code
    -- generated must read and write the type or variable from memory atomically,
@@ -292,26 +311,18 @@ package {{ name }} is
    -- Important: Atomic types create a synchronization point and can be used for
    -- very limited intertask communication. However, protected objects should almost
    -- always be preferred.
-   type Atomic_T is new U
+   type Atomic_T is new T
       with Bit_Order => System.High_Order_First,
-             Scalar_Storage_Order => System.High_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             -- Alignment => 1, <- this is not supported for atomic types
-             Volatile => True,
-             Atomic => True;
+           Scalar_Storage_Order => System.High_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           -- Alignment => 1, <- this is not supported for atomic types
+           Volatile => True,
+           Atomic => True;
 
-   -- Atomic packed type layout:
-   for Atomic_T use record
-{% for field in fields.values() %}
-{% if field.description %}
-{{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
-      {{ field.name }} at 0 range {{ field.start_bit }} .. {{ field.end_bit }};
-{% endfor %}
-   end record;
-
+{% if endianness in ["either", "little"] %}
    -- Atomic little endian packed type definition:
    -- Note: This type is atomic. Use this type to specify that the code
    -- generated must read and write the type or variable from memory atomically,
@@ -321,26 +332,18 @@ package {{ name }} is
    -- Important: Atomic types create a synchronization point and can be used for
    -- very limited intertask communication. However, protected objects should almost
    -- always be preferred.
-   type Atomic_T_Le is new U
+   type Atomic_T_Le is new T_Le
       with Bit_Order => System.Low_Order_First,
-             Scalar_Storage_Order => System.Low_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             -- Alignment => 1, <- this is not supported for atomic types
-             Volatile => True,
-             Atomic => True;
+           Scalar_Storage_Order => System.Low_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           -- Alignment => 1, <- this is not supported for atomic types
+           Volatile => True,
+           Atomic => True;
 
-   -- Atomic packed type layout:
-   for Atomic_T_Le use record
-{% for field in fields.values() %}
-{% if field.description %}
-{{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
-      {{ field.name }} at 0 range {{ field.start_bit }} .. {{ field.end_bit }};
-{% endfor %}
-   end record;
-
+{% if endianness in ["either", "big"] %}
    -- Register packed type definition:
    -- Note: This type is Volatile_Full_Access. This is similar in effect to
    -- pragma Volatile, except that any reference to the object is guaranteed to
@@ -350,26 +353,18 @@ package {{ name }} is
    -- of the object.
    -- Important: You should use a Register type for accessing memory mapped IO or
    -- hardware registers.
-   type Register_T is new U
+   type Register_T is new T
       with Bit_Order => System.High_Order_First,
-             Scalar_Storage_Order => System.High_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             -- Alignment => 1, <- this is not supported for Volatile_Full_Access types
-             Volatile => True,
-             Volatile_Full_Access => True;
+           Scalar_Storage_Order => System.High_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           -- Alignment => 1, <- this is not supported for Volatile_Full_Access types
+           Volatile => True,
+           Volatile_Full_Access => True;
 
-   -- Register packed type layout:
-   for Register_T use record
-{% for field in fields.values() %}
-{% if field.description %}
-{{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
-      {{ field.name }} at 0 range {{ field.start_bit }} .. {{ field.end_bit }};
-{% endfor %}
-   end record;
-
+{% if endianness in ["either", "little"] %}
    -- Register little endian packed type definition:
    -- Note: This type is Volatile_Full_Access. This is similar in effect to
    -- pragma Volatile, except that any reference to the object is guaranteed to
@@ -379,42 +374,51 @@ package {{ name }} is
    -- of the object.
    -- Important: You should use a Register type for accessing memory mapped IO or
    -- hardware registers.
-   type Register_T_Le is new U
+   type Register_T_Le is new T_Le
       with Bit_Order => System.Low_Order_First,
-             Scalar_Storage_Order => System.Low_Order_First,
-             Size => Size,
-             Object_Size => Size,
-             Value_Size => Size,
-             -- Alignment => 1, <- this is not supported for Volatile_Full_Access types
-             Volatile => True,
-             Volatile_Full_Access => True;
-
-   -- Register packed type layout:
-   for Register_T_Le use record
-{% for field in fields.values() %}
-{% if field.description %}
-{{ printMultiLine(field.description, '      -- ') }}
-{% endif %}
-      {{ field.name }} at 0 range {{ field.start_bit }} .. {{ field.end_bit }};
-{% endfor %}
-   end record;
+           Scalar_Storage_Order => System.Low_Order_First,
+           Size => Size,
+           Object_Size => Size,
+           Value_Size => Size,
+           -- Alignment => 1, <- this is not supported for Volatile_Full_Access types
+           Volatile => True,
+           Volatile_Full_Access => True;
 {% else %}
    -- Not supported. This type is {{ size }} bits in size.
 {% endif %}
 
+{% endif %}
    -- Create access type to packed and unpacked records:
    type U_Access is access all U;
+{% if endianness in ["either", "big"] %}
    type T_Access is access all T;
-   type T_Le_Access is access all T_Le;
    type Volatile_T_Access is access all Volatile_T;
-   type Volatile_T_Le_Access is access all Volatile_T_Le;
 {% if size == 32 or size == 16 or size == 8 %}
    type Atomic_T_Access is access all Atomic_T;
-   type Atomic_T_Le_Access is access all Atomic_T_Le;
    type Register_T_Access is access all Register_T;
+{% endif %}
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   type T_Le_Access is access all T_Le;
+   type Volatile_T_Le_Access is access all Volatile_T_Le;
+{% if size == 32 or size == 16 or size == 8 %}
+   type Atomic_T_Le_Access is access all Atomic_T_Le;
    type Register_T_Le_Access is access all Register_T_Le;
 {% endif %}
+{% endif %}
+{% if not volatile_descriptor %}
 
+   -- Type conversion functions between packed an unpacked representations:
+{% if endianness in ["either", "big"] %}
+   function Pack (Src : in U) return T{% if complex_type_models %} with Inline => True{% endif %};
+   function Unpack (Src : in T) return U{% if complex_type_models %} with Inline => True{% endif %};
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Pack (Src : in U) return T_Le{% if complex_type_models %} with Inline => True{% endif %};
+   function Unpack (Src : in T_Le) return U{% if complex_type_models %} with Inline => True{% endif %};
+{% endif %}
+
+{% endif %}
 {% if variable_length %}
    -- The minimum length in bytes of the serialized type.
    Min_Serialized_Length : constant Natural := ({{ min_size }} - 1) / Basic_Types.Byte'Object_Size + 1; -- in bytes
@@ -432,41 +436,73 @@ package {{ name }} is
    -- length. If the Serialization_Status is Failure and num_Bytes_Serialized is greater than
    -- Max_Serialized_Length, then the number symbolizes the actual calculated length, which is
    -- too large.
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serialization_Status;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in T_Le; Num_Bytes_Serialized : out Natural) return Serialization_Status;
+{% endif %}
 
    -- Get the size of the already serialized type inside of the byte array. If the byte array is too small then
    -- a serialization error is returned.
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status;
+{% endif %}
 
    -- Serializing functions for entire record:
+{% if endianness in ["either", "big"] %}
    package Serialization is new Variable_Serializer (T, Serialized_Length, Serialized_Length);
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package Serialization_Le is new Variable_Serializer (T_Le, Serialized_Length_Le, Serialized_Length_Le);
+{% endif %}
 {% else %}
    -- Serializing functions for entire record:
+{% if endianness in ["either", "big"] %}
    package Serialization is new Serializer (T);
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package Serialization_Le is new Serializer (T_Le);
+{% endif %}
 
+{% if endianness in ["either", "big"] %}
    -- The length in bytes of the serialized type.
    Max_Serialized_Length : Natural renames Serialization.Serialized_Length; -- in bytes
    -- The length in bytes of the serialized type.
    Min_Serialized_Length : Natural renames Serialization.Serialized_Length; -- in bytes
+{% elif endianness in ["little"] %}
+   -- The length in bytes of the serialized type.
+   Max_Serialized_Length : Natural renames Serialization_Le.Serialized_Length; -- in bytes
+   -- The length in bytes of the serialized type.
+   Min_Serialized_Length : Natural renames Serialization_Le.Serialized_Length; -- in bytes
+   -- TODO, naming. Do we need special _Le functions, or can we just overload types.
+{% endif %}
 
    -- Convenience function which always returns Success and the length defined above ^. This
    -- is useful when you want to instantiate a generic which requires a function of the
    -- definition below, but its for a statically sized type.
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serialization_Status
       with Inline => True;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in T_Le; Num_Bytes_Serialized : out Natural) return Serialization_Status
       with Inline => True;
+{% endif %}
 
    -- Get the size of the already serialized type inside of the byte array. If the byte array is too small then
    -- a serialization error is returned.
+{% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status
       with Inline => True;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Serialized_Length_Le (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status
       with Inline => True;
+{% endif %}
 {% endif %}
 
    -- Return a field (provided by a field number) as a polymorphic type.
@@ -475,8 +511,12 @@ package {{ name }} is
    -- least significant bits returned. This function should be used in tandem
    -- with the Validation package to create useful error messages for an invalid
    -- type:
+{% if endianness in ["either", "big"] %}
    function Get_Field (Src : in T; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Get_Field (Src : in T_Le; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type;
+{% endif %}
 {% endif %}
 
    ----------------------------------------------
