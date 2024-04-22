@@ -27,8 +27,12 @@ package {{ name }}.Validation is
    -- False is returned. The errant_Field parameter is always 0.
    function Valid (R : in Unconstrained; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
    -- ^ "Unpacked" can be passed into this function as well because it is a subtype of Unconstrained
+{% if endianness in ["either", "big"] %}
    function Valid (R : in T; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Valid (R : in T_Le; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
+{% endif %}
 {% endif %}
 
 end {{ name }}.Validation;

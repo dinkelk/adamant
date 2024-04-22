@@ -75,9 +75,15 @@ class record(packed_type):
                 #      fields.
                 #
                 if self.endianness == "either":
-                   if the_field.type.endswith(".T"):
+                   if the_field.type.endswith(".T") or \
+                      the_field.type.endswith(".Volatile_T") or \
+                      the_field.type.endswith(".Atomic_T") or \
+                      the_field.type.endswith(".Register_T"):
                        self.endianness = "big"
-                   elif the_field.type.endswith(".T_Le"):
+                   elif the_field.type.endswith(".T_Le") or \
+                      the_field.type.endswith(".Volatile_T_Le") or \
+                      the_field.type.endswith(".Atomic_T_Le") or \
+                      the_field.type.endswith(".Register_T_Le"):
                        self.endianness = "little"
                    else:
                        raise ModelException(
@@ -87,12 +93,20 @@ class record(packed_type):
                            + the_field.name
                            + "' of type '"
                            + the_field.type
-                           + "'. Nested packed types must either be '.T' or '.T_Le' types."
+                           + "'. Nested packed types must either be '.*T' or '.*T_Le' types."
                        )
                 else:
-                   if the_field.type.endswith(".T") and self.endianness == "big":
+                   if self.endianness == "big" and \
+                      (the_field.type.endswith(".T") or \
+                      the_field.type.endswith(".Volatile_T") or \
+                      the_field.type.endswith(".Atomic_T") or \
+                      the_field.type.endswith(".Register_T")):
                        pass # all is good
-                   elif the_field.type.endswith(".T_Le") and self.endianness == "little":
+                   elif self.endianness == "little" and \
+                      (the_field.type.endswith(".T_Le") or \
+                      the_field.type.endswith(".Volatile_T_Le") or \
+                      the_field.type.endswith(".Atomic_T_Le") or \
+                      the_field.type.endswith(".Register_T_Le")):
                        pass # all is good
                    else:
                        raise ModelException(
@@ -102,7 +116,7 @@ class record(packed_type):
                            + the_field.name
                            + "' of type '"
                            + the_field.type
-                           + "'. Nested packed types must ALL be either '.T' or '.T_Le' types. "
+                           + "'. Nested packed types must ALL be either '.*T' or '.*T_Le' types. "
                            + "Mixed endianness is not currently supported for packed records."
                        )
 
@@ -233,9 +247,6 @@ class record(packed_type):
             )
 
 
-        # TODO, this needs to be revisited... i think we handle this differently now, in that we
-        # can force all nested packed records to be volatile
-        #
         # If a packed record has a volatile field, then all fields in the packed record must be
         # volatile. This is a strict requirement enforced by Adamant to ensure that records do
         # not mix volatile and non volatile record fields. There is no valid use case for this
@@ -252,6 +263,8 @@ class record(packed_type):
         # this ONLY contains fields with volatile components (which by definition are also packed).
         # In this way the representation semantics are very clear when looking at the record, since
         # they are derived only from the representation of the internal fields.
+        #
+        # ^ TODO is this para still true with the new design?
         self.is_volatile_type = False
         self.is_register_type = False
         self.is_atomic_type = False

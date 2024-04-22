@@ -28,36 +28,52 @@ package {{ name }}.Representation is
    -- Common to string functions:
    -------------------------------------------------
    -- Return string showing bytes in array:
+{% if endianness in ["either", "big"] %}
    function To_Byte_String is new String_Util.To_Byte_String (T);
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function To_Byte_String is new String_Util.To_Byte_String (T_Le);
+{% endif %}
    function To_Byte_String is new String_Util.To_Byte_String (U);
 
    -- Display array as string:
+{% if endianness in ["either", "big"] %}
    function Image (R : in T) return String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Image (R : in T_Le) return String;
+{% endif %}
    function Image (R : in U) return String;
 
    -------------------------------------------------
    -- Less commonly used to string functions:
    -------------------------------------------------
    -- Return string representation of array components in form (element 1, element 2, etc.)
+{% if endianness in ["either", "big"] %}
    function To_Tuple_String (R : in T) return String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function To_Tuple_String (R : in T_Le) return String;
+{% endif %}
    function To_Tuple_String (R : in U) return String;
 
    -- Return string representation of array elements and bytes
+{% if endianness in ["either", "big"] %}
    function Image_With_Prefix (R : in T; Prefix : in String) return String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Image_With_Prefix (R : in T_Le; Prefix : in String) return String;
+{% endif %}
    function Image_With_Prefix (R : in U; Prefix : in String) return String;
 
    -------------------------------------------------
    -- To string functions for array element type:
    -------------------------------------------------
 {% if element.is_packed_type %}
-   function Element_To_Byte_String (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.To_Byte_String;
-   function Element_Image (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.Image;
-   function Element_To_Tuple_String (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.To_Tuple_String;
-   function Element_Image_With_Prefix (R : in {{ element.type }}; Prefix : in String := "") return String renames {{ element.type_package }}.Representation.Image_With_Prefix;
+   function Element_To_Byte_String (R : in {{ element.type_package }}.U) return String renames {{ element.type_package }}.Representation.To_Byte_String;
+   function Element_Image (R : in {{ element.type_package }}.U) return String renames {{ element.type_package }}.Representation.Image;
+   function Element_To_Tuple_String (R : in {{ element.type_package }}.U) return String renames {{ element.type_package }}.Representation.To_Tuple_String;
+   function Element_Image_With_Prefix (R : in {{ element.type_package }}.U; Prefix : in String := "") return String renames {{ element.type_package }}.Representation.Image_With_Prefix;
 {% elif element.is_enum %}
    function Element_Image (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.{{ element.type_model.name }}_Image;
    function Element_To_Tuple_String (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.{{ element.type_model.name }}_To_Tuple_String;

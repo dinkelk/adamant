@@ -26,8 +26,12 @@ package {{ name }}.Validation is
    -- range checks on all the fields of the record. If a field is invalid,
    -- False is returned and the errant_Field parameter is filled in with a
    -- Natural specifying which field was out of range.
+{% if endianness in ["either", "big"] %}
    function Valid (R : in T; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Valid (R : in T_Le; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
+{% endif %}
    function Valid (R : in U; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
 {% endif %}
 

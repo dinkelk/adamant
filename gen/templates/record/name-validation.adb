@@ -23,6 +23,7 @@ package body {{ name }}.Validation is
       null;
    end Dummy_Valid;
 {% else %}
+{% if endianness in ["either", "big"] %}
    pragma Warnings (Off, "formal parameter ""r"" is not referenced");
    function Valid (R : in T; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
    pragma Warnings (On, "formal parameter ""r"" is not referenced");
@@ -116,7 +117,8 @@ package body {{ name }}.Validation is
 {% if field.variable_length %}
       Variable_Length := Integer (R.{{ field.variable_length }}) + Integer ({{ field.variable_length_offset }});
       if Variable_Length > 0 then
-         if not {{ field.type_package }}.Validation.Valid ({{ field.type_package }}.Unconstrained (R.{{ field.name }} (R.{{ field.name }}'First .. R.{{ field.name }}'First + Variable_Length - 1)), E_Field) then
+         -- TODO, is this how we should handle this? Maybe it would be better for Valid to take a length argument instead?
+         if not {{ field.type_package }}.Validation.Valid ({{ field.type_package }}.Unpack (R.{{ field.name }}) (R.{{ field.name }}'First .. R.{{ field.name }}'First + Variable_Length - 1), E_Field) then
             Errant_Field := {{ field.start_field_number - 1 }} + E_Field;
             return False;
          end if;
@@ -155,6 +157,8 @@ package body {{ name }}.Validation is
          return False;
    end Valid;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    pragma Warnings (Off, "formal parameter ""r"" is not referenced");
    function Valid (R : in T_Le; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
    pragma Warnings (On, "formal parameter ""r"" is not referenced");
@@ -248,7 +252,8 @@ package body {{ name }}.Validation is
 {% if field.variable_length %}
       Variable_Length := Integer (R.{{ field.variable_length }}) + Integer ({{ field.variable_length_offset }});
       if Variable_Length > 0 then
-         if not {{ field.type_package }}.Validation.Valid ({{ field.type_package }}.Unconstrained (R.{{ field.name }} (R.{{ field.name }}'First .. R.{{ field.name }}'First + Variable_Length - 1)), E_Field) then
+         -- TODO, is this how we should handle this? Maybe it would be better for Valid to take a length argument instead?
+         if not {{ field.type_package }}.Validation.Valid ({{ field.type_package }}.Unpack (R.{{ field.name }}) (R.{{ field.name }}'First .. R.{{ field.name }}'First + Variable_Length - 1), E_Field) then
             Errant_Field := {{ field.start_field_number - 1 }} + E_Field;
             return False;
          end if;
@@ -287,6 +292,7 @@ package body {{ name }}.Validation is
          return False;
    end Valid;
 
+{% endif %}
    pragma Warnings (Off, "formal parameter ""r"" is not referenced");
    function Valid (R : in U; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
    pragma Warnings (On, "formal parameter ""r"" is not referenced");
@@ -379,7 +385,7 @@ package body {{ name }}.Validation is
 {% if field.variable_length %}
       Variable_Length := Integer (R.{{ field.variable_length }}) + Integer ({{ field.variable_length_offset }});
       if Variable_Length > 0 then
-         if not {{ field.type_package }}.Validation.Valid ({{ field.type_package }}.Unconstrained (R.{{ field.name }} (R.{{ field.name }}'First .. R.{{ field.name }}'First + Variable_Length - 1)), E_Field) then
+         if not {{ field.type_package }}.Validation.Valid (R.{{ field.name }} (R.{{ field.name }}'First .. R.{{ field.name }}'First + Variable_Length - 1), E_Field) then
             Errant_Field := {{ field.start_field_number - 1 }} + E_Field;
             return False;
          end if;

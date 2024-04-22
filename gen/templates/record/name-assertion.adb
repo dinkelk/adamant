@@ -57,6 +57,7 @@ package body {{ name }}.Assertion is
 {% endfor %}
    end Assert_Neq;
 
+{% if endianness in ["either", "big"] %}
    package body {{ name }}_Assert is
       procedure Eq (T1 : in T; T2 : in T; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line) is
       begin
@@ -79,6 +80,8 @@ package body {{ name }}.Assertion is
       end Neq;
    end {{ name }}_Assert;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package body {{ name }}_Le_Assert is
       procedure Eq (T1 : in T_Le; T2 : in T_Le; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line) is
       begin
@@ -101,10 +104,11 @@ package body {{ name }}.Assertion is
       end Neq;
    end {{ name }}_Le_Assert;
 
+{% endif %}
    package body {{ name }}_U_Assert is
       procedure Eq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line) is
       begin
-         Assert_Eq (T (T1), T (T2));
+         Assert_Eq (Pack (T1), Pack (T2));
       exception
          -- If an assertion was thrown above, then the comparison failed.
          -- Go ahead and call the assert all function to produce the error message.
@@ -114,7 +118,7 @@ package body {{ name }}.Assertion is
 
       procedure Neq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line) is
       begin
-         Assert_Neq (T (T1), T (T2));
+         Assert_Neq (Pack (T1), Pack (T2));
       exception
          -- If an assertion was thrown above, then the comparison failed.
          -- Go ahead and call the assert all function to produce the error message.

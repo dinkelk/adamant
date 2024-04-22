@@ -35,16 +35,20 @@ package {{ name }}.Assertion is
    -- being used. For example, a type with a buffer that is only half filled
    -- with valid data, as prescribed by that types variable length field, would
    -- only be compared up to that length. Unused data in the buffer is ignored.
+{% if endianness in ["either", "big"] %}
    package {{ name }}_Assert is
       procedure Eq (T1 : in T; T2 : in T; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
       procedure Neq (T1 : in T; T2 : in T; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
    end {{ name }}_Assert;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package {{ name }}_Le_Assert is
       procedure Eq (T1 : in T_Le; T2 : in T_Le; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
       procedure Neq (T1 : in T_Le; T2 : in T_Le; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
    end {{ name }}_Le_Assert;
 
+{% endif %}
    package {{ name }}_U_Assert is
       procedure Eq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
       procedure Neq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
@@ -52,13 +56,21 @@ package {{ name }}.Assertion is
 
    -- This package compares all data in the variable length type, even data
    -- that is "out of bounds", ie. past the variable type's length
+{% if endianness in ["either", "big"] %}
    package {{ name }}_Assert_All is new Smart_Assert.Basic ({{ name }}.T, {{ name }}.Representation.Image);
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package {{ name }}_Le_Assert_All is new Smart_Assert.Basic ({{ name }}.T_Le, {{ name }}.Representation.Image);
+{% endif %}
    package {{ name }}_U_Assert_All is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
 {% else %}
    -- Basic assertion package for the packed type:
+{% if endianness in ["either", "big"] %}
    package {{ name }}_Assert is new Smart_Assert.Basic ({{ name }}.T, {{ name }}.Representation.Image);
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package {{ name }}_Le_Assert is new Smart_Assert.Basic ({{ name }}.T_Le, {{ name }}.Representation.Image);
+{% endif %}
    package {{ name }}_U_Assert is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
    -- TODO fix this, we need this to force an adb to get built and compile without error.
    package Dummy is

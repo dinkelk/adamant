@@ -18,6 +18,18 @@ class array(type):
         # Initialize object members:
         self.length = None
 
+        # Define the endiannesses available for this packed record. Depending
+        # on the packed record definition, the endiannesses supported are:
+        #
+        #   big    - The single packed type T is big endian
+        #   little - The single packed type T_Le is little endian
+        #   either - Two packed types exists T, big endian, and T_Le, little endian
+        #   mixed  - The single packed type has both little and big endian parts
+        #             ^ This one is not yet supported, but could be in the future.
+        #
+        self.endianness = "either" # This is the default
+        self.nested = False
+
         # Call base class load:
         super(array, self)._load()
 
@@ -27,6 +39,28 @@ class array(type):
         # Calculate the number of fields in the array:
         if self.element.is_packed_type:
             self.num_fields = self.element.type_model.num_fields * self.length
+            self.nested = True
+
+            if self.element.type.endswith(".T") or \
+               self.element.type.endswith(".Volatile_T") or \
+               self.element.type.endswith(".Atomic_T") or \
+               self.element.type.endswith(".Register_T"):
+                self.endianness = "big"
+            elif self.element.type.endswith(".T_Le") or \
+               self.element.type.endswith(".Volatile_T_Le") or \
+               self.element.type.endswith(".Atomic_T_Le") or \
+               self.element.type.endswith(".Register_T_Le"):
+                self.endianness = "little"
+            else:
+                raise ModelException(
+                    "Array '"
+                    + self.name
+                    + '" cannot specify element "'
+                    + self.element.name
+                    + "' of type '"
+                    + self.element.type
+                    + "'. Nested packed types must either be '.*T' or '.*T_Le' types."
+                )
         else:
             self.num_fields = self.length
 

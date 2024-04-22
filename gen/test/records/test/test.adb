@@ -11,6 +11,8 @@ with Cc.Assertion; use Cc.Assertion;
 with Dd.Representation;
 with Dd.Validation;
 with Dd.Assertion; use Dd.Assertion;
+with Ee.Representation;
+with Ee.Assertion; use Ee.Assertion;
 with Simple_Variable.Representation;
 with Simple_Variable.Validation;
 with Simple_Variable.Assertion; use Simple_Variable.Assertion;
@@ -42,6 +44,7 @@ procedure Test is
    Rh : Register_Holder.Register_T with
      Volatile => True;
    A : Aa.T := (One => 4, Two => 20, Three => 101);
+   A_Unpacked : Aa.U;
    A_Le : Aa.T_Le := (One => 4, Two => 20, Three => 101);
    A_Volatile : Aa.Volatile_T with
      Volatile;
@@ -50,8 +53,11 @@ procedure Test is
    A_Register : Aa.Register_T with
      Volatile_Full_Access;
    B : Bb.T := (Element => 8, Element2 => 9);
+   B_Le : Bb.T_Le := (Element => 8, Element2 => 9);
    C : Cc.T := (C => Second_Enum.Yellow, A => A, B => B);
    D : Dd.T := (Bytes => (others => 0), Words => (others => 1), Odd_Ball => 18);
+   E : Ee.T_Le := (A => A_Le, B => B_Le, C => -5);
+   E_Unpacked : Ee.U;
    V : Simple_Variable.T := (Length => 3, Buffer => (250, 249, 248, others => 0));
    V2 : Simple_Variable.T := (Length => 0, Buffer => (others => 0));
    V_Untouched : constant Simple_Variable.T := V;
@@ -116,7 +122,7 @@ procedure Test is
    V_Size : Natural;
    V_Size_Filled : Natural;
 begin
-   Rh := (Aa.Register_T (A), Aa.Register_T_Le (A));
+   Rh := (Aa.Register_T_Le (A), Aa.Register_T_Le (A));
 
    Put_Line ("Printing records: ");
    Put_Line ("A:");
@@ -611,6 +617,37 @@ begin
    Stat := Simple_Variable_Array.Serialization.To_Byte_Array (Av_Bytes (0 .. V_Size - 2), Av_Untouched, The_Size);
    pragma Assert (Stat = Failure, "serialization succeeded but was expected to fail.");
    Put_Line ("failed at byte: " & Natural'Image (The_Size));
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Pack/unpack test: ");
+   A := (One => 4, Two => 20, Three => 101);
+   A_Unpacked := Aa.Unpack (A);
+   Put_Line ("A:");
+   -- Put_Line (A'Image);
+   Put_Line (Aa.Representation.Image (A));
+   Put_Line ("A_Unpacked:");
+   -- Put_Line (A_Unpacked'Image);
+   Put_Line (Aa.Representation.Image (A_Unpacked));
+   Aa_U_Assert.Eq (A_Unpacked, (One => 4, Two => 20, Three => 101));
+   A := Aa.Pack (A_Unpacked);
+   Put_Line ("A:");
+   Put_Line (Aa.Representation.Image (A));
+   Aa_Assert.Eq (A, (One => 4, Two => 20, Three => 101));
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Pack/unpack test (nested): ");
+   E_Unpacked := Ee.Unpack (E);
+   Put_Line ("E:");
+   Put_Line (Ee.Representation.Image (E));
+   Put_Line ("E_Unpacked:");
+   Put_Line (Ee.Representation.Image (E_Unpacked));
+   Ee_U_Assert.Eq (E_Unpacked, (A => (One => 4, Two => 20, Three => 101), B => (Element => 8, Element2 => 9), C => -5));
+   E := Ee.Pack (E_Unpacked);
+   Put_Line ("E:");
+   Put_Line (Ee.Representation.Image (E));
+   Ee_Le_Assert.Eq (E, (A => (One => 4, Two => 20, Three => 101), B => (Element => 8, Element2 => 9), C => -5));
    Put_Line ("passed.");
    Put_Line ("");
 

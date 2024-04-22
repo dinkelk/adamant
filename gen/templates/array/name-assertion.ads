@@ -21,8 +21,12 @@ package {{ name }}.Assertion is
    procedure Dummy_Assertion;
 {% else %}
    -- Basic assertion packages for packed array:
+{% if endianness in ["either", "big"] %}
    package {{ name }}_Assert is new Smart_Assert.Basic ({{ name }}.T, {{ name }}.Representation.Image);
+{% endif %}
+{% if endianness in ["either", "little"] %}
    package {{ name }}_Le_Assert is new Smart_Assert.Basic ({{ name }}.T_Le, {{ name }}.Representation.Image);
+{% endif %}
    package {{ name }}_U_Assert is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
 
    -- Specialized smart assert package for the element in this array type:

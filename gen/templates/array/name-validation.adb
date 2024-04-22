@@ -87,15 +87,21 @@ package body {{ name }}.Validation is
          return False;
    end Valid;
 
+{% if endianness in ["either", "big"] %}
    function Valid (R : in T; Errant_Field : out Unsigned_32) return Boolean is
    begin
-      return Valid (Unconstrained (R), Errant_Field);
+      return Valid (Unpack (R), Errant_Field);
+      -- TODO do we really want to do it this way?
    end Valid;
 
+{% endif %}
+{% if endianness in ["either", "little"] %}
    function Valid (R : in T_Le; Errant_Field : out Unsigned_32) return Boolean is
    begin
-      return Valid (Unconstrained (R), Errant_Field);
+      return Valid (Unpack (R), Errant_Field);
+      -- TODO do we really want to do it this way?
    end Valid;
-{% endif %}
 
+{% endif %}
+{% endif %}
 end {{ name }}.Validation;
