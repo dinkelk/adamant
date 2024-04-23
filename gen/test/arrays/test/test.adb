@@ -39,7 +39,10 @@ procedure Test is
    Unaligned : constant Unaligned_Array.T := (1 .. 4 => 1, others => 98);
    Enum : constant Enum_Array.T := (others => First_Enum.Black);
    Simple_Mut : Simple_Array.T := Simple;
+   Simple_U : Simple_Array.U := (others => 2);
+   Simple_Le : Simple_Array.T_Le := (others => 2);
    Complex_Mut : Complex_Array.T := Complex;
+   Complex_U : Complex_Array.U := (others => (One => 0, Two => 19, Three => 6));
    Eight_Mut : Eight_Bit_Type_Array.T := Eight;
    Unaligned_Mut : Unaligned_Array.T := Unaligned;
    Enum_Mut : Enum_Array.T := Enum;
@@ -163,5 +166,45 @@ begin
    Put_Line (Unaligned_Array.Representation.Image (Unaligned_Array.T_Le (Unaligned)));
    Unaligned_Array_Le_Assert.Eq (Unaligned_Array.T_Le (Unaligned), Unaligned_Array.T_Le (Unaligned));
    Put_Line ("passed.");
+
+   Put_Line ("Pack/unpack test: ");
+   Simple_Mut := (others => 1);
+   Simple_U := Simple_Array.Unpack (Simple_Mut);
+   Put_Line ("Simple:");
+   -- Put_Line (Simple_Mut'Image);
+   Put_Line (Simple_Array.Representation.Image (Simple_Mut));
+   Put_Line ("Simple_U:");
+   -- Put_Line (Simple_U'Image);
+   Put_Line (Simple_Array.Representation.Image (Simple_U));
+   Simple_Array_U_Assert.Eq (Simple_U, (others => 1));
+   Simple_Mut := Simple_Array.Pack (Simple_U);
+   Put_Line ("Simple:");
+   Put_Line (Simple_Array.Representation.Image (Simple_Mut));
+   Simple_Array_Assert.Eq (Simple_Mut, (others => 1));
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Swap endianness:");
+   Simple_Le := Simple_Array.Swap_Endianness (Simple_Mut);
+   Put_Line ("Simple_Le:");
+   Put_Line (Simple_Array.Representation.Image (Simple_Le));
+   Simple_Array_Le_Assert.Eq (Simple_Le, (others => 1));
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Pack/unpack test (nested): ");
+   Complex_Mut := (others => (One => 0, Two => 19, Three => 5));
+   Complex_U := Complex_Array.Unpack (Complex_Mut);
+   Put_Line ("Complex:");
+   Put_Line (Complex_Array.Representation.Image (Complex_Mut));
+   Put_Line ("Complex_U:");
+   Put_Line (Complex_Array.Representation.Image (Complex_U));
+   Complex_Array_U_Assert.Eq (Complex_U, (others => (One => 0, Two => 19, Three => 5)));
+   Complex_Mut := Complex_Array.Pack (Complex_U);
+   Put_Line ("Complex:");
+   Put_Line (Complex_Array.Representation.Image (Complex_Mut));
+   Complex_Array_Assert.Eq (Complex_Mut, (others => (One => 0, Two => 19, Three => 5)));
+   Put_Line ("passed.");
+   Put_Line ("");
 
 end Test;

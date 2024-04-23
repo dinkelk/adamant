@@ -66,16 +66,28 @@ package {{ name }} is
 {% if length %}
    subtype Constrained_Index_Type is Unconstrained_Index_Type range 0 .. Length - 1;
 {% endif %}
+{% if element.format.length and element.format.length > 1 %}
 
-   -- Element types that are 8-bit types or 8-bit array types trigger the following warning. Obviously endianness does
-   -- not apply for types of 1 byte or less, so we can ignore this warning.
-   pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""T_Le"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
+      -- We can safely ignore scalar storage order warnings for components <8 bits in
+      -- size since endianness does not apply.
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""T_Le"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
+{% endif %}
 {% if element.size == 32 and not element.is_packed_type %}
-   pragma Warnings (Off, "scalar storage order specified for ""Atomic_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""Atomic_T"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Register_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
+{% endif %}
+{% endif %}
 {% endif %}
 
 {% if volatile_descriptor %}
@@ -348,15 +360,26 @@ package {{ name }} is
 {% else %}
    -- Not supported. This type has array components that are {{ element.size }} bits in size.
 {% endif %}
+{% if element.format.length and element.format.length > 1 %}
 
-   -- Re-enable warning.
-   pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""T_Le"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (On, "scalar storage order specified for ""T_Le"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
+{% endif %}
 {% if element.size == 32 and not element.is_packed_type %}
-   pragma Warnings (On, "scalar storage order specified for ""Atomic_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (On, "scalar storage order specified for ""Atomic_T"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Register_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (On, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
+{% endif %}
+{% endif %}
 {% endif %}
 
    -- Create access type to packed and unpacked records:
@@ -381,13 +404,19 @@ package {{ name }} is
 {% if not volatile_descriptor %}
    -- Type conversion functions between packed an unpacked representations:
 {% if endianness in ["either", "big"] %}
-   function Pack (Src : in U) return T{% if element.is_packed_type %} with Inline => True{% endif %};
-   function Unpack (Src : in T) return U{% if element.is_packed_type %} with Inline => True{% endif %};
+   function Pack (Src : in U) return T{% if not element.is_packed_type %} with Inline => True{% endif %};
+   function Unpack (Src : in T) return U{% if not element.is_packed_type %} with Inline => True{% endif %};
 {% endif %}
 {% if endianness in ["either", "little"] %}
-   function Pack (Src : in U) return T_Le{% if element.is_packed_type %} with Inline => True{% endif %};
-   function Unpack (Src : in T_Le) return U{% if element.is_packed_type %} with Inline => True{% endif %};
+   function Pack (Src : in U) return T_Le{% if not element.is_packed_type %} with Inline => True{% endif %};
+   function Unpack (Src : in T_Le) return U{% if not element.is_packed_type %} with Inline => True{% endif %};
 {% endif %}
+{% endif %}
+{% if endianness in ["either"] %}
+
+   -- Endianness conversion functions
+   function Swap_Endianness (Src : in T) return T_Le{% if not element.is_packed_type %} with Inline => True{% endif %};
+   function Swap_Endianness (Src : in T_Le) return T{% if not element.is_packed_type %} with Inline => True{% endif %};
 {% endif %}
 
    -- Serializing functions for entire packed array:

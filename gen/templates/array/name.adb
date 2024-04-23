@@ -56,6 +56,20 @@ package body {{ name }} is
    end Unpack;
 
 {% endif %}
+{% if endianness in ["either"] %}
+   function Swap_Endianness (Src : in T) return T_Le is
+      Unpacked : constant U := Unpack (Src);
+   begin
+      return Pack (Unpacked);
+   end Swap_Endianness;
+
+   function Swap_Endianness (Src : in T_Le) return T is
+      Unpacked : constant U := Unpack (Src);
+   begin
+      return Pack (Unpacked);
+   end Swap_Endianness;
+
+{% endif %}
 {% endif %}
 {% if is_volatile_type %}
    -- We create this so that an .adb can be generated legally. This will
@@ -75,7 +89,7 @@ package body {{ name }} is
       To_Return : Basic_Types.Poly_Type;
 {% else %}
       use Byte_Array_Util;
-      To_Return : Basic_Types.Poly_Type := (others => 0);
+      To_Return : Basic_Types.Poly_Type := [others => 0];
 {% endif %}
    begin
 {% if element.is_packed_type %}
@@ -121,7 +135,7 @@ package body {{ name }} is
       To_Return : Basic_Types.Poly_Type;
 {% else %}
       use Byte_Array_Util;
-      To_Return : Basic_Types.Poly_Type := (others => 0);
+      To_Return : Basic_Types.Poly_Type := [others => 0];
 {% endif %}
    begin
 {% if element.is_packed_type %}

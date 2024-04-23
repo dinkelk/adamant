@@ -86,6 +86,20 @@ package body {{ name }} is
       return U (Src);
 {% endif %}
    end Unpack;
+{% if endianness in ["either"] %}
+
+   function Swap_Endianness (Src : in T) return T_Le is
+      Unpacked : constant U := Unpack (Src);
+   begin
+      return Pack (Unpacked);
+   end Swap_Endianness;
+
+   function Swap_Endianness (Src : in T_Le) return T is
+      Unpacked : constant U := Unpack (Src);
+   begin
+      return Pack (Unpacked);
+   end Swap_Endianness;
+{% endif %}
 
 {% endif %}
 {% endif %}
@@ -305,7 +319,7 @@ package body {{ name }} is
 {% if unpacked_types %}
       use Byte_Array_Util;
 {% endif %}
-      To_Return : Basic_Types.Poly_Type := (others => 0);
+      To_Return : Basic_Types.Poly_Type := [others => 0];
    begin
       case Field is
 {% for field in fields.values() %}
@@ -355,7 +369,7 @@ package body {{ name }} is
 {% if unpacked_types %}
       use Byte_Array_Util;
 {% endif %}
-      To_Return : Basic_Types.Poly_Type := (others => 0);
+      To_Return : Basic_Types.Poly_Type := [others => 0];
    begin
       case Field is
 {% for field in fields.values() %}

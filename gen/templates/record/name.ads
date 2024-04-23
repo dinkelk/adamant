@@ -149,19 +149,6 @@ package {{ name }} is
    -- record .adb.
    procedure Dummy;
 {% else %}
-   -- Fields that are 8-bit types or 8-bit array types trigger the following warning. Obviously endianness does
-   -- not apply for types of 1 byte or less, so we can ignore this warning.
-   -- TODO refine this. this is only OK for byte array components right?
-   pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""T_Le"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
-{% if size == 32 or size == 16 or size == 8 %}
-   pragma Warnings (Off, "scalar storage order specified for ""Atomic_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Register_T"" does not apply to component");
-   pragma Warnings (Off, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
-{% endif %}
 
    -- Unpacked type:
    type U is record
@@ -172,22 +159,52 @@ package {{ name }} is
 {% if field.is_packed_type %}
       {{ field.name }} : {{ field.type_package }}.U{% if field.default_value %} := {{ field.default_value }}{% endif %};
 {% else %}
+{% if field.format.length and field.format.length > 1 %}
+      -- We can safely ignore scalar storage order warnings for arrayed fields with components <8 bits in
+      -- size since endianness does not apply.
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""T_Le"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
+{% endif %}
+{% if size == 32 or size == 16 or size == 8 %}
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""Atomic_T"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Register_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (Off, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
+      pragma Warnings (Off, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
+{% endif %}
+{% endif %}
+{% endif %}
       {{ field.name }} : {{ field.type }}{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% if field.format.length and field.format.length > 1 %}
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (On, "scalar storage order specified for ""T_Le"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
+{% endif %}
+{% if size == 32 or size == 16 or size == 8 %}
+{% if endianness in ["either", "big"] %}
+      pragma Warnings (On, "scalar storage order specified for ""Atomic_T"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Register_T"" does not apply to component");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+      pragma Warnings (On, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
+      pragma Warnings (On, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
+{% endif %}
+{% endif %}
+{% endif %}
 {% endif %}
 {% endfor %}
    end record;
-
-   -- Re-enable warning.
-   pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""T_Le"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Volatile_T_Le"" does not apply to component");
-{% if size == 32 or size == 16 or size == 8 %}
-   pragma Warnings (On, "scalar storage order specified for ""Atomic_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Atomic_T_Le"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Register_T"" does not apply to component");
-   pragma Warnings (On, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
-{% endif %}
 
 {% if endianness in ["either", "big"] %}
    -- Packed type definition.
@@ -410,12 +427,18 @@ package {{ name }} is
 
    -- Type conversion functions between packed an unpacked representations:
 {% if endianness in ["either", "big"] %}
-   function Pack (Src : in U) return T{% if complex_type_models %} with Inline => True{% endif %};
-   function Unpack (Src : in T) return U{% if complex_type_models %} with Inline => True{% endif %};
+   function Pack (Src : in U) return T{% if not complex_type_models %} with Inline => True{% endif %};
+   function Unpack (Src : in T) return U{% if not complex_type_models %} with Inline => True{% endif %};
 {% endif %}
 {% if endianness in ["either", "little"] %}
-   function Pack (Src : in U) return T_Le{% if complex_type_models %} with Inline => True{% endif %};
-   function Unpack (Src : in T_Le) return U{% if complex_type_models %} with Inline => True{% endif %};
+   function Pack (Src : in U) return T_Le{% if not complex_type_models %} with Inline => True{% endif %};
+   function Unpack (Src : in T_Le) return U{% if not complex_type_models %} with Inline => True{% endif %};
+{% endif %}
+{% if endianness in ["either"] %}
+
+   -- Endianness conversion functions
+   function Swap_Endianness (Src : in T) return T_Le{% if not complex_type_models %} with Inline => True{% endif %};
+   function Swap_Endianness (Src : in T_Le) return T{% if not complex_type_models %} with Inline => True{% endif %};
 {% endif %}
 
 {% endif %}

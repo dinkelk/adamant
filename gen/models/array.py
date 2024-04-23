@@ -36,6 +36,26 @@ class array(type):
         # Extract length and set appropriate fields:
         self.length = self.data["length"]
 
+        # If element is arrayed then the array components must be <= 8 bits otherwise
+        # endianness cannot be gauranteed. In this case, the user should be using a
+        # packed array to declare the field type instead.
+        if self.element.format and \
+           self.element.format.length and \
+           self.element.format.length > 1 and \
+           self.element.format.unit_size > 8:
+            raise ModelException(
+                "Array '"
+                + self.name
+                + '" cannot specify component "'
+                + self.element.name
+                + "' of type '"
+                + self.element.type
+                + "' and format '"
+                + str(self.element.format)
+                + "'. Components of array type must be <=8 bits in size to gaurantee endianness."
+                + " Use a packed array to defined arrays with components >8 bits in size."
+            )
+
         # Calculate the number of fields in the array:
         if self.element.is_packed_type:
             self.num_fields = self.element.type_model.num_fields * self.length

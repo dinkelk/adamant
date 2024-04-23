@@ -59,7 +59,25 @@ class record(packed_type):
             start_bit = the_field.end_bit + 1
             self.num_fields = the_field.end_field_number
 
-            # Todo check length (xN) fields and make sure they are <= 8 bits in size
+            # If field is arrayed then the array components must be <= 8 bits otherwise
+            # endianness cannot be gauranteed. In this case, the user should be using a
+            # packed array to declare the field type instead.
+            if the_field.format and \
+               the_field.format.length and \
+               the_field.format.length > 1 and \
+               the_field.format.unit_size > 8:
+                raise ModelException(
+                    "Record '"
+                    + self.name
+                    + '" cannot specify field "'
+                    + the_field.name
+                    + "' of type '"
+                    + the_field.type
+                    + "' and format '"
+                    + str(the_field.format)
+                    + "'. Array components must be <=8 bits in size to gaurantee endianness."
+                    + " Use a packed array to defined arrays with components >8 bits in size."
+                )
 
             # Handle fields that are packed records or arrays themselves, ie. (nested packed records)
             if the_field.is_packed_type:
