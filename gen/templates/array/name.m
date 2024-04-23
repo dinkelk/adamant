@@ -206,8 +206,8 @@ classdef {{ name }}
 {% endif %}
                newline;
       end
-      strn = char(strn);
       strn = strn + prefix + "]";
+      strn = char(strn);
     end
 
     function strn = to_tuple_string(self)
@@ -227,7 +227,7 @@ classdef {{ name }}
                ", ";
       end
       strn = char(strn);
-      strn = strn(1:length(strn)-2) + "]";
+      strn = [strn(1:length(strn)-2), ']'];
     end
   end
 
