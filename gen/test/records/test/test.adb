@@ -47,7 +47,7 @@ procedure Test is
    A_Register : Aa.Register_T with
      Volatile_Full_Access;
    B : Bb.T := (Element => 8, Element2 => 9);
-   B_Le : Bb.T_Le := (Element => 8, Element2 => 9);
+   B_Le : constant Bb.T_Le := (Element => 8, Element2 => 9);
    C : Cc.T := (C => Second_Enum.Yellow, A => A, B => B);
    E : Ee.T_Le := (A => A_Le, B => B_Le, C => -5);
    E_Unpacked : Ee.U;

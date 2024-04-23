@@ -409,7 +409,7 @@ package body {{ name }} is
       when Constraint_Error =>
          return To_Return;
    end Get_Field;
-{% endif %}
-{% endif %}
 
+{% endif %}
+{% endif %}
 end {{ name }};

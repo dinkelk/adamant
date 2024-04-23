@@ -5,6 +5,6 @@ fields:
     type: Aa.T_Le
   - name: B
     type: Bb.T_Le
-  - name: C 
-    type: Interfaces.Integer_16 
+  - name: C
+    type: Interfaces.Integer_16
     format: I16
