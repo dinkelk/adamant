@@ -19,7 +19,7 @@ package body {{ name }}.Representation is
    begin
       return
 {% for field in fields.values() %}
-         Prefix & "{{ field.name }} : {{ field.type }} = " & Trim_Both ({{ field.name }}_Image_With_Prefix (R.{{ field.name }}{% if field.type_model %}, Prefix & "   "{% endif %})){{ " & ASCII.LF &" if not loop.last else ";" }}
+         Prefix & "{{ field.name }} : {{ field.type }} => " & Trim_Both ({{ field.name }}_Image_With_Prefix (R.{{ field.name }}{% if field.type_model %}, Prefix & "   "{% endif %})){{ " & ASCII.LF &" if not loop.last else ";" }}
 {% endfor %}
    exception
       when Constraint_Error =>
@@ -45,7 +45,7 @@ package body {{ name }}.Representation is
    begin
       return "(" &
 {% for field in fields.values() %}
-         "{{ field.name }} = " & Trim_Both ({{ field.name }}_To_Tuple_String (R.{{ field.name }})){{ " & \", \" &" if not loop.last else " & \")\";" }}
+         "{{ field.name }} => " & Trim_Both ({{ field.name }}_To_Tuple_String (R.{{ field.name }})){{ " & \", \" &" if not loop.last else " & \")\";" }}
 {% endfor %}
    exception
       when Constraint_Error =>

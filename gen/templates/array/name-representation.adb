@@ -16,12 +16,11 @@ package body {{ name }}.Representation is
 {% else %}
    -- Private function which translates array into string:
    function Array_To_String is new String_Util.To_Array_String ({% if element.is_packed_type %}{{ element.type_package }}.U{% else %}{{ element.type }}{% endif %}, {% if length > 0 %}Constrained_Index_Type{% else %}Unconstrained_Index_Type{% endif %}, U, Element_To_Tuple_String);
-   -- function Array_To_String is new String_Util.To_Array_String({{ element.type }}, {% if length > 0 %}Constrained_Index_Type{% else %}Unconstrained_Index_Type{% endif %}, T_LE, Element_To_Tuple_String);
 
    -- Return string representation of array elements:
    function To_String (R : in U; Prefix : in String := "") return String is
    begin
-      return Prefix & "{{ name }} : array {{ element.type }}(1 .. {{ length }}) = ( " & Array_To_String (R, Show_Index => True)   & ")";
+      return Prefix & "{{ name }} : array {{ element.type }} (1 .. {{ length }}) => [ " & Array_To_String (R, Show_Index => True) & "]";
    exception
       when Constraint_Error =>
          return Prefix & "{{ name }}.T invalid. Constraint_Error thrown.";
@@ -44,7 +43,7 @@ package body {{ name }}.Representation is
    -- Return compact representation of array as string:
    function To_Tuple_String (R : in U) return String is
    begin
-      return "({{ name }} = (" & Array_To_String (R, Show_Index => False)   & "))";
+      return "[" & Array_To_String (R, Show_Index => False) & "]";
    exception
       when Constraint_Error =>
          return "{{ name }}.T invalid. Constraint_Error thrown.";
