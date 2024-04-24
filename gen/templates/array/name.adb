@@ -11,7 +11,6 @@ with Byte_Array_Util;
 {% endif %}
 package body {{ name }} is
 
-{% if not volatile_descriptor %}
 {% if endianness in ["either", "big"] %}
    function Pack (Src : in U) return T is
    begin
@@ -70,16 +69,6 @@ package body {{ name }} is
    end Swap_Endianness;
 
 {% endif %}
-{% endif %}
-{% if is_volatile_type %}
-   -- We create this so that an .adb can be generated legally. This will
-   -- get optimized out. Volatile packed records do not need regular packed
-   -- record .adb.
-   procedure Dummy is
-   begin
-      null;
-   end Dummy;
-{% else %}
 {% if endianness in ["either", "big"] %}
    function Get_Field (Src : in T; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type is
 {% if element.is_packed_type %}
@@ -171,6 +160,5 @@ package body {{ name }} is
          return To_Return;
    end Get_Field;
 
-{% endif %}
 {% endif %}
 end {{ name }};

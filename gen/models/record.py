@@ -281,8 +281,6 @@ class record(packed_type):
         # this ONLY contains fields with volatile components (which by definition are also packed).
         # In this way the representation semantics are very clear when looking at the record, since
         # they are derived only from the representation of the internal fields.
-        #
-        # ^ TODO is this para still true with the new design?
         self.is_volatile_type = False
         self.is_register_type = False
         self.is_atomic_type = False

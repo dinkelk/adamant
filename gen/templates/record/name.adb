@@ -5,13 +5,11 @@
 --------------------------------------------------------------------------------
 
 {% if unpacked_types %}
--- Standard includes:
 with Byte_Array_Util;
 
 {% endif %}
 package body {{ name }} is
 
-{% if not volatile_descriptor %}
 {% if endianness in ["either", "big"] %}
    function Pack (Src : in U) return T is
    begin
@@ -102,16 +100,6 @@ package body {{ name }} is
 {% endif %}
 
 {% endif %}
-{% endif %}
-{% if is_volatile_type %}
-   -- We create this so that an .adb can be generated legally. This will
-   -- get optimized out. Volatile packed records do not need regular packed
-   -- record .adb.
-   procedure Dummy is
-   begin
-      null;
-   end Dummy;
-{% else %}
 {% if variable_length %}
 {% if endianness in ["either", "big"] %}
    function Serialized_Length (Src : in T; Num_Bytes_Serialized : out Natural) return Serialization_Status is
@@ -410,6 +398,5 @@ package body {{ name }} is
          return To_Return;
    end Get_Field;
 
-{% endif %}
 {% endif %}
 end {{ name }};

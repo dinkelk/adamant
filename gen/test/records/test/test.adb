@@ -35,7 +35,7 @@ procedure Test is
    function Poly2bytestring is new String_Util.To_Byte_String (Poly_Type);
 
    -- Record definitions:
-   Rh : Register_Holder.Register_T with
+   Rh : Register_Holder.Register_T_Le with
      Volatile => True;
    A : Aa.T := (One => 4, Two => 20, Three => 101);
    A_Unpacked : Aa.U;
