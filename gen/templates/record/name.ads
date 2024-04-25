@@ -323,7 +323,6 @@ package {{ name }} is
            Size => Size,
            Object_Size => Size,
            Value_Size => Size,
-           Alignment => 4,
            Volatile => True,
            Atomic => True;
 
@@ -347,7 +346,6 @@ package {{ name }} is
            Size => Size,
            Object_Size => Size,
            Value_Size => Size,
-           Alignment => 4,
            Volatile => True,
            Atomic => True;
 
@@ -371,7 +369,6 @@ package {{ name }} is
            Size => Size,
            Object_Size => Size,
            Value_Size => Size,
-           Alignment => 4,
            Volatile => True,
            Volatile_Full_Access => True;
 
@@ -395,7 +392,6 @@ package {{ name }} is
            Size => Size,
            Object_Size => Size,
            Value_Size => Size,
-           Alignment => 4,
            Volatile => True,
            Volatile_Full_Access => True;
 
