@@ -19,11 +19,6 @@ with {{ include }}.Representation;
 -- String representation package for {{ name }}
 package {{ name }}.Representation is
 
-{% if is_volatile_type %}
-   -- Representation not supported for volatile record. Convert to a regular record for
-   -- a validation checking function.
-   procedure Dummy_Image;
-{% else %}
    -------------------------------------------------
    -- Common to string functions:
    -------------------------------------------------
@@ -71,9 +66,33 @@ package {{ name }}.Representation is
    -------------------------------------------------
 {% if element.is_packed_type %}
    function Element_To_Byte_String (R : in {{ element.type_package }}.U) return String renames {{ element.type_package }}.Representation.To_Byte_String;
+{% if endianness in ["either", "big"] %}
+   function Element_To_Byte_String (R : in {{ element.type_package }}.T) return String renames {{ element.type_package }}.Representation.To_Byte_String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Element_To_Byte_String (R : in {{ element.type_package }}.T_Le) return String renames {{ element.type_package }}.Representation.To_Byte_String;
+{% endif %}
    function Element_Image (R : in {{ element.type_package }}.U) return String renames {{ element.type_package }}.Representation.Image;
+{% if endianness in ["either", "big"] %}
+   function Element_Image (R : in {{ element.type_package }}.T) return String renames {{ element.type_package }}.Representation.Image;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Element_Image (R : in {{ element.type_package }}.T_Le) return String renames {{ element.type_package }}.Representation.Image;
+{% endif %}
    function Element_To_Tuple_String (R : in {{ element.type_package }}.U) return String renames {{ element.type_package }}.Representation.To_Tuple_String;
+{% if endianness in ["either", "big"] %}
+   function Element_To_Tuple_String (R : in {{ element.type_package }}.T) return String renames {{ element.type_package }}.Representation.To_Tuple_String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Element_To_Tuple_String (R : in {{ element.type_package }}.T_Le) return String renames {{ element.type_package }}.Representation.To_Tuple_String;
+{% endif %}
    function Element_Image_With_Prefix (R : in {{ element.type_package }}.U; Prefix : in String := "") return String renames {{ element.type_package }}.Representation.Image_With_Prefix;
+{% if endianness in ["either", "big"] %}
+   function Element_Image_With_Prefix (R : in {{ element.type_package }}.T; Prefix : in String := "") return String renames {{ element.type_package }}.Representation.Image_With_Prefix;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function Element_Image_With_Prefix (R : in {{ element.type_package }}.T_Le; Prefix : in String := "") return String renames {{ element.type_package }}.Representation.Image_With_Prefix;
+{% endif %}
 {% elif element.is_enum %}
    function Element_Image (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.{{ element.type_model.name }}_Image;
    function Element_To_Tuple_String (R : in {{ element.type }}) return String renames {{ element.type_package }}.Representation.{{ element.type_model.name }}_To_Tuple_String;
@@ -88,7 +107,6 @@ package {{ name }}.Representation is
    function Element_Image (R : in {{ element.type }}) return String renames {{ element.type }}'Image;
    function Element_To_Tuple_String (R : in {{ element.type }}) return String renames {{ element.type }}'Image;
    function Element_Image_With_Prefix (R : in {{ element.type }}) return String renames {{ element.type }}'Image;
-{% endif %}
 {% endif %}
 {% endif %}
 

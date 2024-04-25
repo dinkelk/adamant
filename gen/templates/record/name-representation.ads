@@ -19,11 +19,6 @@ with {{ include }}.Representation;
 -- String representation package for {{ name }}
 package {{ name }}.Representation is
 
-{% if is_volatile_type %}
-   -- Representation not supported for volatile record. Convert to a regular record for
-   -- a validation checking function.
-   procedure Dummy_Image;
-{% else %}
    -------------------------------------------------
    -- Common to string functions:
    -------------------------------------------------
@@ -72,9 +67,33 @@ package {{ name }}.Representation is
 {% for field in fields.values() %}
 {% if field.is_packed_type %}
    function {{ field.name }}_To_Byte_String (R : in {{ field.type_package}}.U) return String renames {{ field.type_package }}.Representation.To_Byte_String;
+{% if endianness in ["either", "big"] %}
+   function {{ field.name }}_To_Byte_String (R : in {{ field.type_package}}.T) return String renames {{ field.type_package }}.Representation.To_Byte_String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function {{ field.name }}_To_Byte_String (R : in {{ field.type_package}}.T_Le) return String renames {{ field.type_package }}.Representation.To_Byte_String;
+{% endif %}
    function {{ field.name }}_Image (R : in {{ field.type_package}}.U) return String renames {{ field.type_package }}.Representation.Image;
+{% if endianness in ["either", "big"] %}
+   function {{ field.name }}_Image (R : in {{ field.type_package}}.T) return String renames {{ field.type_package }}.Representation.Image;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function {{ field.name }}_Image (R : in {{ field.type_package}}.T_Le) return String renames {{ field.type_package }}.Representation.Image;
+{% endif %}
    function {{ field.name }}_To_Tuple_String (R : in {{ field.type_package}}.U) return String renames {{ field.type_package }}.Representation.To_Tuple_String;
+{% if endianness in ["either", "big"] %}
+   function {{ field.name }}_To_Tuple_String (R : in {{ field.type_package}}.T) return String renames {{ field.type_package }}.Representation.To_Tuple_String;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function {{ field.name }}_To_Tuple_String (R : in {{ field.type_package}}.T_Le) return String renames {{ field.type_package }}.Representation.To_Tuple_String;
+{% endif %}
    function {{ field.name }}_Image_With_Prefix (R : in {{ field.type_package}}.U; Prefix : in String := "") return String renames {{ field.type_package }}.Representation.Image_With_Prefix;
+{% if endianness in ["either", "big"] %}
+   function {{ field.name }}_Image_With_Prefix (R : in {{ field.type_package}}.T; Prefix : in String := "") return String renames {{ field.type_package }}.Representation.Image_With_Prefix;
+{% endif %}
+{% if endianness in ["either", "little"] %}
+   function {{ field.name }}_Image_With_Prefix (R : in {{ field.type_package}}.T_Le; Prefix : in String := "") return String renames {{ field.type_package }}.Representation.Image_With_Prefix;
+{% endif %}
 {% elif field.is_enum %}
    function {{ field.name }}_Image (R : in {{ field.type }}) return String renames {{ field.type_package }}.Representation.{{ field.type_model.name }}_Image;
    function {{ field.name }}_To_Tuple_String (R : in {{ field.type }}) return String renames {{ field.type_package }}.Representation.{{ field.type_model.name }}_To_Tuple_String;
@@ -93,5 +112,4 @@ package {{ name }}.Representation is
 {% endif %}
 
 {% endfor %}
-{% endif %}
 end {{ name }}.Representation;
