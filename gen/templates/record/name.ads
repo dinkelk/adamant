@@ -7,7 +7,6 @@
 -- Standard Includes:
 with Basic_Types;
 with System;
-with Interfaces;
 with Serializer_Types; use Serializer_Types;
 {% if not variable_length %}
 with Serializer;
@@ -19,7 +18,7 @@ with Variable_Serializer;
 
 -- Custom Includes:
 {% for include in includes %}
-{% if include not in ["Basic_Types", "System", "Interfaces"] %}
+{% if include not in ["Basic_Types", "System"] %}
 with {{ include }};
 {% endif %}
 {% endfor %}
@@ -28,7 +27,7 @@ with {{ include }};
 
 -- Record Component Includes:
 {% for include in type_includes %}
-{% if include not in includes and include not in ["Basic_Types", "System", "Interfaces"] %}
+{% if include not in includes and include not in ["Basic_Types", "System"] %}
 with {{ include }};
 {% endif %}
 {% endfor %}
@@ -503,19 +502,6 @@ package {{ name }} is
    function Serialized_Length_Le (Src : in Basic_Types.Byte_Array; Num_Bytes_Serialized : out Natural) return Serialization_Status
       with Inline => True;
 {% endif %}
-{% endif %}
-
-   -- Return a field (provided by a field number) as a polymorphic type.
-   -- This is useful for returning any field in a record in a very generic
-   -- way. Fields bigger than the polymorphic type will only have their
-   -- least significant bits returned. This function should be used in tandem
-   -- with the Validation package to create useful error messages for an invalid
-   -- type:
-{% if endianness in ["either", "big"] %}
-   function Get_Field (Src : in T; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type;
-{% endif %}
-{% if endianness in ["either", "little"] %}
-   function Get_Field (Src : in T_Le; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type;
 {% endif %}
 
    ----------------------------------------------

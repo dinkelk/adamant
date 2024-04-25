@@ -6,15 +6,18 @@
 
 -- Standard Includes:
 with System;
-with Interfaces;
-with Basic_Types;
 with Serializer;
+{% if not element.is_packed_type %}
+with Basic_Types;
+{% endif %}
 {% if includes %}
 
 -- Other Includes:
 {% for include in includes %}
-{% if include not in ["Basic_Types", "Serializer", "System", "Interfaces"] %}
+{% if include not in ["Serializer", "System"] %}
+{% if element.is_packed_type or include not in ["Basic_Types"] %}
 with {{ include }};
+{% endif %}
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -22,8 +25,10 @@ with {{ include }};
 
 -- Type Includes:
 {% for include in type_includes %}
-{% if include not in includes and include not in ["Basic_Types", "Serializer", "System", "Interfaces"] %}
+{% if include not in includes and include not in ["Serializer", "System"] %}
+{% if element.is_packed_type or include not in ["Basic_Types"] %}
 with {{ include }};
+{% endif %}
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -421,19 +426,6 @@ package {{ name }} is
 {% endif %}
 {% if endianness in ["either", "little"] %}
    package Serialization_Le is new Serializer (T_Le);
-{% endif %}
-
-   -- Return a field (provided by a field number) as a polymorphic type.
-   -- This is useful for returning any field in a array in a very generic
-   -- way. Fields bigger than the polymorphic type will only have their
-   -- least significant bits returned. This function should be used in tandem
-   -- with the Validation package to create useful error messages for an invalid
-   -- type:
-{% if endianness in ["either", "big"] %}
-   function Get_Field (Src : in T; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type;
-{% endif %}
-{% if endianness in ["either", "little"] %}
-   function Get_Field (Src : in T_Le; Field : in Interfaces.Unsigned_32) return Basic_Types.Poly_Type;
 {% endif %}
 
 {% if element.is_packed_type %}
