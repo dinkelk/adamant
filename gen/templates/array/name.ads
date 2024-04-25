@@ -380,6 +380,7 @@ package {{ name }} is
 {% endif %}
 {% else %}
    -- Not supported. This type has array components that are {{ element.size }} bits in size.
+
 {% endif %}
 {% endif %}
 {% if element.format.length and element.format.length > 1 %}
@@ -402,8 +403,8 @@ package {{ name }} is
    pragma Warnings (On, "scalar storage order specified for ""Register_T_Le"" does not apply to component");
 {% endif %}
 {% endif %}
-{% endif %}
 
+{% endif %}
    -- Type conversion functions between packed an unpacked representations:
 {% if endianness in ["either", "big"] %}
    function Pack (Src : in U) return T{% if not element.is_packed_type %} with Inline => True{% endif %};

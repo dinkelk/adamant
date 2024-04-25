@@ -35,7 +35,7 @@ class record(packed_type):
         #   mixed  - The single packed type has both little and big endian parts
         #             ^ This one is not yet supported, but could be in the future.
         #
-        self.endianness = "either" # This is the default
+        self.endianness = "either"  # This is the default
         self.nested = False
 
         # Populate the object with the contents of the
@@ -60,12 +60,14 @@ class record(packed_type):
             self.num_fields = the_field.end_field_number
 
             # If field is arrayed then the array components must be <= 8 bits otherwise
-            # endianness cannot be gauranteed. In this case, the user should be using a
+            # endianness cannot be guaranteed. In this case, the user should be using a
             # packed array to declare the field type instead.
-            if the_field.format and \
-               the_field.format.length and \
-               the_field.format.length > 1 and \
-               the_field.format.unit_size > 8:
+            if (
+                the_field.format
+                and the_field.format.length
+                and the_field.format.length > 1
+                and the_field.format.unit_size > 8
+            ):
                 raise ModelException(
                     "Record '"
                     + self.name
@@ -75,7 +77,7 @@ class record(packed_type):
                     + the_field.type
                     + "' and format '"
                     + str(the_field.format)
-                    + "'. Array components must be <=8 bits in size to gaurantee endianness."
+                    + "'. Array components must be <=8 bits in size to guarantee endianness."
                     + " Use a packed array to defined arrays with components >8 bits in size."
                 )
 
@@ -93,50 +95,56 @@ class record(packed_type):
                 #      fields.
                 #
                 if self.endianness == "either":
-                   if the_field.type.endswith(".T") or \
-                      the_field.type.endswith(".Volatile_T") or \
-                      the_field.type.endswith(".Atomic_T") or \
-                      the_field.type.endswith(".Register_T"):
-                       self.endianness = "big"
-                   elif the_field.type.endswith(".T_Le") or \
-                      the_field.type.endswith(".Volatile_T_Le") or \
-                      the_field.type.endswith(".Atomic_T_Le") or \
-                      the_field.type.endswith(".Register_T_Le"):
-                       self.endianness = "little"
-                   else:
-                       raise ModelException(
-                           "Record '"
-                           + self.name
-                           + '" cannot specify field "'
-                           + the_field.name
-                           + "' of type '"
-                           + the_field.type
-                           + "'. Nested packed types must either be '.*T' or '.*T_Le' types."
-                       )
+                    if (
+                        the_field.type.endswith(".T")
+                        or the_field.type.endswith(".Volatile_T")
+                        or the_field.type.endswith(".Atomic_T")
+                        or the_field.type.endswith(".Register_T")
+                    ):
+                        self.endianness = "big"
+                    elif (
+                        the_field.type.endswith(".T_Le")
+                        or the_field.type.endswith(".Volatile_T_Le")
+                        or the_field.type.endswith(".Atomic_T_Le")
+                        or the_field.type.endswith(".Register_T_Le")
+                    ):
+                        self.endianness = "little"
+                    else:
+                        raise ModelException(
+                            "Record '"
+                            + self.name
+                            + '" cannot specify field "'
+                            + the_field.name
+                            + "' of type '"
+                            + the_field.type
+                            + "'. Nested packed types must either be '.*T' or '.*T_Le' types."
+                        )
                 else:
-                   if self.endianness == "big" and \
-                      (the_field.type.endswith(".T") or \
-                      the_field.type.endswith(".Volatile_T") or \
-                      the_field.type.endswith(".Atomic_T") or \
-                      the_field.type.endswith(".Register_T")):
-                       pass # all is good
-                   elif self.endianness == "little" and \
-                      (the_field.type.endswith(".T_Le") or \
-                      the_field.type.endswith(".Volatile_T_Le") or \
-                      the_field.type.endswith(".Atomic_T_Le") or \
-                      the_field.type.endswith(".Register_T_Le")):
-                       pass # all is good
-                   else:
-                       raise ModelException(
-                           "Record '"
-                           + self.name
-                           + '" cannot specify field "'
-                           + the_field.name
-                           + "' of type '"
-                           + the_field.type
-                           + "'. Nested packed types must ALL be either '.*T' or '.*T_Le' types. "
-                           + "Mixed endianness is not currently supported for packed records."
-                       )
+                    if self.endianness == "big" and (
+                        the_field.type.endswith(".T")
+                        or the_field.type.endswith(".Volatile_T")
+                        or the_field.type.endswith(".Atomic_T")
+                        or the_field.type.endswith(".Register_T")
+                    ):
+                        pass  # all is good
+                    elif self.endianness == "little" and (
+                        the_field.type.endswith(".T_Le")
+                        or the_field.type.endswith(".Volatile_T_Le")
+                        or the_field.type.endswith(".Atomic_T_Le")
+                        or the_field.type.endswith(".Register_T_Le")
+                    ):
+                        pass  # all is good
+                    else:
+                        raise ModelException(
+                            "Record '"
+                            + self.name
+                            + '" cannot specify field "'
+                            + the_field.name
+                            + "' of type '"
+                            + the_field.type
+                            + "'. Nested packed types must ALL be either '.*T' or '.*T_Le' types. "
+                            + "Mixed endianness is not currently supported for packed records."
+                        )
 
             # Handle variable length fields:
             if the_field.variable_length:
@@ -178,9 +186,9 @@ class record(packed_type):
                         + str(e)
                     )
                 self.variable_length_fields[the_field.name] = the_field
-                self.variable_length_sizing_fields[
-                    the_field.variable_length
-                ] = the_field.variable_length_field
+                self.variable_length_sizing_fields[the_field.variable_length] = (
+                    the_field.variable_length_field
+                )
 
             # Handle a field that might have a variable length type:
             elif the_field.is_packed_type and the_field.type_model.variable_length:
@@ -263,7 +271,6 @@ class record(packed_type):
                 + "total packed record itself must be byte aligned. Please add bit padding "
                 + "(reserved) fields if necessary."
             )
-
 
         # If a packed record has a volatile field, then all fields in the packed record must be
         # volatile. This is a strict requirement enforced by Adamant to ensure that records do
@@ -384,9 +391,11 @@ class record(packed_type):
             OrderedDict.fromkeys(
                 self.type_includes
                 + [
-                    f.type_package
-                    if f.is_packed_type
-                    else (f.type_package + "." + f.type_model.name)
+                    (
+                        f.type_package
+                        if f.is_packed_type
+                        else (f.type_package + "." + f.type_model.name)
+                    )
                     for f in complex_typed_fields
                 ]
             )

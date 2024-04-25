@@ -4,7 +4,6 @@
 -- Generated from {{ filename }} on {{ time }}.
 --------------------------------------------------------------------------------
 
-{% if not is_volatile_type %}
 -- Standard includes:
 with String_Util;
 {% if modeled_type_includes %}
@@ -13,7 +12,6 @@ with String_Util;
 {% for include in modeled_type_includes %}
 with {{ include }}.Representation;
 {% endfor %}
-{% endif %}
 {% endif %}
 
 -- String representation package for {{ name }}
