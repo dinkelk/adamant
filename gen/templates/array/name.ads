@@ -384,7 +384,6 @@ package {{ name }} is
 {% endif %}
 {% endif %}
 {% if element.format.length and element.format.length > 1 %}
-
 {% if endianness in ["either", "big"] %}
    pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
    pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");

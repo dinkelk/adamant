@@ -387,19 +387,18 @@ class record(packed_type):
                 [f.type_package for f in self.fields.values() if f.type_package]
             )
         )
-        self.type_uses = list(
-            OrderedDict.fromkeys(
-                self.type_includes
-                + [
-                    (
-                        f.type_package
-                        if f.is_packed_type
-                        else (f.type_package + "." + f.type_model.name)
-                    )
-                    for f in complex_typed_fields
-                ]
-            )
-        )
+
+        # Create type uses list for assertion package. This is complicated, but needed.
+        type_includes_no_var = []
+        for f in self.fields.values():
+            if f.type_model and f.is_packed_type:
+                if not f.type_model.variable_length:
+                    type_includes_no_var.append(f.type_package)
+            elif f.type_model and not f.is_packed_type:
+                type_includes_no_var.append(f.type_package + "." + f.type_model.name)
+            elif f.type_package:
+                type_includes_no_var.append(f.type_package)
+        self.type_uses = list(OrderedDict.fromkeys(type_includes_no_var))
 
         # Store the includes for any complex types (those that have models).
         self.modeled_type_includes = list(

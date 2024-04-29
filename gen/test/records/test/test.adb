@@ -201,7 +201,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record: ");
+   Put_Line ("Testing serialization/deserialization of variable sized record: ");
    Stat := Simple_Variable.Serialized_Length (V_Untouched, V_Size);
    pragma Assert (Stat = Success, "serialization length failed");
    Stat := Simple_Variable.Serialized_Length (V_Filled, V_Size_Filled);
@@ -227,7 +227,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record (part 2): ");
+   Put_Line ("Testing serialization/deserialization of variable sized record (part 2): ");
    Put_Line ("Max serialized size: " & Natural'Image (Simple_Variable.Serialization.Max_Serialized_Length));
    Put_Line ("v serialized size: " & Natural'Image (V_Size));
    Put_Line ("V filled serialized size: " & Natural'Image (V_Size_Filled));
@@ -277,7 +277,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record holder: ");
+   Put_Line ("Testing serialization/deserialization of variable sized record holder: ");
    Stat := Simple_Variable_Holder.Serialized_Length (Sv_Untouched, V_Size);
    pragma Assert (Stat = Success, "serialization length failed");
    Stat := Simple_Variable_Holder.Serialized_Length (Sv_Filled, V_Size_Filled);
@@ -299,11 +299,19 @@ begin
    Put_Line (Simple_Variable_Holder.Representation.To_Tuple_String (Sv_Untouched));
    Put_Line ("sV2:");
    Put_Line (Simple_Variable_Holder.Representation.To_Tuple_String (Sv2));
+   Simple_Variable_Holder_Assert.Eq (Sv_Untouched, Sv2);
    Simple_Variable_Holder_Assert_All.Eq (Sv_Untouched, Sv2);
+   Sv2.Simple.Buffer (Sv2.Simple.Buffer'First + 3 .. Sv2.Simple.Buffer'First + 10) := (others => 7);
+   Put_Line ("sV1:");
+   Put_Line (Simple_Variable_Holder.Representation.To_Tuple_String (Sv_Untouched));
+   Put_Line ("sV2:");
+   Put_Line (Simple_Variable_Holder.Representation.To_Tuple_String (Sv2));
+   Simple_Variable_Holder_Assert.Eq (Sv_Untouched, Sv2);
+   Simple_Variable_Holder_Assert_All.Neq (Sv_Untouched, Sv2);
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record (part 2): ");
+   Put_Line ("Testing serialization/deserialization of variable sized record (part 2): ");
    Put_Line ("Max serialized size: " & Natural'Image (Simple_Variable_Holder.Serialization.Max_Serialized_Length));
    Put_Line ("v serialized size: " & Natural'Image (V_Size));
    Put_Line ("V filled serialized size: " & Natural'Image (V_Size_Filled));
@@ -353,7 +361,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record: ");
+   Put_Line ("Testing serialization/deserialization of variable sized record: ");
    Stat := Simple_Variable_Offset.Serialized_Length (Ov_Untouched, V_Size);
    pragma Assert (Stat = Success, "serialization length failed");
    Stat := Simple_Variable_Offset.Serialized_Length (Ov_Filled, V_Size_Filled);
@@ -379,7 +387,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record (part 2): ");
+   Put_Line ("Testing serialization/deserialization of variable sized record (part 2): ");
    Put_Line ("Max serialized size: " & Natural'Image (Simple_Variable_Offset.Serialization.Max_Serialized_Length));
    Put_Line ("v serialized size: " & Natural'Image (V_Size));
    Put_Line ("V filled serialized size: " & Natural'Image (V_Size_Filled));
@@ -429,7 +437,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record: ");
+   Put_Line ("Testing serialization/deserialization of variable sized record: ");
    Stat := Simple_Variable_Array.Serialized_Length (Av_Untouched, V_Size);
    pragma Assert (Stat = Success, "serialization length failed");
    Stat := Simple_Variable_Array.Serialized_Length (Av_Filled, V_Size_Filled);
@@ -455,7 +463,7 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
-   Put_Line ("Testing serilization/deserialization of variable sized record (part 2): ");
+   Put_Line ("Testing serialization/deserialization of variable sized record (part 2): ");
    Put_Line ("Max serialized size: " & Natural'Image (Simple_Variable_Array.Serialization.Max_Serialized_Length));
    Put_Line ("v serialized size: " & Natural'Image (V_Size));
    Put_Line ("V filled serialized size: " & Natural'Image (V_Size_Filled));

@@ -22,11 +22,6 @@ with {{ include }}.Assertion;
 
 package {{ name }}.Assertion is
 
-{% if is_volatile_type %}
-   -- Assertion not supported for volatile record. Convert to a regular record for
-   -- a validation checking function.
-   procedure Dummy_Assertion;
-{% else %}
 {% if variable_length %}
    package Sinfo renames GNAT.Source_Info;
 
@@ -35,6 +30,11 @@ package {{ name }}.Assertion is
    -- being used. For example, a type with a buffer that is only half filled
    -- with valid data, as prescribed by that types variable length field, would
    -- only be compared up to that length. Unused data in the buffer is ignored.
+   package {{ name }}_U_Assert is
+      procedure Eq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
+      procedure Neq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
+   end {{ name }}_U_Assert;
+
 {% if endianness in ["either", "big"] %}
    package {{ name }}_Assert is
       procedure Eq (T1 : in T; T2 : in T; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
@@ -49,30 +49,26 @@ package {{ name }}.Assertion is
    end {{ name }}_Le_Assert;
 
 {% endif %}
-   package {{ name }}_U_Assert is
-      procedure Eq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
-      procedure Neq (T1 : in U; T2 : in U; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line);
-   end {{ name }}_U_Assert;
-
    -- This package compares all data in the variable length type, even data
    -- that is "out of bounds", ie. past the variable type's length
+   package {{ name }}_U_Assert_All is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
 {% if endianness in ["either", "big"] %}
    package {{ name }}_Assert_All is new Smart_Assert.Basic ({{ name }}.T, {{ name }}.Representation.Image);
 {% endif %}
 {% if endianness in ["either", "little"] %}
    package {{ name }}_Le_Assert_All is new Smart_Assert.Basic ({{ name }}.T_Le, {{ name }}.Representation.Image);
 {% endif %}
-   package {{ name }}_U_Assert_All is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
 {% else %}
    -- Basic assertion package for the packed type:
+   package {{ name }}_U_Assert is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
 {% if endianness in ["either", "big"] %}
    package {{ name }}_Assert is new Smart_Assert.Basic ({{ name }}.T, {{ name }}.Representation.Image);
 {% endif %}
 {% if endianness in ["either", "little"] %}
    package {{ name }}_Le_Assert is new Smart_Assert.Basic ({{ name }}.T_Le, {{ name }}.Representation.Image);
 {% endif %}
-   package {{ name }}_U_Assert is new Smart_Assert.Basic ({{ name }}.U, {{ name }}.Representation.Image);
-   -- TODO fix this, we need this to force an adb to get built and compile without error.
+
+   -- We need this to force an adb to get built and compile without error.
    package Dummy is
       procedure Dumb;
    end Dummy;
@@ -90,6 +86,5 @@ package {{ name }}.Assertion is
    package {{ field.name }}_Assert is new Smart_Assert.Basic ({{ field.type }}, {{ name }}.Representation.{{ field.name }}_Image);
 {% endif %}
 {% endfor %}
-{% endif %}
 
 end {{ name }}.Assertion;
