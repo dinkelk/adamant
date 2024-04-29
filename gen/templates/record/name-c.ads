@@ -25,7 +25,11 @@ package {{ name }}.C is
 {% if field.description %}
 {{ printMultiLine(field.description, '      -- ') }}
 {% endif %}
+{% if field.is_packed_type %}
+      {{ field.name }} : aliased {{ field.type_package }}.U{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% else %}
       {{ field.name }} : aliased {{ field.type }}{% if field.default_value %} := {{ field.default_value }}{% endif %};
+{% endif %}
 {% endfor %}
    end record
       with Convention => C_Pass_By_Copy;
@@ -39,9 +43,6 @@ package {{ name }}.C is
 
    -- The .C package is not supported for all Adamant packed records. We do not allow compilation in
    -- these cases.
-{% if packed_type_includes %}
-   pragma Compile_Time_Error (True, "{{ name }}.C package not supported for records that contain fields of packed types.");
-{% endif %}
    pragma Compile_Time_Error ({{ name }}.U'Size /= U_C'Size, "C type size not compatible with Ada type size.");
 
 end {{ name }}.C;
