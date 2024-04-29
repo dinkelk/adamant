@@ -3,6 +3,7 @@
 --
 -- Generated from {{ filename }} on {{ time }}.
 --------------------------------------------------------------------------------
+pragma Ada_2022;
 
 {% if unpacked_types %}
 with Byte_Array_Util;

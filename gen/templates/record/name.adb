@@ -3,6 +3,7 @@
 --
 -- Generated from {{ filename }} on {{ time }}.
 --------------------------------------------------------------------------------
+pragma Ada_2022;
 
 package body {{ name }} is
 
