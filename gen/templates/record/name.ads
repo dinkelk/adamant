@@ -477,7 +477,6 @@ package {{ name }} is
    Max_Serialized_Length : Natural renames Serialization_Le.Serialized_Length; -- in bytes
    -- The length in bytes of the serialized type.
    Min_Serialized_Length : Natural renames Serialization_Le.Serialized_Length; -- in bytes
-   -- TODO, naming. Do we need special _Le functions, or can we just overload types.
 {% endif %}
 
    -- Convenience function which always returns Success and the length defined above ^. This
