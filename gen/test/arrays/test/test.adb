@@ -39,7 +39,10 @@ procedure Test is
    Unaligned : constant Unaligned_Array.T := (1 .. 4 => 1, others => 98);
    Enum : constant Enum_Array.T := (others => First_Enum.Black);
    Simple_Mut : Simple_Array.T := Simple;
+   Simple_U : Simple_Array.U := (others => 2);
+   Simple_Le : Simple_Array.T_Le := (others => 2);
    Complex_Mut : Complex_Array.T := Complex;
+   Complex_U : Complex_Array.U := (others => (One => 0, Two => 19, Three => 6));
    Eight_Mut : Eight_Bit_Type_Array.T := Eight;
    Unaligned_Mut : Unaligned_Array.T := Unaligned;
    Enum_Mut : Enum_Array.T := Enum;
@@ -120,24 +123,32 @@ begin
    Put_Line ("Validating arrays (expect failure): ");
    pragma Assert (not Simple_Array.Validation.Valid (Simple_Mut, Field_Number), "Simple is valid, but should not be.");
    pragma Assert (Field_Number = 3, "Simple field_Number is wrong.");
-   Put_Line (Poly2bytestring (Simple_Array.Get_Field (Simple_Mut, Field_Number)));
-   pragma Assert (Simple_Array.Get_Field (Simple_Mut, Field_Number) = (0, 0, 0, 0, 0, 255, 0, 0), "Simple's polytype field is wrong."); -- represented by 32-bit number in little endian
+   Put_Line (Poly2bytestring (Simple_Array.Validation.Get_Field (Simple_Mut, Field_Number)));
+   pragma Assert (Simple_Array.Validation.Get_Field (Simple_Mut, Field_Number) = (0, 0, 0, 0, 0, 255, 0, 0), "Simple's polytype field is wrong."); -- represented by 32-bit number in little endian
    pragma Assert (not Complex_Array.Validation.Valid (Complex_Mut, Field_Number), "Complex is valid, but should not be.");
    pragma Assert (Field_Number = 5, "Complex field_Number is wrong.");
-   Put_Line (Poly2bytestring (Complex_Array.Get_Field (Complex_Mut, Field_Number)));
-   pragma Assert (Complex_Array.Get_Field (Complex_Mut, Field_Number) = (0, 0, 0, 0, 9, 0, 0, 0), "Complex's polytype field is wrong."); -- represented by 32-bit number in little endian
+   Put_Line (Poly2bytestring (Complex_Array.Validation.Get_Field (Complex_Mut, Field_Number)));
+   pragma Assert (Complex_Array.Validation.Get_Field (Complex_Mut, Field_Number) = (0, 0, 0, 0, 9, 0, 0, 0), "Complex's polytype field is wrong."); -- represented by 32-bit number in little endian
+   pragma Assert (Complex_Array.Validation.Valid (Complex_Mut, Field_Number, Complex_Mut'First, Complex_Mut'First), "Complex is invalid, but should not be.");
    pragma Assert (not Eight_Bit_Type_Array.Validation.Valid (Eight_Mut, Field_Number), "Eight is valid, but should not be.");
    pragma Assert (Field_Number = 2, "Eight field_Number is wrong.");
-   Put_Line (Poly2bytestring (Eight_Bit_Type_Array.Get_Field (Eight_Mut, Field_Number)));
-   pragma Assert (Eight_Bit_Type_Array.Get_Field (Eight_Mut, Field_Number) = (1, 1, 1, 00, 1, 1, 1, 1), "Eight's polytype field is wrong."); -- represented by 32-bit number in little endian
+   Put_Line (Poly2bytestring (Eight_Bit_Type_Array.Validation.Get_Field (Eight_Mut, Field_Number)));
+   pragma Assert (Eight_Bit_Type_Array.Validation.Get_Field (Eight_Mut, Field_Number) = (1, 1, 1, 00, 1, 1, 1, 1), "Eight's polytype field is wrong."); -- represented by 32-bit number in little endian
    pragma Assert (not Unaligned_Array.Validation.Valid (Unaligned_Mut, Field_Number), "Unaligned is valid, but should not be.");
    pragma Assert (Field_Number = 1, "Unaligned field_Number is wrong. ");
-   Put_Line (Poly2bytestring (Unaligned_Array.Get_Field (Unaligned_Mut, Field_Number)));
-   pragma Assert (Unaligned_Array.Get_Field (Unaligned_Mut, Field_Number) = (0, 0, 0, 00, 255, 03, 0, 0), "Unaligned's polytype field is wrong."); -- represented by 32-bit number in little endian
+   Put_Line (Poly2bytestring (Unaligned_Array.Validation.Get_Field (Unaligned_Mut, Field_Number)));
+   pragma Assert (Unaligned_Array.Validation.Get_Field (Unaligned_Mut, Field_Number) = (0, 0, 0, 00, 255, 03, 0, 0), "Unaligned's polytype field is wrong."); -- represented by 32-bit number in little endian
    pragma Assert (not Enum_Array.Validation.Valid (Enum_Mut, Field_Number), "Enum is valid, but should not be.");
    pragma Assert (Field_Number = 4, "Enum field_Number is wrong. " & Natural'Image (Natural (Field_Number)));
-   Put_Line (Poly2bytestring (Enum_Array.Get_Field (Enum_Mut, Field_Number)));
-   pragma Assert (Enum_Array.Get_Field (Enum_Mut, Field_Number) = (0, 0, 0, 00, 0, 0, 0, 04), "Enum's polytype field is wrong."); -- represented by 32-bit number in little endian
+   Put_Line (Poly2bytestring (Enum_Array.Validation.Get_Field (Enum_Mut, Field_Number)));
+   pragma Assert (Enum_Array.Validation.Get_Field (Enum_Mut, Field_Number) = (0, 0, 0, 00, 0, 0, 0, 04), "Enum's polytype field is wrong."); -- represented by 32-bit number in little endian
+   pragma Assert (Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'First, Enum_Mut'First + 1), "Enum is invalid, but should not be 1.");
+   pragma Assert (Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'First + 1, Enum_Mut'First + 2), "Enum is invalid, but should not be 2.");
+   pragma Assert (Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'First, Enum_Mut'Last - 3), "Enum is invalid, but should not be 3.");
+   pragma Assert (Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'First, Enum_Mut'Last - 2), "Enum is invalid, but should not be 4.");
+   pragma Assert (not Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'First, Enum_Mut'Last), "Enum is valid, but should not be 5.");
+   pragma Assert (not Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'First, Enum_Mut'Last), "Enum is valid, but should not be 6.");
+   pragma Assert (not Enum_Array.Validation.Valid (Enum_Mut, Field_Number, Enum_Mut'Last - 2, Enum_Mut'Last), "Enum is valid, but should not be 7.");
    Put_Line ("passed.");
 
    Put_Line ("Testing serialization/deserialization... ");
@@ -163,5 +174,45 @@ begin
    Put_Line (Unaligned_Array.Representation.Image (Unaligned_Array.T_Le (Unaligned)));
    Unaligned_Array_Le_Assert.Eq (Unaligned_Array.T_Le (Unaligned), Unaligned_Array.T_Le (Unaligned));
    Put_Line ("passed.");
+
+   Put_Line ("Pack/unpack test: ");
+   Simple_Mut := (others => 1);
+   Simple_U := Simple_Array.Unpack (Simple_Mut);
+   Put_Line ("Simple:");
+   -- Put_Line (Simple_Mut'Image);
+   Put_Line (Simple_Array.Representation.Image (Simple_Mut));
+   Put_Line ("Simple_U:");
+   -- Put_Line (Simple_U'Image);
+   Put_Line (Simple_Array.Representation.Image (Simple_U));
+   Simple_Array_U_Assert.Eq (Simple_U, (others => 1));
+   Simple_Mut := Simple_Array.Pack (Simple_U);
+   Put_Line ("Simple:");
+   Put_Line (Simple_Array.Representation.Image (Simple_Mut));
+   Simple_Array_Assert.Eq (Simple_Mut, (others => 1));
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Swap endianness:");
+   Simple_Le := Simple_Array.Swap_Endianness (Simple_Mut);
+   Put_Line ("Simple_Le:");
+   Put_Line (Simple_Array.Representation.Image (Simple_Le));
+   Simple_Array_Le_Assert.Eq (Simple_Le, (others => 1));
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Pack/unpack test (nested): ");
+   Complex_Mut := (others => (One => 0, Two => 19, Three => 5));
+   Complex_U := Complex_Array.Unpack (Complex_Mut);
+   Put_Line ("Complex:");
+   Put_Line (Complex_Array.Representation.Image (Complex_Mut));
+   Put_Line ("Complex_U:");
+   Put_Line (Complex_Array.Representation.Image (Complex_U));
+   Complex_Array_U_Assert.Eq (Complex_U, (others => (One => 0, Two => 19, Three => 5)));
+   Complex_Mut := Complex_Array.Pack (Complex_U);
+   Put_Line ("Complex:");
+   Put_Line (Complex_Array.Representation.Image (Complex_Mut));
+   Complex_Array_Assert.Eq (Complex_Mut, (others => (One => 0, Two => 19, Three => 5)));
+   Put_Line ("passed.");
+   Put_Line ("");
 
 end Test;
