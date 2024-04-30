@@ -659,7 +659,7 @@ package body Component.{{ name }} is
                -- Create a poly type with the invalid parameter and send it to the handler.
                declare
 {% if command.type_model %}
-                  P_Type : constant Basic_Types.Poly_Type := {{ command.type_package }}.Get_Field (Args, Errant_Field);
+                  P_Type : constant Basic_Types.Poly_Type := {{ command.type_package }}.Validation.Get_Field (Args, Errant_Field);
 {% else %}
                   P_Type : Basic_Types.Poly_Type := (others => 0);
 {% endif %}
