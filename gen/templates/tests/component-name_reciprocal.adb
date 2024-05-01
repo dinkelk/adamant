@@ -3,7 +3,6 @@
 --
 -- Generated from {{ filename }} on {{ time }}.
 --------------------------------------------------------------------------------
-pragma Ada_2022;
 
 -- Includes:
 with Sys_Time.Pretty;
