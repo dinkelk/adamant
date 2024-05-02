@@ -18,20 +18,20 @@ package Circular_Buffer.Labeled_Queue is
    --
    -- Push data from a byte array onto the queue. If not enough space remains on the internal queue to read
    -- store the entire byte array then Failure is returned.
-   function Push (Self : in out Instance; Label : in Label_Type; Bytes : in Basic_Types.Byte_Array) return Push_Status;
+   function Push (Self : in out Instance; Label : in Label_Type; Bytes : in Basic_Types.Byte_Array) return Push_Return_Status;
    -- Pop data from queue onto a byte array. The number of bytes returned will match the length
    -- of "bytes". If "bytes" cannot be completely filled then Failure is returned.
-   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status;
-   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Status;
+   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status;
+   function Pop (Self : in out Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Return_Status;
    -- Peek data from queue onto a byte array. This function is like pop, except the bytes are not actually
    -- removed from the internal queue.
-   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status;
-   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Status;
+   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status;
+   function Peek (Self : in Instance; Label : out Label_Type; Bytes : in out Basic_Types.Byte_Array; Offset : in Natural := 0) return Pop_Return_Status;
 
    -- Get the label of the oldest item on the queue without removing it.
-   function Peek_Label (Self : in Instance; Label : out Label_Type) return Pop_Status;
+   function Peek_Label (Self : in Instance; Label : out Label_Type) return Pop_Return_Status;
    -- Get the length of the oldest item on the queue without removing it. We need to override because we need to subtract the length of the label.
-   overriding function Peek_Length (Self : in Instance; Length : out Natural) return Pop_Status;
+   overriding function Peek_Length (Self : in Instance; Length : out Natural) return Pop_Return_Status;
 
    -- Declare constant for size of overhead for storing length on the buffer
    -- and the label itself (in bytes):

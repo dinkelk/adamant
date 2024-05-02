@@ -6,8 +6,8 @@ with Byte_Array_Pointer;
 package Circular_Buffer is
 
    -- Status type:
-   type Push_Status is (Success, Too_Full);
-   type Pop_Status is (Success, Empty);
+   type Push_Return_Status is (Success, Too_Full);
+   type Pop_Return_Status is (Success, Empty);
 
    -- Basic Buffer definition:
    -- This is the a base type for many other data structures which use
@@ -96,13 +96,13 @@ package Circular_Buffer is
    --
    -- Push data from a byte array onto the buffer. If not enough space remains on the internal buffer to read
    -- store the entire byte array then Failure is returned.
-   function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status;
+   function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Return_Status;
    -- Pop data from buffer onto a byte array. The number of bytes returned will match the length
    -- of "bytes". If "bytes" cannot be completely filled then Failure is returned.
-   function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status;
+   function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Return_Status;
    -- Peek data from buffer onto a byte array. This function is like pop, except the bytes are not actually
    -- removed from the internal buffer.
-   function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status;
+   function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Return_Status;
 
    -- Force the buffer to be completely full, with the head at the specified index. This
    -- subprogram is useful if you want to read out the entire buffer from start to finish
@@ -116,9 +116,9 @@ package Circular_Buffer is
    type Queue_Base is new Base with private;
 
    -- Get the length of the oldest item on the queue without removing it.
-   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status;
+   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Return_Status;
    -- Remove an item off the queue, without returning it:
-   function Pop (Self : in out Queue_Base) return Pop_Status;
+   function Pop (Self : in out Queue_Base) return Pop_Return_Status;
 
    --
    -- Meta data functions:
@@ -147,13 +147,13 @@ package Circular_Buffer is
    --
    -- Push data from a byte array onto the queue. If not enough space remains on the internal queue to read
    -- store the entire byte array then Failure is returned.
-   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status;
+   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Return_Status;
    -- Pop data from queue onto a byte array. The number of bytes returned will match the length
    -- of "bytes". If "bytes" cannot be completely filled then Failure is returned.
-   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status;
+   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status;
    -- Peek data from queue onto a byte array. This function is like pop, except the bytes are not actually
    -- removed from the internal queue.
-   function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status;
+   function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Return_Status;
 
    -- Declare constant for size of overhead for storing length on the buffer
    -- itself (in bytes):
@@ -175,17 +175,17 @@ private
    --
    -- Push data from a byte array onto the buffer. If not enough space remains on the internal buffer to read
    -- store the entire byte array then Failure is returned.
-   function Push (Self : in out Base; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status;
+   function Push (Self : in out Base; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Return_Status;
    -- Pop data from buffer onto a byte array. The function attempts to return a number of bytes equal to
    -- the size of the provided "bytes" array. The actual number of bytes returned is returned in the
    -- num_Bytes_Returned variable.
-   function Pop (Self : in out Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status;
+   function Pop (Self : in out Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Return_Status;
    -- Peek data from buffer onto a byte array. This function is like pop, except the bytes are not actually
    -- removed from the internal buffer. The function attempts to return a number of bytes equal to
    -- the size of the provided "bytes" array. The actual number of bytes returned is returned in the
    -- num_Bytes_Returned variable. An offset can be provided to peek ahead a certain number of bytes
    -- from the head of the internal circular buffer.
-   function Peek (Self : in Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status;
+   function Peek (Self : in Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Return_Status;
 
    --
    -- Generic versions of the functions above:
@@ -209,7 +209,7 @@ private
    Queue_Element_Storage_Overhead : constant Natural := Length_Serializer.Serialized_Length;
 
    -- Queue Base private subprograms:
-   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Status;
+   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Return_Status;
    procedure Peek_Bytes (Self : in Queue_Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_To_Read : in Natural; Num_Bytes_Read : out Natural; Offset : in Natural := 0);
    procedure Do_Pop (Self : in out Queue_Base; Element_Length : in Natural);
 
