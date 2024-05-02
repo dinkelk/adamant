@@ -10,7 +10,7 @@ fields:
     description: This field is of type Example Record, which is itself a packed record definition.
     type: Example_Record.T
     # ^ No format specification is necessary, since the
-    # bit represntation of a packed record is known
+    # bit representation of a packed record is known
   - name: Nested_Field_2
     description: Another field of type Example Record.
     type: Example_Record.T
