@@ -15,6 +15,7 @@ package body {{ name }}.Assertion is
 {% for include in type_uses %}
       use {{ include }};
 {% endfor %}
+      pragma Warnings (On, "hides homonym from use clause");
    begin
       -- Assert on all fields individually:
 {% for field in fields.values() %}
@@ -37,6 +38,7 @@ package body {{ name }}.Assertion is
 {% for include in type_uses %}
       use {{ include }};
 {% endfor %}
+      pragma Warnings (On, "hides homonym from use clause");
    begin
       -- Assert on all fields individually:
 {% for field in fields.values() %}

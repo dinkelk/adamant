@@ -32,10 +32,10 @@ abstract project a_bareboard_base extends all "a_adamant.gpr" is
 
    -- Common binder switches:
    package Binder is
-      for Switches ("Ada") use a_adamant.Binder'Switches ("Ada") &
+      for Switches ("Ada") use a_adamant.Binder'Switches ("Ada");
          -- Set default size of secondary stacks to 10k. This will
          -- be overridden by and Adamant component tasks.
-         ("-D10k");
+         -- ("-D10k");
    end Binder;
 
    -- Common linker switches:

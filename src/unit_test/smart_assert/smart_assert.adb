@@ -10,7 +10,6 @@ package body Smart_Assert is
    -------------------------------------------------
    -- Custom assertion method that works even outside the context of an AUnit unit test program.
    procedure Assert (Condition : in Boolean; Message : in String := ""; Filename : in String := Sinfo.File; Line : in Natural := Sinfo.Line) is
-      use AUnit.Assertions;
       -- Function which prints a good assertion failure message. We will use this if AUnit is not currently being used.
       procedure Raise_Assertion_Failure is
       begin
@@ -23,7 +22,7 @@ package body Smart_Assert is
       -- If we are in an active AUnit session then use the AUnit assertions, otherwise just
       -- use our own. Using AUnit assert outside of an AUnit test can cause segmentation faults
       -- and other weirdness that we would like to avoid.
-      if AUnit.Assertions.Current_Test = null then
+      if AUnit.Assertions."=" (AUnit.Assertions.Current_Test, null) then
          if not Condition then
             Raise_Assertion_Failure;
          end if;
