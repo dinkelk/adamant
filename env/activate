@@ -20,6 +20,10 @@ echo "------------------------------------------------------------------"
 echo "Activating Adamant environment at $ADAMANT_DIR."
 echo "------------------------------------------------------------------"
 
+# Use 16-bit subseconds instead of 32-bit subseconds for this build.
+export REMOVE_BUILD_PATH=$ADAMANT_DIR/src/types/sys_time
+export EXTRA_BUILD_PATH=$ADAMANT_DIR/src/types/sys_time/subseconds_16
+
 # We expect input arguments to be a list of build roots
 # (not including the adamant directory) in the form:
 #

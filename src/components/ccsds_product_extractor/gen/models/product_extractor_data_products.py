@@ -16,7 +16,7 @@ class product_extractor_data_products(data_products):
         # Make sure an assembly is set by the base class implementation.
         super(product_extractor_data_products, self).set_assembly(assembly)
 
-        # Get the model for the downsampler to create data products for each item in the list
+        # Get the model for the extractor to create data products for each item in the list
         extraction_list = self.component.init.get_parameter_value(
             "Data_Product_Extraction_List"
         )
