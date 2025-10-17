@@ -42,7 +42,8 @@ def _get_parameter_table_header_size():
     return param_table_header_obj[0].size
 
 
-class parameter_table_entry(object):
+class parameter(object):
+    """Represents a single parameter within a parameter table entry."""
     def __init__(
         self, component_name, parameter_name, component_model, parameter_model
     ):
@@ -50,14 +51,59 @@ class parameter_table_entry(object):
         self.parameter_name = ada.formatType(parameter_name)
         self.name = self.component_name + "." + self.parameter_name
 
-        # Variables to be set during resolving of ids.
+        # The component and parameter models
         self.component = component_model  # the component model
         self.parameter = parameter_model  # the parameter model
-        assert parameter_model.type_model, "All parameters must be packed types."
-        self.size = parameter_model.type_model.size  # in bytes
+
+        # Component ID to be set during resolving
+        self.component_id = None  # Component ID this parameter belongs to
+
+
+class parameter_table_entry(object):
+    """
+    Represents an entry in the parameter table. Each entry has a unique Entry_ID
+    (its index in the table), start/end indices in the table, and a list of parameters
+    that share this entry. For grouped parameters, multiple parameters share the same
+    entry (union), but each parameter has a unique ID and Component_ID.
+    """
+    def __init__(self, entry_id, parameter_obj):
+        # Unique entry ID (index into the parameter table)
+        self.entry_id = entry_id
+
+        # List of parameter objects that share this entry
+        self.parameters = [parameter_obj]
+
+        # Get size from the first parameter (all parameters in entry must have same size)
+        assert parameter_obj.parameter.type_model, "All parameters must be packed types."
+        self.size = parameter_obj.parameter.type_model.size  # in bits
+
+        # Indices to be set during table resolution
         self.start_index = None
         self.end_index = None
-        self.component_id = None
+
+        # Name for this entry (use first parameter's name)
+        self.name = parameter_obj.name
+
+    def add_parameter(self, parameter_obj):
+        """Add another parameter to this entry (for grouped parameters)."""
+        # Validate that the new parameter has the same type and size
+        first_param = self.parameters[0]
+        first_type = first_param.parameter.type_model.name if first_param.parameter.type_model else None
+        param_type = parameter_obj.parameter.type_model.name if parameter_obj.parameter.type_model else None
+
+        if param_type != first_type:
+            raise ModelException(
+                f"Cannot group parameters of different types. "
+                f"Entry has type '{first_type}' but parameter "
+                f"{parameter_obj.name} has type '{param_type}'."
+            )
+
+        # Make sure sizes match as well
+        first_size = first_param.parameter.type_model.size if first_param.parameter.type_model else None
+        param_size = parameter_obj.parameter.type_model.size if parameter_obj.parameter.type_model else None
+        assert param_size == first_size, "If the parameter types are the same, the size should also be the same."
+
+        self.parameters.append(parameter_obj)
 
 
 class parameter_table(assembly_submodel):
@@ -87,7 +133,7 @@ class parameter_table(assembly_submodel):
         self.description = None
         self.parameter_name_list = []
         self.parameter_table_resolved = False
-        self.parameters = OrderedDict()  # map from name to packet obj
+        self.parameters = OrderedDict()  # map from name to parameter_table_entry obj
         self.components = (
             OrderedDict()
         )  # map from component name to component object for all components listed in parameter table
@@ -153,88 +199,197 @@ class parameter_table(assembly_submodel):
                     + '" that was found in the table more than once. All parameters listed in the table must be unique.'
                 )
             self.parameters[table_entry.name] = table_entry
-            # Append to component dictionary
-            try:
-                self.components[
-                    table_entry.component.instance_name
-                ] = table_entry.component
-            except KeyError:
-                pass
+            # Append to component dictionary for all parameters in this entry
+            for param in table_entry.parameters:
+                try:
+                    self.components[param.component.instance_name] = param.component
+                except KeyError:
+                    pass
 
         # For each parameter listing, load the component and parameter models and form a parameter table entry object
-        for parameter_name in self.parameter_name_list:
-            split_name = parameter_name.split(".")
-
-            if len(split_name) == 1:
-                # This specifies only the component name, so we need to load the component first to grab
-                # all of its parameters.
-                component_name = split_name[0]
-                comp = get_component_by_name(component_name)
-
-                # Load a table entry for each parameter in the component:
-                for param in comp.parameters:
-                    # Create table entry object
-                    table_entry = parameter_table_entry(
-                        component_name=component_name,
-                        parameter_name=param.name,
-                        component_model=comp,
-                        parameter_model=param,
-                    )
-
-                    # Store table entry in dictionary:
-                    store_parameter_table_entry(table_entry)
-
-                # Update dependencies
-                self.dependencies.extend(
-                    [comp.parameters.full_filename] +
-                    comp.parameters.get_dependencies()
-                )
-
-            elif len(split_name) == 2:
-                # This specifies both component name and parameter name. First load the component:
-                component_name = split_name[0]
-                parameter_name = split_name[1]
-                comp = get_component_by_name(component_name)
-
-                # Now make sure that the parameter specified actually exists in the component:
-                param = comp.parameters.get_with_name(parameter_name)
-                if not param:
+        entry_id = 0  # Unique entry ID counter
+        for parameter_entry in self.parameter_name_list:
+            # Handle both string entries and list entries (grouped parameters)
+            if isinstance(parameter_entry, list):
+                # This is a grouped parameter - multiple parameters share the same table entry
+                # Grouped parameters must all be in "Component.Parameter" format (not just "Component")
+                if len(parameter_entry) < 2:
                     raise ModelException(
                         'Parameter table "'
                         + self.name
-                        + '" has parameter "'
-                        + parameter_name
-                        + '" which does not exist in component "'
-                        + component_name
-                        + '".'
+                        + '" has a grouped parameter entry with less than 2 parameters. '
+                        + 'Grouped parameters must have at least 2 entries.'
                     )
 
-                # Create table entry object
-                table_entry = parameter_table_entry(
-                    component_name=component_name,
-                    parameter_name=parameter_name,
-                    component_model=comp,
-                    parameter_model=param,
-                )
+                # Process all parameters in the group
+                group_param_objs = []
+                for param_name in parameter_entry:
+                    split_name = param_name.split(".")
+                    if len(split_name) != 2:
+                        raise ModelException(
+                            'Parameter table "'
+                            + self.name
+                            + '" has a grouped parameter "'
+                            + param_name
+                            + '" that is not in the format "Component.Parameter_Name". '
+                            + 'Grouped parameters cannot use the shorthand "Component" format to include all parameters.'
+                        )
 
-                # Store table entry in dictionary:
+                    component_name = split_name[0]
+                    parameter_name = split_name[1]
+                    comp = get_component_by_name(component_name)
+
+                    # Make sure that the parameter specified actually exists in the component
+                    param_model = comp.parameters.get_with_name(parameter_name)
+                    if not param_model:
+                        raise ModelException(
+                            'Parameter table "'
+                            + self.name
+                            + '" has parameter "'
+                            + parameter_name
+                            + '" which does not exist in component "'
+                            + component_name
+                            + '".'
+                        )
+
+                    # Create a parameter object
+                    param_obj = parameter(
+                        component_name=component_name,
+                        parameter_name=parameter_name,
+                        component_model=comp,
+                        parameter_model=param_model
+                    )
+                    group_param_objs.append(param_obj)
+
+                    # Add component to components dictionary
+                    try:
+                        self.components[comp.instance_name] = comp
+                    except KeyError:
+                        pass
+
+                    # Update dependencies
+                    self.dependencies.extend(
+                        [comp.parameters.full_filename] +
+                        comp.parameters.get_dependencies()
+                    )
+
+                # Validate all parameters in the group have the same type
+                first_param = group_param_objs[0]
+                first_type = first_param.parameter.type_model.name if first_param.parameter.type_model else None
+                first_size = first_param.parameter.type_model.size if first_param.parameter.type_model else None
+
+                for param_obj in group_param_objs[1:]:
+                    param_type = param_obj.parameter.type_model.name if param_obj.parameter.type_model else None
+                    param_size = param_obj.parameter.type_model.size if param_obj.parameter.type_model else None
+
+                    if param_type != first_type or param_size != first_size:
+                        raise ModelException(
+                            'Parameter table "'
+                            + self.name
+                            + '" has grouped parameters with different types. '
+                            + 'Parameter "'
+                            + first_param.name
+                            + '" has type "'
+                            + str(first_type)
+                            + '" but parameter "'
+                            + param_obj.name
+                            + '" has type "'
+                            + str(param_type)
+                            + '". All grouped parameters must have the same type.'
+                        )
+
+                # Create ONE table entry with the first parameter, then add the rest
+                table_entry = parameter_table_entry(entry_id, group_param_objs[0])
+                for param_obj in group_param_objs[1:]:
+                    table_entry.add_parameter(param_obj)
+
+                # Store table entry
                 store_parameter_table_entry(table_entry)
-
-                # Update dependencies
-                self.dependencies.extend(
-                    [comp.parameters.full_filename] +
-                    comp.parameters.get_dependencies()
-                )
+                entry_id += 1
 
             else:
-                raise ModelException(
-                    'Parameter table "'
-                    + self.name
-                    + '" contains listed parameter that has an invalid name "'
-                    + parameter_name
-                    + '". Parameter names should be of the format "Component.Parameter_Name" or "Component" '
-                    + 'if you want to specify all parameters for that component.'
-                )
+                # Single parameter (non-grouped)
+                parameter_name = parameter_entry
+                split_name = parameter_name.split(".")
+
+                if len(split_name) == 1:
+                    # This specifies only the component name, so we need to load the component first to grab
+                    # all of its parameters.
+                    component_name = split_name[0]
+                    comp = get_component_by_name(component_name)
+
+                    # Load a table entry for each parameter in the component:
+                    for param_model in comp.parameters:
+                        # Create parameter object
+                        param_obj = parameter(
+                            component_name=component_name,
+                            parameter_name=param_model.name,
+                            component_model=comp,
+                            parameter_model=param_model,
+                        )
+
+                        # Create table entry object with this single parameter
+                        table_entry = parameter_table_entry(entry_id, param_obj)
+
+                        # Store table entry in dictionary:
+                        store_parameter_table_entry(table_entry)
+                        entry_id += 1
+
+                    # Update dependencies
+                    self.dependencies.extend(
+                        [comp.parameters.full_filename] +
+                        comp.parameters.get_dependencies()
+                    )
+
+                elif len(split_name) == 2:
+                    # This specifies both component name and parameter name. First load the component:
+                    component_name = split_name[0]
+                    parameter_name = split_name[1]
+                    comp = get_component_by_name(component_name)
+
+                    # Now make sure that the parameter specified actually exists in the component:
+                    param_model = comp.parameters.get_with_name(parameter_name)
+                    if not param_model:
+                        raise ModelException(
+                            'Parameter table "'
+                            + self.name
+                            + '" has parameter "'
+                            + parameter_name
+                            + '" which does not exist in component "'
+                            + component_name
+                            + '".'
+                        )
+
+                    # Create parameter object
+                    param_obj = parameter(
+                        component_name=component_name,
+                        parameter_name=parameter_name,
+                        component_model=comp,
+                        parameter_model=param_model,
+                    )
+
+                    # Create table entry object with this single parameter
+                    table_entry = parameter_table_entry(entry_id, param_obj)
+
+                    # Store table entry in dictionary:
+                    store_parameter_table_entry(table_entry)
+                    entry_id += 1
+
+                    # Update dependencies
+                    self.dependencies.extend(
+                        [comp.parameters.full_filename] +
+                        comp.parameters.get_dependencies()
+                    )
+
+                else:
+                    raise ModelException(
+                        'Parameter table "'
+                        + self.name
+                        + '" contains listed parameter that has an invalid name "'
+                        + parameter_name
+                        + '". Parameter names should be of the format "Component.Parameter_Name" or "Component" '
+                        + 'if you want to specify all parameters for that component.'
+                    )
 
         # For each parameter table entry object set the start index and end index. This will compact all
         # the parameters together as tight as possible.
@@ -305,7 +460,7 @@ class parameter_table(assembly_submodel):
                     connected_components[c.to_component.instance_name] = [idx + 1]
 
         # Create map of destination name to indexes that it corresponds to:
-        destinations = {}
+        self.destinations = {}
         for component_name in self.components.keys():
             indexes = [None]
             if component_name in connected_components:
@@ -319,11 +474,14 @@ class parameter_table(assembly_submodel):
                     + '" so a parameter table cannot be produced updates values inside that component.'
                 )
             # Add destination map to dict:
-            destinations[component_name] = indexes
+            self.destinations[component_name] = indexes
 
-        # Resolve all parameter component ids:
+        # Resolve all parameter component ids for each parameter in each entry:
+        # Note: Parameter IDs are NOT set here - they will be accessed directly from
+        # the parameter model at template render time, after the assembly has set them.
         for table_entry in self.parameters.values():
-            table_entry.component_id = destinations[table_entry.component_name][0]
+            for param in table_entry.parameters:
+                param.component_id = self.destinations[param.component.instance_name][0]
 
         # Remove duplicate dependencies
         self.dependencies = list(set(self.dependencies))
