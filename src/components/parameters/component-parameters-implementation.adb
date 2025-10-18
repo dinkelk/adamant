@@ -55,11 +55,33 @@ package body Component.Parameters.Implementation is
                "Connector '" & Connector_Index_Type'Image (Param_Entry.Component_Id) & "' is unconnected, but has parameters that need to be serviced.");
 
             -- Make sure the parameter entries are layout in byte order, with no deadspace and no overlap, and are not too large.
-            pragma Assert (Param_Entry.Start_Index = Current_Byte, "Unexpected byte layout in parameter table at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
-            pragma Assert (Param_Entry.End_Index >= Param_Entry.Start_Index, "end_Index must be greater than start_Index at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
-            pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index + 1 <= Parameter_Types.Parameter_Buffer_Length_Type'Last,
-               "Parameter ID '" & Parameter_Id'Image (Param_Entry.Id) & "' is too large to fit in the parameter record.");
-            Current_Byte := Param_Entry.End_Index + 1;
+            -- Allow exact overlap (grouped parameters) where Start_Index and End_Index match the previous entry exactly.
+            if Idx > Self.Entries.all'First then
+               declare
+                  Prev_Entry : Parameters_Component_Types.Parameter_Table_Entry renames Self.Entries.all (Idx - 1);
+               begin
+                  -- Check if this is a grouped parameter (exact overlap with previous entry)
+                  if Param_Entry.Start_Index = Prev_Entry.Start_Index and then Param_Entry.End_Index = Prev_Entry.End_Index then
+                     -- This is a grouped parameter sharing the same memory location as the previous entry.
+                     -- No need to advance Current_Byte since we're reusing the same space.
+                     null;
+                  else
+                     -- Not a grouped parameter, so ensure no deadspace, no partial overlap, and proper ordering.
+                     pragma Assert (Param_Entry.Start_Index = Current_Byte, "Unexpected byte layout in parameter table at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+                     pragma Assert (Param_Entry.End_Index >= Param_Entry.Start_Index, "end_Index must be greater than start_Index at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+                     pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index + 1 <= Parameter_Types.Parameter_Buffer_Length_Type'Last,
+                        "Parameter ID '" & Parameter_Id'Image (Param_Entry.Id) & "' is too large to fit in the parameter record.");
+                     Current_Byte := Param_Entry.End_Index + 1;
+                  end if;
+               end;
+            else
+               -- First entry, perform standard checks
+               pragma Assert (Param_Entry.Start_Index = Current_Byte, "Unexpected byte layout in parameter table at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+               pragma Assert (Param_Entry.End_Index >= Param_Entry.Start_Index, "end_Index must be greater than start_Index at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+               pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index + 1 <= Parameter_Types.Parameter_Buffer_Length_Type'Last,
+                  "Parameter ID '" & Parameter_Id'Image (Param_Entry.Id) & "' is too large to fit in the parameter record.");
+               Current_Byte := Param_Entry.End_Index + 1;
+            end if;
          end;
       end loop;
 
