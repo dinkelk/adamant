@@ -26,8 +26,12 @@ package Basic_Types is
 
    -- Define the unconstrained byte array type.
    type Byte_Array is array (Byte_Array_Index range <>) of Byte
-      with Scalar_Storage_Order => System.High_Order_First,
+      with Component_Size => 8,
+           Scalar_Storage_Order => System.High_Order_First,
            Alignment => 1;
+   pragma Warnings (Off, "pragma Pack for ""Byte_Array"" ignored");
+   pragma Pack (Byte_Array);
+   pragma Warnings (On, "pragma Pack for ""Byte_Array"" ignored");
 
    -- "Thick pointer" access type will include an address
    -- to the bytes array in memory and an address to the bounds
@@ -50,6 +54,63 @@ package Basic_Types is
    type Volatile_Byte_Array is new Byte_Array with
       Volatile => True;
    type Volatile_Byte_Array_Access is access all Volatile_Byte_Array;
+
+   ------------------------------------------------------------
+   -- Word and Word arrays
+   ------------------------------------------------------------
+
+   -- Define a word as a 32-bit mod type
+   subtype Word is Interfaces.Unsigned_32
+     with Object_Size => 32,
+          Value_Size => 32;
+
+   -- Define index type similar to byte array
+   subtype Word_Array_Index is Natural range Natural'First .. Natural'Last - 1;
+
+   -- Native endianness word array definition
+   type Word_Array is array (Word_Array_Index range <>) of Word
+     with Component_Size => 32;
+   pragma Warnings (Off, "pragma Pack for ""Word_Array"" ignored");
+   pragma Pack (Word_Array);
+   pragma Warnings (On, "pragma Pack for ""Word_Array"" ignored");
+
+   -- Little endian word array definition
+   type Word_Array_Le is new Word_Array
+     with Component_Size => 32,
+          Scalar_Storage_Order => System.Low_Order_First;
+   pragma Warnings (Off, "pragma Pack for ""Word_Array_Le"" ignored");
+   pragma Pack (Word_Array_Le);
+   pragma Warnings (On, "pragma Pack for ""Word_Array_Le"" ignored");
+
+   -- Big endian word array definition
+   type Word_Array_Be is new Word_Array
+     with Component_Size => 32,
+          Scalar_Storage_Order => System.High_Order_First;
+   pragma Warnings (Off, "pragma Pack for ""Word_Array_Be"" ignored");
+   pragma Pack (Word_Array_Be);
+   pragma Warnings (On, "pragma Pack for ""Word_Array_Be"" ignored");
+
+   -- "Thick pointer" access type will include an address
+   -- to the bytes array in memory and an address to the bounds
+   -- of the constrained byte array.
+   type Word_Array_Access is access all Word_Array;
+   type Word_Array_Le_Access is access all Word_Array_Le;
+   type Word_Array_Be_Access is access all Word_Array_Be;
+
+   -- Volatile version of word array, used for accessing hardware buffers:
+   type Volatile_Word_Array is new Word_Array with
+      Volatile => True;
+   type Volatile_Word_Array_Access is access all Volatile_Word_Array;
+
+   -- Volatile version of LE word array, used for accessing hardware buffers:
+   type Volatile_Word_Array_Le is new Word_Array_Le with
+      Volatile => True;
+   type Volatile_Word_Array_Le_Access is access all Volatile_Word_Array_Le;
+
+   -- Volatile version of BE word array, used for accessing hardware buffers:
+   type Volatile_Word_Array_Be is new Word_Array_Be with
+      Volatile => True;
+   type Volatile_Word_Array_Be_Access is access all Volatile_Word_Array_Be;
 
    ----------------------------------------
    -- Positive integers (nonstandard size):
@@ -96,5 +157,56 @@ package Basic_Types is
 
    -- Generic poly type definition, set to 64-bit type.
    subtype Poly_Type is Poly_64_Type;
+
+private
+
+   --
+   -- The Byte_Array and Word_Array types above do not technically guarantee
+   -- that there are "no gaps" between components of the array. However, in
+   -- Ada RM Implementation Advice (13.3(71-73)) it says:
+   --
+   --   https://www.adaic.org/resources/add_content/standards/12rm/html/RM-13-3.html
+   --
+   --   An implementation should support specified Component_Sizes that are factors
+   --   and multiples of the word size. For such Component_Sizes, the array should
+   --   contain no gaps between components. For other Component_Sizes (if supported),
+   --   the array should contain no gaps between components when Pack is also specified;
+   --   the implementation should forbid this combination in cases where it cannot
+   --   support a no-gaps representation.
+   --
+   -- The word "should" is used here, not "shall". For GNAT in the RM it is
+   -- explicitly recognized that the advice is followed. Since that is the most
+   -- common Ada implementation used with Adamant, we can assume that the desired
+   -- packing is respected. See:
+   --
+   --   https://gcc.gnu.org/onlinedocs/gnat_rm/RM-13-3-71-73-Component-Size-Clauses.html
+   --
+   -- In order to verify this, we can use the following assertions:
+   --
+
+   subtype Byte_Array_5 is Byte_Array (0 .. 4);
+   subtype Word_Array_5 is Word_Array (0 .. 4);
+   subtype Word_Array_Be_5 is Word_Array_Be (0 .. 4);
+   subtype Word_Array_Le_5 is Word_Array_Le (0 .. 4);
+
+   pragma Compile_Time_Error (Byte_Array'Component_Size /= 8,
+      "Byte_Array component size must be 8 bits");
+   pragma Compile_Time_Error (Byte_Array_5'Object_Size /= 5 * 8,
+      "Byte_Array_5 object size must be 40 bits (5 bytes with no gaps)");
+
+   pragma Compile_Time_Error (Word_Array'Component_Size /= 32,
+      "Word_Array component size must be 32 bits");
+   pragma Compile_Time_Error (Word_Array_5'Object_Size /= 5 * 32,
+      "Word_Array_5 object size must be 160 bits (5 words with no gaps)");
+
+   pragma Compile_Time_Error (Word_Array_Be'Component_Size /= 32,
+      "Word_Array_Be component size must be 32 bits");
+   pragma Compile_Time_Error (Word_Array_Be_5'Object_Size /= 5 * 32,
+      "Word_Array_Be_5 object size must be 160 bits (5 words with no gaps)");
+
+   pragma Compile_Time_Error (Word_Array_Le'Component_Size /= 32,
+      "Word_Array_Le component size must be 32 bits");
+   pragma Compile_Time_Error (Word_Array_Le_5'Object_Size /= 5 * 32,
+      "Word_Array_Le_5 object size must be 160 bits (5 words with no gaps)");
 
 end Basic_Types;
