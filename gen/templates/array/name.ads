@@ -82,6 +82,7 @@ package {{ name }} is
    -- We can safely ignore scalar storage order warnings for components <8 bits in
    -- size since endianness does not apply.
 {% if endianness in ["either", "big"] %}
+   pragma Warnings (Off, "scalar storage order specified for ""T_Unconstrained"" does not apply to component");
    pragma Warnings (Off, "scalar storage order specified for ""T"" does not apply to component");
    pragma Warnings (Off, "scalar storage order specified for ""Volatile_T"" does not apply to component");
 {% endif %}
@@ -115,9 +116,27 @@ package {{ name }} is
    type U_Access is access all U;
 
 {% if endianness in ["either", "big"] %}
-   -- Packed type definition.
+{% if (element.size % 8) == 0 %}
+   -- Packed unconstrained type definition.
+{% if element.is_packed_type %}
+   type T_Unconstrained is array (Unconstrained_Index_Type range <>) of {{ element.type_package }}.T
+{% else %}
+   type T_Unconstrained is new U
+{% endif %}
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.High_Order_First,
+           Volatile => False,
+           Volatile_Components => False;
+
+   -- Access type for T_Unconstrained.
+   type T_Unconstrained_Access is access all T_Unconstrained;
+
+{% endif %}
+   -- Packed constained type definition.
 {% if element.is_packed_type %}
    type T is array (Constrained_Index_Type) of {{ element.type_package }}.T
+{% elif (element.size % 8) == 0 %}
+   type T is new T_Unconstrained
 {% else %}
    type T is new U
 {% endif %}
@@ -139,9 +158,27 @@ package {{ name }} is
 
 {% endif %}
 {% if endianness in ["either", "little"] %}
+{% if (element.size % 8) == 0 %}
+   -- Packed unconstrained type with little endian definition.
+{% if element.is_packed_type %}
+   type T_Le_Unconstrained is array (Unconstrained_Index_Type range <>) of {{ element.type_package }}.T_Le
+{% else %}
+   type T_Le_Unconstrained is new U
+{% endif %}
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.Low_Order_First,
+           Volatile => False,
+           Volatile_Components => False;
+
+   -- Access type for T_Unconstrained.
+   type T_Le_Unconstrained_Access is access all T_Le_Unconstrained;
+
+{% endif %}
    -- Packed type definition with little endian definition.
 {% if element.is_packed_type %}
    type T_Le is array (Constrained_Index_Type) of {{ element.type_package }}.T_Le
+{% elif (element.size % 8) == 0 %}
+   type T_Le is new T_Le_Unconstrained
 {% else %}
    type T_Le is new U
 {% endif %}
@@ -394,6 +431,7 @@ package {{ name }} is
 {% if element.format.length and element.format.length > 1 %}
 {% if endianness in ["either", "big"] %}
    pragma Warnings (On, "scalar storage order specified for ""T"" does not apply to component");
+   pragma Warnings (On, "scalar storage order specified for ""T_Unconstrained"" does not apply to component");
    pragma Warnings (On, "scalar storage order specified for ""Volatile_T"" does not apply to component");
 {% endif %}
 {% if endianness in ["either", "little"] %}
