@@ -75,7 +75,7 @@ package Basic_Types is
    pragma Warnings (On, "pragma Pack for ""Word_Array"" ignored");
 
    -- Little endian word array definition
-   type Word_Array_Le is array (Word_Array_Index range <>) of Word
+   type Word_Array_Le is new Word_Array
      with Component_Size => 32,
           Scalar_Storage_Order => System.Low_Order_First;
    pragma Warnings (Off, "pragma Pack for ""Word_Array_Le"" ignored");
@@ -83,7 +83,7 @@ package Basic_Types is
    pragma Warnings (On, "pragma Pack for ""Word_Array_Le"" ignored");
 
    -- Big endian word array definition
-   type Word_Array_Be is array (Word_Array_Index range <>) of Word
+   type Word_Array_Be is new Word_Array
      with Component_Size => 32,
           Scalar_Storage_Order => System.High_Order_First;
    pragma Warnings (Off, "pragma Pack for ""Word_Array_Be"" ignored");
