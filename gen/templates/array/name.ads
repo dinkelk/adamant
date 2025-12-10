@@ -121,7 +121,7 @@ package {{ name }} is
 {% if element.is_packed_type %}
    type T_Unconstrained is array (Unconstrained_Index_Type range <>) of {{ element.type_package }}.T
 {% else %}
-   type T_Unconstrained is new U
+   type T_Unconstrained is new Unconstrained 
 {% endif %}
       with Component_Size => Element_Size,
            Scalar_Storage_Order => System.High_Order_First,
@@ -136,7 +136,7 @@ package {{ name }} is
 {% if element.is_packed_type %}
    type T is array (Constrained_Index_Type) of {{ element.type_package }}.T
 {% elif (element.size % 8) == 0 %}
-   type T is new T_Unconstrained
+   type T is new T_Unconstrained (Constrained_Index_Type)
 {% else %}
    type T is new U
 {% endif %}
@@ -163,7 +163,7 @@ package {{ name }} is
 {% if element.is_packed_type %}
    type T_Le_Unconstrained is array (Unconstrained_Index_Type range <>) of {{ element.type_package }}.T_Le
 {% else %}
-   type T_Le_Unconstrained is new U
+   type T_Le_Unconstrained is new Unconstrained
 {% endif %}
       with Component_Size => Element_Size,
            Scalar_Storage_Order => System.Low_Order_First,
@@ -178,7 +178,7 @@ package {{ name }} is
 {% if element.is_packed_type %}
    type T_Le is array (Constrained_Index_Type) of {{ element.type_package }}.T_Le
 {% elif (element.size % 8) == 0 %}
-   type T_Le is new T_Le_Unconstrained
+   type T_Le is new T_Le_Unconstrained (Constrained_Index_Type)
 {% else %}
    type T_Le is new U
 {% endif %}
@@ -511,6 +511,52 @@ package {{ name }} is
 {% endif %}
 {% else %}
    {% if ("Element_Type") == element.type %}-- {% endif %}subtype Element_Type is {{ element.type }};
+{% endif %}
+
+private
+
+   --
+   -- The unconstrained array types above do not technically guarantee that there are
+   -- "no gaps" between components of the array. However, in Ada RM Implementation
+   -- Advice (13.3(71-73)) it says:
+   --
+   --   https://www.adaic.org/resources/add_content/standards/12rm/html/RM-13-3.html
+   --
+   --   An implementation should support specified Component_Sizes that are factors
+   --   and multiples of the word size. For such Component_Sizes, the array should
+   --   contain no gaps between components. For other Component_Sizes (if supported),
+   --   the array should contain no gaps between components when Pack is also specified;
+   --   the implementation should forbid this combination in cases where it cannot
+   --   support a no-gaps representation.
+   --
+   -- The word "should" is used here, not "shall". For GNAT in the RM it is
+   -- explicitly recognized that the advice is followed. Since that is the most
+   -- common Ada implementation used with Adamant, we can assume that the desired
+   -- packing is respected. See:
+   --
+   --   https://gcc.gnu.org/onlinedocs/gnat_rm/RM-13-3-71-73-Component-Size-Clauses.html
+   --
+   -- In order to verify this, we can use the following compile-time checks:
+   --
+{% if (element.size % 8) == 0 %}
+{% if endianness in ["either", "big"] %}
+
+   subtype T_Unconstrained_5 is T_Unconstrained (0 .. 4);
+
+   pragma Compile_Time_Error (T_Unconstrained'Component_Size /= Element_Size,
+      "T_Unconstrained component size must equal element size (no padding)");
+   pragma Compile_Time_Error (T_Unconstrained_5'Object_Size /= 5 * Element_Size,
+      "T_Unconstrained_5 object size must be 5 * element size (no gaps between components)");
+{% endif %}
+{% if endianness in ["either", "little"] %}
+
+   subtype T_Le_Unconstrained_5 is T_Le_Unconstrained (0 .. 4);
+
+   pragma Compile_Time_Error (T_Le_Unconstrained'Component_Size /= Element_Size,
+      "T_Le_Unconstrained component size must equal element size (no padding)");
+   pragma Compile_Time_Error (T_Le_Unconstrained_5'Object_Size /= 5 * Element_Size,
+      "T_Le_Unconstrained_5 object size must be 5 * element size (no gaps between components)");
+{% endif %}
 {% endif %}
 
 end {{ name }};
