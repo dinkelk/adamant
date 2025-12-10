@@ -26,6 +26,8 @@ with String_Util;
 with Register_Array.Representation;
 with Interfaces; use Interfaces;
 with Test_Enums; use Test_Enums;
+with Simple_Unconstrained_Array;
+with Complex_Unconstrained_Array;
 
 procedure Test is
    -- Helper packages:
@@ -71,6 +73,13 @@ procedure Test is
    Flt_U : constant Float_Array.U := [others => 1.1];
    Flt_Le : constant Float_Array.T_Le := [others => 1.1];
    Complex_Flt_U : constant Complex_Float_Array.U := [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.2345))];
+
+   -- Unconstrained arrays:
+   Simple_Unc : Simple_Unconstrained_Array.T_Unconstrained (0 .. 9) := [others => 100];
+   Simple_Unc_Le : Simple_Unconstrained_Array.T_Le_Unconstrained (0 .. 4) := [others => 200];
+   Simple_Unc_Var : Simple_Unconstrained_Array.T_Unconstrained (1 .. 5) := [1 => 10, 2 => 20, 3 => 30, 4 => 40, 5 => 50];
+   Complex_Unc : Complex_Unconstrained_Array.T_Unconstrained (0 .. 7) := [others => (One => 1, Two => 19, Three => 5)];
+   Complex_Unc_Le : Complex_Unconstrained_Array.T_Le_Unconstrained (5 .. 14) := [others => (One => 10, Two => 20, Three => 30)];
 
    -- Other local vars:
    Ignore : Unsigned_32;
@@ -322,5 +331,98 @@ begin
    Complex_Float_Array_Assert.Eq (Complex_Flt, [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.23458))], Epsilon => 0.1);
    Complex_Float_Array_U_Assert.Eq (Complex_Flt_U, [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.23459))], Epsilon => 0.2);
    Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Testing unconstrained arrays: ");
+   Put_Line ("Testing Simple_Unc basic operations...");
+   pragma Assert (Simple_Unc'Length = 10, "Simple_Unc length incorrect");
+   pragma Assert (Simple_Unc'First = 0, "Simple_Unc first index incorrect");
+   pragma Assert (Simple_Unc'Last = 9, "Simple_Unc last index incorrect");
+   pragma Assert (Simple_Unc (0) = 100, "Simple_Unc element access failed");
+   pragma Assert (Simple_Unc (9) = 100, "Simple_Unc element access failed");
+   Simple_Unc (5) := 500;
+   pragma Assert (Simple_Unc (5) = 500, "Simple_Unc element modification failed");
+   Put_Line ("Simple_Unc(5) = " & Natural'Image (Simple_Unc (5)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Simple_Unc_Le (little endian variant)...");
+   pragma Assert (Simple_Unc_Le'Length = 5, "Simple_Unc_Le length incorrect");
+   pragma Assert (Simple_Unc_Le'First = 0, "Simple_Unc_Le first index incorrect");
+   pragma Assert (Simple_Unc_Le'Last = 4, "Simple_Unc_Le last index incorrect");
+   Simple_Unc_Le (2) := 250;
+   pragma Assert (Simple_Unc_Le (2) = 250, "Simple_Unc_Le element modification failed");
+   Put_Line ("Simple_Unc_Le(2) = " & Natural'Image (Simple_Unc_Le (2)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Simple_Unc_Var (custom index range)...");
+   pragma Assert (Simple_Unc_Var'Length = 5, "Simple_Unc_Var length incorrect");
+   pragma Assert (Simple_Unc_Var'First = 1, "Simple_Unc_Var first index incorrect");
+   pragma Assert (Simple_Unc_Var'Last = 5, "Simple_Unc_Var last index incorrect");
+   pragma Assert (Simple_Unc_Var (1) = 10, "Simple_Unc_Var element (1) incorrect");
+   pragma Assert (Simple_Unc_Var (3) = 30, "Simple_Unc_Var element (3) incorrect");
+   pragma Assert (Simple_Unc_Var (5) = 50, "Simple_Unc_Var element (5) incorrect");
+   Simple_Unc_Var (4) := 400;
+   pragma Assert (Simple_Unc_Var (4) = 400, "Simple_Unc_Var element modification failed");
+   Put_Line ("Simple_Unc_Var(4) = " & Natural'Image (Simple_Unc_Var (4)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Complex_Unc (packed record elements)...");
+   pragma Assert (Complex_Unc'Length = 8, "Complex_Unc length incorrect");
+   pragma Assert (Complex_Unc'First = 0, "Complex_Unc first index incorrect");
+   pragma Assert (Complex_Unc'Last = 7, "Complex_Unc last index incorrect");
+   pragma Assert (Complex_Unc (0).One = 1, "Complex_Unc element field One incorrect");
+   pragma Assert (Complex_Unc (0).Two = 19, "Complex_Unc element field Two incorrect");
+   pragma Assert (Complex_Unc (0).Three = 5, "Complex_Unc element field Three incorrect");
+   Complex_Unc (3) := (One => 11, Two => 22, Three => 33);
+   pragma Assert (Complex_Unc (3).One = 11, "Complex_Unc element modification failed (One)");
+   pragma Assert (Complex_Unc (3).Two = 22, "Complex_Unc element modification failed (Two)");
+   pragma Assert (Complex_Unc (3).Three = 33, "Complex_Unc element modification failed (Three)");
+   Put_Line ("Complex_Unc(3).One = " & Natural'Image (Natural (Complex_Unc (3).One)));
+   Put_Line ("Complex_Unc(3).Two = " & Natural'Image (Natural (Complex_Unc (3).Two)));
+   Put_Line ("Complex_Unc(3).Three = " & Natural'Image (Natural (Complex_Unc (3).Three)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Complex_Unc_Le (little endian, custom range)...");
+   pragma Assert (Complex_Unc_Le'Length = 10, "Complex_Unc_Le length incorrect");
+   pragma Assert (Complex_Unc_Le'First = 5, "Complex_Unc_Le first index incorrect");
+   pragma Assert (Complex_Unc_Le'Last = 14, "Complex_Unc_Le last index incorrect");
+   pragma Assert (Complex_Unc_Le (5).One = 10, "Complex_Unc_Le element field One incorrect");
+   pragma Assert (Complex_Unc_Le (5).Two = 20, "Complex_Unc_Le element field Two incorrect");
+   pragma Assert (Complex_Unc_Le (5).Three = 30, "Complex_Unc_Le element field Three incorrect");
+   Complex_Unc_Le (10) := (One => 15, Two => 222, Three => 233);
+   pragma Assert (Complex_Unc_Le (10).One = 15, "Complex_Unc_Le element modification failed (One)");
+   pragma Assert (Complex_Unc_Le (10).Two = 222, "Complex_Unc_Le element modification failed (Two)");
+   pragma Assert (Complex_Unc_Le (10).Three = 233, "Complex_Unc_Le element modification failed (Three)");
+   Put_Line ("Complex_Unc_Le(10).One = " & Natural'Image (Natural (Complex_Unc_Le (10).One)));
+   Put_Line ("Complex_Unc_Le(10).Two = " & Natural'Image (Natural (Complex_Unc_Le (10).Two)));
+   Put_Line ("Complex_Unc_Le(10).Three = " & Natural'Image (Natural (Complex_Unc_Le (10).Three)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing unconstrained array slicing...");
+   declare
+      Slice : Simple_Unconstrained_Array.T_Unconstrained := Simple_Unc (0 .. 4);
+   begin
+      pragma Assert (Slice'Length = 5, "Slice length incorrect");
+      pragma Assert (Slice (0) = 100, "Slice element incorrect");
+      pragma Assert (Slice (4) = 100, "Slice element incorrect");
+      Put_Line ("Slice length = " & Natural'Image (Slice'Length));
+      Put_Line ("passed.");
+   end;
+
+   Put_Line ("Testing endianness conversion with unconstrained arrays...");
+   declare
+      Simple_Be : constant Simple_Unconstrained_Array.T_Unconstrained (0 .. 2) := [0 => 100, 1 => 200, 2 => 300];
+      Simple_Le : constant Simple_Unconstrained_Array.T_Le_Unconstrained (0 .. 2) :=
+         Simple_Unconstrained_Array.T_Le_Unconstrained (Simple_Be);
+   begin
+      pragma Assert (Simple_Le'Length = 3, "Converted array length incorrect");
+      pragma Assert (Simple_Le (0) = 100, "Endianness conversion element (0) incorrect");
+      pragma Assert (Simple_Le (1) = 200, "Endianness conversion element (1) incorrect");
+      pragma Assert (Simple_Le (2) = 300, "Endianness conversion element (2) incorrect");
+      Put_Line ("Endianness conversion successful");
+      Put_Line ("passed.");
+   end;
+
+   Put_Line ("All unconstrained array tests passed!");
    Put_Line ("");
 end Test;
