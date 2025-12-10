@@ -6,9 +6,11 @@
 
 -- Standard Includes:
 with System;
+{% if length %}
 with Serializer;
-{% if length and (size % 32) == 0 %}
+{% if (size % 32) == 0 %}
 with Word_Serializer;
+{% endif %}
 {% endif %}
 {% if not element.is_packed_type %}
 with Basic_Types;
@@ -40,6 +42,9 @@ with {{ include }};
 {{ printMultiLine(description, '-- ') }}
 {% endif %}
 package {{ name }} is
+{% if not length %}
+   pragma Elaborate_Body;
+{% endif %}
 {% if preamble %}
 
    -- Preamble code:
@@ -47,7 +52,9 @@ package {{ name }} is
 {% endif %}
 
    -- Packed type size (in bits):
+{% if length %}
    Length : constant Natural := {{ length }};
+{% endif %}
 {% if element.is_packed_type %}
    Element_Size : constant Positive := {{ element.type_package }}.Size;
 {% else %}
@@ -132,6 +139,7 @@ package {{ name }} is
    type T_Unconstrained_Access is access all T_Unconstrained;
 
 {% endif %}
+{% if length %}
    -- Packed constained type definition.
 {% if element.is_packed_type %}
    type T is array (Constrained_Index_Type) of {{ element.type_package }}.T
@@ -141,21 +149,18 @@ package {{ name }} is
    type T is new U
 {% endif %}
       with Component_Size => Element_Size,
-{% if length %}
            Scalar_Storage_Order => System.High_Order_First,
 {% if ((element.size % 8) == 0) or (element.size in [0, 1, 2]) %}
            Size => Size,
 {% endif %}
            Object_Size => Size,
-{% else %}
-           Scalar_Storage_Order => System.High_Order_First,
-{% endif %}
            Volatile => False,
            Volatile_Components => False;
 
    -- Access type for T
    type T_Access is access all T;
 
+{% endif %}
 {% endif %}
 {% if endianness in ["either", "little"] %}
 {% if (element.size % 8) == 0 %}
@@ -174,6 +179,7 @@ package {{ name }} is
    type T_Le_Unconstrained_Access is access all T_Le_Unconstrained;
 
 {% endif %}
+{% if length %}
    -- Packed type definition with little endian definition.
 {% if element.is_packed_type %}
    type T_Le is array (Constrained_Index_Type) of {{ element.type_package }}.T_Le
@@ -183,21 +189,18 @@ package {{ name }} is
    type T_Le is new U
 {% endif %}
       with Component_Size => Element_Size,
-{% if length %}
            Scalar_Storage_Order => System.Low_Order_First,
 {% if ((element.size % 8) == 0) or (element.size in [0, 1, 2]) %}
            Size => Size,
 {% endif %}
            Object_Size => Size,
-{% else %}
-           Scalar_Storage_Order => System.Low_Order_First,
-{% endif %}
            Volatile => False,
            Volatile_Components => False;
 
    -- Access type for T_Le
    type T_Le_Access is access all T_Le;
 
+{% endif %}
 {% endif %}
 {% if volatile_descriptor %}
    --
@@ -256,6 +259,7 @@ package {{ name }} is
    type {{ volatile_descriptor }}_T_Le_Access is access all {{ volatile_descriptor }}_T_Le;
 {% endif %}
 {% else %}
+{% if length %}
 {% if endianness in ["either", "big"] %}
    -- Volatile packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
@@ -267,15 +271,11 @@ package {{ name }} is
    -- Important: You should use the Register type for accessing hardware registers.
    type Volatile_T is new T
       with Component_Size => Element_Size,
-{% if length %}
            Scalar_Storage_Order => System.High_Order_First,
 {% if ((element.size % 8) == 0) or (element.size in [0, 1, 2]) %}
            Size => Size,
 {% endif %}
            Object_Size => Size,
-{% else %}
-           Scalar_Storage_Order => System.High_Order_First,
-{% endif %}
            Volatile => True,
            Volatile_Components => True;
 
@@ -283,6 +283,8 @@ package {{ name }} is
    type Volatile_T_Access is access all Volatile_T;
 
 {% endif %}
+{% endif %}
+{% if length %}
 {% if endianness in ["either", "little"] %}
    -- Volatile little endian packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
@@ -294,21 +296,18 @@ package {{ name }} is
    -- Important: You should use the Register type for accessing hardware registers.
    type Volatile_T_Le is new T_Le
       with Component_Size => Element_Size,
-{% if length %}
            Scalar_Storage_Order => System.Low_Order_First,
 {% if ((element.size % 8) == 0) or (element.size in [0, 1, 2]) %}
            Size => Size,
 {% endif %}
            Object_Size => Size,
-{% else %}
-           Scalar_Storage_Order => System.Low_Order_First,
-{% endif %}
            Volatile => True,
            Volatile_Components => True;
 
    -- Access type for Volatile_T_Le
    type Volatile_T_Le_Access is access all Volatile_T_Le;
 
+{% endif %}
 {% endif %}
    --
    -- Atomic type definitions. These are only supported for array types that
@@ -450,6 +449,7 @@ package {{ name }} is
 {% endif %}
 
 {% endif %}
+{% if length %}
    -- Type conversion functions between packed an unpacked representations:
 {% if endianness in ["either", "big"] %}
    function Pack (Src : in U) return T{% if not element.is_packed_type %} with Inline => True{% endif %};
@@ -473,7 +473,7 @@ package {{ name }} is
 {% if endianness in ["either", "little"] %}
    package Serialization_Le is new Serializer (T_Le);
 {% endif %}
-{% if length and (size % 32) == 0 %}
+{% if (size % 32) == 0 %}
 
    -- Word serializing functions for entire packed array:
 {% if endianness in ["either", "big"] %}
@@ -484,6 +484,8 @@ package {{ name }} is
 {% endif %}
 {% endif %}
 
+{% endif %}
+{% if length %}
 {% if element.is_packed_type %}
    -- Serializing functions for an element of the array:
    package Element_Serialization renames {{ element.type_package }}.Serialization;
@@ -495,6 +497,7 @@ package {{ name }} is
 
    -- Serializing functions for an element of the array:
    package Element_Serialization is new Serializer (Element_Packed);
+{% endif %}
 {% endif %}
 
    ----------------------------------------------------
