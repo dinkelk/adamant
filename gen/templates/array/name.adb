@@ -5,6 +5,7 @@
 --------------------------------------------------------------------------------
 
 package body {{ name }} is
+{% if length %}
 
 {% if endianness in ["either", "big"] %}
    function Pack (Src : in U) return T is
@@ -63,5 +64,9 @@ package body {{ name }} is
       return Pack (Unpacked);
    end Swap_Endianness;
 
+{% endif %}
+{% else %}
+begin
+   null;
 {% endif %}
 end {{ name }};
