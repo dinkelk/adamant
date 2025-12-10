@@ -189,16 +189,24 @@ private
    subtype Word_Array_Be_5 is Word_Array_Be (0 .. 4);
    subtype Word_Array_Le_5 is Word_Array_Le (0 .. 4);
 
-   pragma Assert (Byte_Array'Component_Size = 8);
-   pragma Assert (Byte_Array_5'Object_Size = 5 * 8);
+   pragma Compile_Time_Error (Byte_Array'Component_Size /= 8,
+      "Byte_Array component size must be 8 bits");
+   pragma Compile_Time_Error (Byte_Array_5'Object_Size /= 5 * 8,
+      "Byte_Array_5 object size must be 40 bits (5 bytes with no gaps)");
 
-   pragma Assert (Word_Array'Component_Size = 32);
-   pragma Assert (Word_Array_5'Object_Size = 5 * 32);
+   pragma Compile_Time_Error (Word_Array'Component_Size /= 32,
+      "Word_Array component size must be 32 bits");
+   pragma Compile_Time_Error (Word_Array_5'Object_Size /= 5 * 32,
+      "Word_Array_5 object size must be 160 bits (5 words with no gaps)");
 
-   pragma Assert (Word_Array_Be'Component_Size = 32);
-   pragma Assert (Word_Array_Be_5'Object_Size = 5 * 32);
+   pragma Compile_Time_Error (Word_Array_Be'Component_Size /= 32,
+      "Word_Array_Be component size must be 32 bits");
+   pragma Compile_Time_Error (Word_Array_Be_5'Object_Size /= 5 * 32,
+      "Word_Array_Be_5 object size must be 160 bits (5 words with no gaps)");
 
-   pragma Assert (Word_Array_Le'Component_Size = 32);
-   pragma Assert (Word_Array_Le_5'Object_Size = 5 * 32);
+   pragma Compile_Time_Error (Word_Array_Le'Component_Size /= 32,
+      "Word_Array_Le component size must be 32 bits");
+   pragma Compile_Time_Error (Word_Array_Le_5'Object_Size /= 5 * 32,
+      "Word_Array_Le_5 object size must be 160 bits (5 words with no gaps)");
 
 end Basic_Types;
