@@ -26,6 +26,10 @@ with String_Util;
 with Register_Array.Representation;
 with Interfaces; use Interfaces;
 with Test_Enums; use Test_Enums;
+with Simple_Unconstrained_Array;
+with Complex_Unconstrained_Array;
+with Atomic_Unconstrained_Array;
+with Integer_32_Unconstrained_Array;
 
 procedure Test is
    -- Helper packages:
@@ -72,10 +76,64 @@ procedure Test is
    Flt_Le : constant Float_Array.T_Le := [others => 1.1];
    Complex_Flt_U : constant Complex_Float_Array.U := [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.2345))];
 
+   -- Unconstrained arrays:
+   Simple_Unc : Simple_Unconstrained_Array.T_Unconstrained (0 .. 9) := [others => 100];
+   Simple_Unc_Le : Simple_Unconstrained_Array.T_Le_Unconstrained (0 .. 4) := [others => 200];
+   Simple_Unc_Var : Simple_Unconstrained_Array.T_Unconstrained (1 .. 5) := [1 => 10, 2 => 20, 3 => 30, 4 => 40, 5 => 50];
+   Complex_Unc : Complex_Unconstrained_Array.T_Unconstrained (0 .. 7) := [others => (One => 1, Two => 19, Three => 5)];
+   Complex_Unc_Le : Complex_Unconstrained_Array.T_Le_Unconstrained (5 .. 14) := [others => (One => 10, Two => 20, Three => 30)];
+
+   -- Unconstrained special types (Volatile, Atomic, Register):
+   Volatile_Simple_Unc : Simple_Unconstrained_Array.Volatile_T_Unconstrained (0 .. 3) := [others => 111];
+   Volatile_Simple_Unc_Le : Simple_Unconstrained_Array.Volatile_T_Le_Unconstrained (0 .. 3) := [others => 222];
+   -- Atomic and Register arrays cannot use aggregate initialization due to Atomic_Components.
+   -- They must be initialized element by element.
+   Atomic_Unc : Atomic_Unconstrained_Array.Atomic_T_Unconstrained (0 .. 7);
+   Atomic_Unc_Le : Atomic_Unconstrained_Array.Atomic_T_Le_Unconstrained (0 .. 7);
+   Register_Unc : Atomic_Unconstrained_Array.Register_T_Unconstrained (0 .. 3);
+   Register_Unc_Le : Atomic_Unconstrained_Array.Register_T_Le_Unconstrained (0 .. 3);
+
+   -- Integer_32 unconstrained special types:
+   Volatile_Int32_Unc : Integer_32_Unconstrained_Array.Volatile_T_Unconstrained (0 .. 5) := [others => -1000];
+   Volatile_Int32_Unc_Le : Integer_32_Unconstrained_Array.Volatile_T_Le_Unconstrained (0 .. 5) := [others => 2000];
+   Atomic_Int32_Unc : Integer_32_Unconstrained_Array.Atomic_T_Unconstrained (0 .. 6);
+   Atomic_Int32_Unc_Le : Integer_32_Unconstrained_Array.Atomic_T_Le_Unconstrained (0 .. 6);
+   Register_Int32_Unc : Integer_32_Unconstrained_Array.Register_T_Unconstrained (0 .. 4);
+   Register_Int32_Unc_Le : Integer_32_Unconstrained_Array.Register_T_Le_Unconstrained (0 .. 4);
+
    -- Other local vars:
    Ignore : Unsigned_32;
    Field_Number : Unsigned_32;
 begin
+   -- Initialize Atomic and Register arrays element by element (aggregate initialization
+   -- doesn't work with Atomic_Components):
+   for I in Atomic_Unc'Range loop
+      Atomic_Unc (I) := 16#DEAD_BEEF#;
+   end loop;
+   for I in Atomic_Unc_Le'Range loop
+      Atomic_Unc_Le (I) := 16#CAFE_BABE#;
+   end loop;
+   for I in Register_Unc'Range loop
+      Register_Unc (I) := 16#1234_5678#;
+   end loop;
+   for I in Register_Unc_Le'Range loop
+      Register_Unc_Le (I) := 16#8765_4321#;
+   end loop;
+
+   -- Initialize Integer_32 Atomic and Register arrays:
+   for I in Atomic_Int32_Unc'Range loop
+      Atomic_Int32_Unc (I) := -123456;
+   end loop;
+   for I in Atomic_Int32_Unc_Le'Range loop
+      Atomic_Int32_Unc_Le (I) := 654321;
+   end loop;
+   for I in Register_Int32_Unc'Range loop
+      Register_Int32_Unc (I) := -999999;
+   end loop;
+   for I in Register_Int32_Unc_Le'Range loop
+      Register_Int32_Unc_Le (I) := 777777;
+   end loop;
+
    Put_Line ("Printing arrays: ");
    Put_Line ("Simple: ");
    Put_Line (Simple_Array.Representation.Image (Simple));
@@ -322,5 +380,209 @@ begin
    Complex_Float_Array_Assert.Eq (Complex_Flt, [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.23458))], Epsilon => 0.1);
    Complex_Float_Array_U_Assert.Eq (Complex_Flt_U, [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.23459))], Epsilon => 0.2);
    Put_Line ("passed.");
+   Put_Line ("");
+
+   Put_Line ("Testing unconstrained arrays: ");
+   Put_Line ("Testing Simple_Unc basic operations...");
+   pragma Assert (Simple_Unc'Length = 10, "Simple_Unc length incorrect");
+   pragma Assert (Simple_Unc'First = 0, "Simple_Unc first index incorrect");
+   pragma Assert (Simple_Unc'Last = 9, "Simple_Unc last index incorrect");
+   pragma Assert (Simple_Unc (0) = 100, "Simple_Unc element access failed");
+   pragma Assert (Simple_Unc (9) = 100, "Simple_Unc element access failed");
+   Simple_Unc (5) := 500;
+   pragma Assert (Simple_Unc (5) = 500, "Simple_Unc element modification failed");
+   Put_Line ("Simple_Unc(5) = " & Natural'Image (Simple_Unc (5)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Simple_Unc_Le (little endian variant)...");
+   pragma Assert (Simple_Unc_Le'Length = 5, "Simple_Unc_Le length incorrect");
+   pragma Assert (Simple_Unc_Le'First = 0, "Simple_Unc_Le first index incorrect");
+   pragma Assert (Simple_Unc_Le'Last = 4, "Simple_Unc_Le last index incorrect");
+   Simple_Unc_Le (2) := 250;
+   pragma Assert (Simple_Unc_Le (2) = 250, "Simple_Unc_Le element modification failed");
+   Put_Line ("Simple_Unc_Le(2) = " & Natural'Image (Simple_Unc_Le (2)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Simple_Unc_Var (custom index range)...");
+   pragma Assert (Simple_Unc_Var'Length = 5, "Simple_Unc_Var length incorrect");
+   pragma Assert (Simple_Unc_Var'First = 1, "Simple_Unc_Var first index incorrect");
+   pragma Assert (Simple_Unc_Var'Last = 5, "Simple_Unc_Var last index incorrect");
+   pragma Assert (Simple_Unc_Var (1) = 10, "Simple_Unc_Var element (1) incorrect");
+   pragma Assert (Simple_Unc_Var (3) = 30, "Simple_Unc_Var element (3) incorrect");
+   pragma Assert (Simple_Unc_Var (5) = 50, "Simple_Unc_Var element (5) incorrect");
+   Simple_Unc_Var (4) := 400;
+   pragma Assert (Simple_Unc_Var (4) = 400, "Simple_Unc_Var element modification failed");
+   Put_Line ("Simple_Unc_Var(4) = " & Natural'Image (Simple_Unc_Var (4)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Complex_Unc (packed record elements)...");
+   pragma Assert (Complex_Unc'Length = 8, "Complex_Unc length incorrect");
+   pragma Assert (Complex_Unc'First = 0, "Complex_Unc first index incorrect");
+   pragma Assert (Complex_Unc'Last = 7, "Complex_Unc last index incorrect");
+   pragma Assert (Complex_Unc (0).One = 1, "Complex_Unc element field One incorrect");
+   pragma Assert (Complex_Unc (0).Two = 19, "Complex_Unc element field Two incorrect");
+   pragma Assert (Complex_Unc (0).Three = 5, "Complex_Unc element field Three incorrect");
+   Complex_Unc (3) := (One => 11, Two => 22, Three => 33);
+   pragma Assert (Complex_Unc (3).One = 11, "Complex_Unc element modification failed (One)");
+   pragma Assert (Complex_Unc (3).Two = 22, "Complex_Unc element modification failed (Two)");
+   pragma Assert (Complex_Unc (3).Three = 33, "Complex_Unc element modification failed (Three)");
+   Put_Line ("Complex_Unc(3).One = " & Natural'Image (Natural (Complex_Unc (3).One)));
+   Put_Line ("Complex_Unc(3).Two = " & Natural'Image (Natural (Complex_Unc (3).Two)));
+   Put_Line ("Complex_Unc(3).Three = " & Natural'Image (Natural (Complex_Unc (3).Three)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Complex_Unc_Le (little endian, custom range)...");
+   pragma Assert (Complex_Unc_Le'Length = 10, "Complex_Unc_Le length incorrect");
+   pragma Assert (Complex_Unc_Le'First = 5, "Complex_Unc_Le first index incorrect");
+   pragma Assert (Complex_Unc_Le'Last = 14, "Complex_Unc_Le last index incorrect");
+   pragma Assert (Complex_Unc_Le (5).One = 10, "Complex_Unc_Le element field One incorrect");
+   pragma Assert (Complex_Unc_Le (5).Two = 20, "Complex_Unc_Le element field Two incorrect");
+   pragma Assert (Complex_Unc_Le (5).Three = 30, "Complex_Unc_Le element field Three incorrect");
+   Complex_Unc_Le (10) := (One => 15, Two => 222, Three => 233);
+   pragma Assert (Complex_Unc_Le (10).One = 15, "Complex_Unc_Le element modification failed (One)");
+   pragma Assert (Complex_Unc_Le (10).Two = 222, "Complex_Unc_Le element modification failed (Two)");
+   pragma Assert (Complex_Unc_Le (10).Three = 233, "Complex_Unc_Le element modification failed (Three)");
+   Put_Line ("Complex_Unc_Le(10).One = " & Natural'Image (Natural (Complex_Unc_Le (10).One)));
+   Put_Line ("Complex_Unc_Le(10).Two = " & Natural'Image (Natural (Complex_Unc_Le (10).Two)));
+   Put_Line ("Complex_Unc_Le(10).Three = " & Natural'Image (Natural (Complex_Unc_Le (10).Three)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing unconstrained array slicing...");
+   declare
+      Slice : constant Simple_Unconstrained_Array.T_Unconstrained := Simple_Unc (0 .. 4);
+   begin
+      pragma Assert (Slice'Length = 5, "Slice length incorrect");
+      pragma Assert (Slice (0) = 100, "Slice element incorrect");
+      pragma Assert (Slice (4) = 100, "Slice element incorrect");
+      Put_Line ("Slice length = " & Natural'Image (Slice'Length));
+      Put_Line ("passed.");
+   end;
+
+   Put_Line ("Testing endianness conversion with unconstrained arrays...");
+   declare
+      Simple_Be : constant Simple_Unconstrained_Array.T_Unconstrained (0 .. 2) := [0 => 100, 1 => 200, 2 => 300];
+      Simple_Le : constant Simple_Unconstrained_Array.T_Le_Unconstrained (0 .. 2) :=
+         Simple_Unconstrained_Array.T_Le_Unconstrained (Simple_Be);
+   begin
+      pragma Assert (Simple_Le'Length = 3, "Converted array length incorrect");
+      pragma Assert (Simple_Le (0) = 100, "Endianness conversion element (0) incorrect");
+      pragma Assert (Simple_Le (1) = 200, "Endianness conversion element (1) incorrect");
+      pragma Assert (Simple_Le (2) = 300, "Endianness conversion element (2) incorrect");
+      Put_Line ("Endianness conversion successful");
+      Put_Line ("passed.");
+   end;
+
+   Put_Line ("All unconstrained array tests passed!");
+   Put_Line ("");
+
+   Put_Line ("Testing unconstrained special types (Volatile, Atomic, Register): ");
+   Put_Line ("Testing Volatile_T_Unconstrained...");
+   pragma Assert (Volatile_Simple_Unc'Length = 4, "Volatile_Simple_Unc length incorrect");
+   pragma Assert (Volatile_Simple_Unc (0) = 111, "Volatile_Simple_Unc element access failed");
+   Volatile_Simple_Unc (2) := 333;
+   pragma Assert (Volatile_Simple_Unc (2) = 333, "Volatile_Simple_Unc element modification failed");
+   Put_Line ("Volatile_Simple_Unc(2) = " & Natural'Image (Volatile_Simple_Unc (2)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Volatile_T_Le_Unconstrained...");
+   pragma Assert (Volatile_Simple_Unc_Le'Length = 4, "Volatile_Simple_Unc_Le length incorrect");
+   pragma Assert (Volatile_Simple_Unc_Le (0) = 222, "Volatile_Simple_Unc_Le element access failed");
+   Volatile_Simple_Unc_Le (1) := 444;
+   pragma Assert (Volatile_Simple_Unc_Le (1) = 444, "Volatile_Simple_Unc_Le element modification failed");
+   Put_Line ("Volatile_Simple_Unc_Le(1) = " & Natural'Image (Volatile_Simple_Unc_Le (1)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Atomic_T_Unconstrained...");
+   pragma Assert (Atomic_Unc'Length = 8, "Atomic_Unc length incorrect");
+   pragma Assert (Atomic_Unc (0) = 16#DEAD_BEEF#, "Atomic_Unc element access failed");
+   Atomic_Unc (5) := 16#AAAA_BBBB#;
+   pragma Assert (Atomic_Unc (5) = 16#AAAA_BBBB#, "Atomic_Unc element modification failed");
+   Put_Line ("Atomic_Unc(5) = " & Unsigned_32'Image (Atomic_Unc (5)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Atomic_T_Le_Unconstrained...");
+   pragma Assert (Atomic_Unc_Le'Length = 8, "Atomic_Unc_Le length incorrect");
+   pragma Assert (Atomic_Unc_Le (0) = 16#CAFE_BABE#, "Atomic_Unc_Le element access failed");
+   Atomic_Unc_Le (3) := 16#5555_6666#;
+   pragma Assert (Atomic_Unc_Le (3) = 16#5555_6666#, "Atomic_Unc_Le element modification failed");
+   Put_Line ("Atomic_Unc_Le(3) = " & Unsigned_32'Image (Atomic_Unc_Le (3)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Register_T_Unconstrained...");
+   pragma Assert (Register_Unc'Length = 4, "Register_Unc length incorrect");
+   pragma Assert (Register_Unc (0) = 16#1234_5678#, "Register_Unc element access failed");
+   Register_Unc (2) := 16#ABCD_EF01#;
+   pragma Assert (Register_Unc (2) = 16#ABCD_EF01#, "Register_Unc element modification failed");
+   Put_Line ("Register_Unc(2) = " & Unsigned_32'Image (Register_Unc (2)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Register_T_Le_Unconstrained...");
+   pragma Assert (Register_Unc_Le'Length = 4, "Register_Unc_Le length incorrect");
+   pragma Assert (Register_Unc_Le (0) = 16#8765_4321#, "Register_Unc_Le element access failed");
+   Register_Unc_Le (1) := 16#FEDC_BA98#;
+   pragma Assert (Register_Unc_Le (1) = 16#FEDC_BA98#, "Register_Unc_Le element modification failed");
+   Put_Line ("Register_Unc_Le(1) = " & Unsigned_32'Image (Register_Unc_Le (1)));
+   Put_Line ("passed.");
+
+   Put_Line ("All unconstrained special type tests passed!");
+   Put_Line ("");
+
+   Put_Line ("Testing Integer_32 unconstrained special types (Volatile, Atomic, Register): ");
+   Put_Line ("Testing Volatile_T_Unconstrained (Integer_32)...");
+   pragma Assert (Volatile_Int32_Unc'Length = 6, "Volatile_Int32_Unc length incorrect");
+   pragma Assert (Volatile_Int32_Unc (0) = -1000, "Volatile_Int32_Unc element access failed");
+   Volatile_Int32_Unc (3) := -5555;
+   pragma Assert (Volatile_Int32_Unc (3) = -5555, "Volatile_Int32_Unc element modification failed");
+   Put_Line ("Volatile_Int32_Unc(3) = " & Integer_32'Image (Volatile_Int32_Unc (3)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Volatile_T_Le_Unconstrained (Integer_32)...");
+   pragma Assert (Volatile_Int32_Unc_Le'Length = 6, "Volatile_Int32_Unc_Le length incorrect");
+   pragma Assert (Volatile_Int32_Unc_Le (0) = 2000, "Volatile_Int32_Unc_Le element access failed");
+   Volatile_Int32_Unc_Le (4) := 8888;
+   pragma Assert (Volatile_Int32_Unc_Le (4) = 8888, "Volatile_Int32_Unc_Le element modification failed");
+   Put_Line ("Volatile_Int32_Unc_Le(4) = " & Integer_32'Image (Volatile_Int32_Unc_Le (4)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Atomic_T_Unconstrained (Integer_32)...");
+   pragma Assert (Atomic_Int32_Unc'Length = 7, "Atomic_Int32_Unc length incorrect");
+   pragma Assert (Atomic_Int32_Unc (0) = -123456, "Atomic_Int32_Unc element access failed");
+   Atomic_Int32_Unc (5) := -987654;
+   pragma Assert (Atomic_Int32_Unc (5) = -987654, "Atomic_Int32_Unc element modification failed");
+   Put_Line ("Atomic_Int32_Unc(5) = " & Integer_32'Image (Atomic_Int32_Unc (5)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Atomic_T_Le_Unconstrained (Integer_32)...");
+   pragma Assert (Atomic_Int32_Unc_Le'Length = 7, "Atomic_Int32_Unc_Le length incorrect");
+   pragma Assert (Atomic_Int32_Unc_Le (0) = 654321, "Atomic_Int32_Unc_Le element access failed");
+   Atomic_Int32_Unc_Le (2) := 111222;
+   pragma Assert (Atomic_Int32_Unc_Le (2) = 111222, "Atomic_Int32_Unc_Le element modification failed");
+   Put_Line ("Atomic_Int32_Unc_Le(2) = " & Integer_32'Image (Atomic_Int32_Unc_Le (2)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Register_T_Unconstrained (Integer_32)...");
+   pragma Assert (Register_Int32_Unc'Length = 5, "Register_Int32_Unc length incorrect");
+   pragma Assert (Register_Int32_Unc (0) = -999999, "Register_Int32_Unc element access failed");
+   Register_Int32_Unc (3) := -456789;
+   pragma Assert (Register_Int32_Unc (3) = -456789, "Register_Int32_Unc element modification failed");
+   Put_Line ("Register_Int32_Unc(3) = " & Integer_32'Image (Register_Int32_Unc (3)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing Register_T_Le_Unconstrained (Integer_32)...");
+   pragma Assert (Register_Int32_Unc_Le'Length = 5, "Register_Int32_Unc_Le length incorrect");
+   pragma Assert (Register_Int32_Unc_Le (0) = 777777, "Register_Int32_Unc_Le element access failed");
+   Register_Int32_Unc_Le (4) := 333444;
+   pragma Assert (Register_Int32_Unc_Le (4) = 333444, "Register_Int32_Unc_Le element modification failed");
+   Put_Line ("Register_Int32_Unc_Le(4) = " & Integer_32'Image (Register_Int32_Unc_Le (4)));
+   Put_Line ("passed.");
+
+   Put_Line ("Testing signed value handling (negative numbers)...");
+   Volatile_Int32_Unc (1) := -2147483648; -- Integer_32'First
+   pragma Assert (Volatile_Int32_Unc (1) = -2147483648, "Min value test failed");
+   Atomic_Int32_Unc (1) := 2147483647; -- Integer_32'Last
+   pragma Assert (Atomic_Int32_Unc (1) = 2147483647, "Max value test failed");
+   Put_Line ("Negative and extreme value tests passed.");
+
+   Put_Line ("All Integer_32 unconstrained special type tests passed!");
    Put_Line ("");
 end Test;
