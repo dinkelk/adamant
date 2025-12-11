@@ -41,6 +41,32 @@ with {{ include }};
 {{ printMultiLine(description, '-- ') }}
 {% endif %}
 package {{ name }} is
+
+   --
+   --  Packed array type trees:
+{% if endianness in ["either", "big"] %}
+   --
+   --  Unconstrained --> U
+   --  |                 ^ constrained and unpacked
+   --  v
+   --  T_Unconstrained --> T -----------> Volatile_T, Atomic_T, Register_T
+   --  | ^ BE packed       ^ constrained  ^ by-reference constrained
+   --  v
+   --  Volatile_T_Unconstrained, Atomic_T_Unconstrained, Register_T_Unconstrained
+   --    ^ by-reference unconstrained
+{% endif %}
+{% if endianness in ["either", "big"] %}
+   --
+   --  Unconstrained --> U
+   --  |                 ^ constrained and unpacked
+   --  v
+   --  T_Le_Unconstrained --> T_Le --------> Volatile_T_Le, Atomic_T_Le, Register_T_Le
+   --  | ^ LE packed          ^ constrained  ^ by-reference constrained
+   --  v
+   --  Volatile_T_Le_Unconstrained, Atomic_T_Le_Unconstrained, Register_T_Le_Unconstrained
+   --    ^ by-reference unconstrained
+{% endif %}
+   --
 {% if not length %}
    pragma Elaborate_Body;
 {% endif %}
