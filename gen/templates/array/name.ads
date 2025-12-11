@@ -42,6 +42,32 @@ with {{ include }};
 {{ printMultiLine(description, '-- ') }}
 {% endif %}
 package {{ name }} is
+
+   --
+   --  Packed array type trees:
+{% if endianness in ["either", "big"] %}
+   --
+   --  Unconstrained --> U
+   --  |                 ^ constrained and unpacked
+   --  v
+   --  T_Unconstrained --> T -----------> Volatile_T, Atomic_T, Register_T
+   --  | ^ BE packed       ^ constrained  ^ by-reference constrained
+   --  v
+   --  Volatile_T_Unconstrained, Atomic_T_Unconstrained, Register_T_Unconstrained
+   --    ^ by-reference unconstrained
+{% endif %}
+{% if endianness in ["either", "big"] %}
+   --
+   --  Unconstrained --> U
+   --  |                 ^ constrained and unpacked
+   --  v
+   --  T_Le_Unconstrained --> T_Le --------> Volatile_T_Le, Atomic_T_Le, Register_T_Le
+   --  | ^ LE packed          ^ constrained  ^ by-reference constrained
+   --  v
+   --  Volatile_T_Le_Unconstrained, Atomic_T_Le_Unconstrained, Register_T_Le_Unconstrained
+   --    ^ by-reference unconstrained
+{% endif %}
+   --
 {% if not length %}
    pragma Elaborate_Body;
 {% endif %}
@@ -151,7 +177,8 @@ package {{ name }} is
 {% if length %}
    -- Packed constrained type definition.
 {% if element.is_packed_type %}
-   type T is array (Constrained_Index_Type) of {{ element.type_package }}.T
+   -- type T is array (Constrained_Index_Type) of {{ element.type_package }}.T
+   type T is new T_Unconstrained (Constrained_Index_Type)
 {% elif (element.size % 8) == 0 %}
    type T is new T_Unconstrained (Constrained_Index_Type)
 {% else %}
@@ -201,7 +228,8 @@ package {{ name }} is
 {% if length %}
    -- Packed type definition with little endian definition.
 {% if element.is_packed_type %}
-   type T_Le is array (Constrained_Index_Type) of {{ element.type_package }}.T_Le
+   -- type T_Le is array (Constrained_Index_Type) of {{ element.type_package }}.T_Le
+   type T_Le is new T_Le_Unconstrained (Constrained_Index_Type)
 {% elif (element.size % 8) == 0 %}
    type T_Le is new T_Le_Unconstrained (Constrained_Index_Type)
 {% else %}
@@ -235,7 +263,8 @@ package {{ name }} is
    -- correct reading of the {{ volatile_descriptor|lower }} variables. For example, two successive
    -- readings of the same variable cannot be optimized to just one or reordered.
    -- Important: You should use the Register type for accessing hardware registers.
-   type {{ volatile_descriptor }}_T is array (Constrained_Index_Type) of {{ element.type }}
+   -- type {{ volatile_descriptor }}_T is array (Constrained_Index_Type) of {{ element.type }}
+   type {{ volatile_descriptor }}_T is new {{ volatile_descriptor }}_T_Unconstrained (Constrained_Index_Type)
       with Component_Size => Element_Size,
 {% if length %}
            Scalar_Storage_Order => System.High_Order_First,
@@ -261,7 +290,8 @@ package {{ name }} is
    -- correct reading of the {{ volatile_descriptor|lower }} variables. For example, two successive
    -- readings of the same variable cannot be optimized to just one or reordered.
    -- Important: You should use the Register type for accessing hardware registers.
-   type {{ volatile_descriptor }}_T_Le is array (Constrained_Index_Type) of {{ element.type }}
+   -- type {{ volatile_descriptor }}_T_Le is array (Constrained_Index_Type) of {{ element.type }}
+   type {{ volatile_descriptor }}_T_Le is new {{ volatile_descriptor }}_T_Le_Unconstrained (Constrained_Index_Type)
       with Component_Size => Element_Size,
 {% if length %}
            Scalar_Storage_Order => System.Low_Order_First,
