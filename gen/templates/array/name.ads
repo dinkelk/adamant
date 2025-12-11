@@ -51,29 +51,21 @@ package {{ name }} is
 {{ printMultiLine(preamble, '   ', 10000) }}
 {% endif %}
 
-   -- Packed type size (in bits):
-{% if length %}
-   Length : constant Natural := {{ length }};
-{% endif %}
+   -- Array element size (in bits and bytes):
 {% if element.is_packed_type %}
    Element_Size : constant Positive := {{ element.type_package }}.Size;
-{% else %}
-   Element_Size : constant Positive := {{ element.size }};
-{% endif %}
-{% if length %}
-   Size : constant Positive := Element_Size * Length;
-{% endif %}
-
-   -- Packed type size rounded up to nearest byte.
-{% if element.is_packed_type %}
    Element_Size_In_Bytes : constant Positive := {{ element.type_package }}.Size_In_Bytes;
 {% else %}
+   Element_Size : constant Positive := {{ element.size }};
    Element_Size_In_Bytes : constant Positive := (Element_Size - 1) / Basic_Types.Byte'Object_Size + 1;
 {% endif %}
 {% if length %}
+
+   -- Packed type size (in bits):
+   Length : constant Natural := {{ length }};
+   Size : constant Positive := Element_Size * Length;
    Size_In_Bytes : constant Positive := (Size - 1) / 8 + 1;
 {% if (size % 32) == 0 %}
-
    -- Packed type size in words (32-bit units).
    Size_In_Words : constant Positive := Size / 32;
 {% endif %}
@@ -286,8 +278,7 @@ package {{ name }} is
    type {{ volatile_descriptor }}_T_Le_Access is access all {{ volatile_descriptor }}_T_Le;
 {% endif %}
 {% else %}
-{% if length %}
-{% if endianness in ["either", "big"] %}
+{% if length and endianness in ["either", "big"] %}
    -- Volatile packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
    -- variable in question may suddenly change in value. For example, this may
@@ -310,9 +301,7 @@ package {{ name }} is
    type Volatile_T_Access is access all Volatile_T;
 
 {% endif %}
-{% endif %}
-{% if length %}
-{% if endianness in ["either", "little"] %}
+{% if length and endianness in ["either", "little"] %}
    -- Volatile little endian packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
    -- variable in question may suddenly change in value. For example, this may
@@ -334,7 +323,6 @@ package {{ name }} is
    -- Access type for Volatile_T_Le
    type Volatile_T_Le_Access is access all Volatile_T_Le;
 
-{% endif %}
 {% endif %}
 {% if element.size == 32 and not element.is_packed_type %}
    --
@@ -383,8 +371,7 @@ package {{ name }} is
    type Atomic_T_Le_Unconstrained_Access is access all Atomic_T_Le_Unconstrained;
 {% endif %}
 
-{% if length %}
-{% if endianness in ["either", "big"] %}
+{% if length and endianness in ["either", "big"] %}
    -- Atomic packed type definition:
    -- Note: This type is atomic. Use this type to specify that the code
    -- generated must read and write the type or variable from memory atomically,
@@ -409,7 +396,7 @@ package {{ name }} is
    type Atomic_T_Access is access all Atomic_T;
 
 {% endif %}
-{% if endianness in ["either", "little"] %}
+{% if length and endianness in ["either", "little"] %}
    -- Atomic little endian packed type definition:
    -- Note: This type is atomic. Use this type to specify that the code
    -- generated must read and write the type or variable from memory atomically,
@@ -433,7 +420,6 @@ package {{ name }} is
    -- Access type for Atomic_T_Le
    type Atomic_T_Le_Access is access all Atomic_T_Le;
 
-{% endif %}
 {% endif %}
 {% if endianness in ["either", "big"] %}
    -- Register unconstrained type definition:
@@ -465,8 +451,7 @@ package {{ name }} is
    -- Access type for Register_T_Le_Unconstrained
    type Register_T_Le_Unconstrained_Access is access all Register_T_Le_Unconstrained;
 {% endif %}
-{% if length %}
-{% if endianness in ["either", "big"] %}
+{% if length and endianness in ["either", "big"] %}
    -- Register packed type definition:
    -- Note: This type is the same as Atomic for arrays with component sizes of 32-bits.
    -- Important: You should use a Register type for accessing memory mapped IO or
@@ -486,7 +471,7 @@ package {{ name }} is
    type Register_T_Access is access all Register_T;
 
 {% endif %}
-{% if endianness in ["either", "little"] %}
+{% if length and endianness in ["either", "little"] %}
    -- Register little endian packed type definition:
    -- Note: This type is the same as Atomic for arrays with component sizes of 32-bits.
    -- Important: You should use a Register type for accessing memory mapped IO or
@@ -505,7 +490,6 @@ package {{ name }} is
    -- Access type for Register_T_Le
    type Register_T_Le_Access is access all Register_T_Le;
 
-{% endif %}
 {% endif %}
 {% else %}
    -- Atomic and Register type not supported.

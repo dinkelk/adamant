@@ -94,8 +94,7 @@ package body {{ name }}.Representation is
          return "{{ name }}.T invalid. Constraint_Error thrown.";
    end To_Tuple_String;
 
-{% if length %}
-{% if endianness in ["either", "big"] %}
+{% if length and endianness in ["either", "big"] %}
    -- Return compact representation of array as string:
    function To_Tuple_String (R : in T) return String is
    begin
@@ -106,7 +105,7 @@ package body {{ name }}.Representation is
    end To_Tuple_String;
 
 {% endif %}
-{% if endianness in ["either", "little"] %}
+{% if length and endianness in ["either", "little"] %}
    -- Return compact representation of array as string:
    function To_Tuple_String (R : in T_Le) return String is
    begin
@@ -116,7 +115,6 @@ package body {{ name }}.Representation is
          return "{{ name }}.T invalid. Constraint_Error thrown.";
    end To_Tuple_String;
 
-{% endif %}
 {% endif %}
    -- Return string representation of array elements and bytes
    function Image_With_Prefix (R : in U; Prefix : in String) return String is
@@ -129,21 +127,19 @@ package body {{ name }}.Representation is
 {% endif %}
    end Image_With_Prefix;
 
-{% if length %}
-{% if endianness in ["either", "big"] %}
+{% if length and endianness in ["either", "big"] %}
    function Image_With_Prefix (R : in T; Prefix : in String) return String is
    begin
       return To_Byte_String (R) & ASCII.LF & To_String (R, Prefix);
    end Image_With_Prefix;
 
 {% endif %}
-{% if endianness in ["either", "little"] %}
+{% if length and endianness in ["either", "little"] %}
    function Image_With_Prefix (R : in T_Le; Prefix : in String) return String is
    begin
       return To_Byte_String (R) & ASCII.LF & To_String (R, Prefix);
    end Image_With_Prefix;
 
-{% endif %}
 {% endif %}
    -- Return string representation of array elements and bytes (with no prefix):
    function Image (R : in U) return String is
@@ -151,20 +147,18 @@ package body {{ name }}.Representation is
       return Image_With_Prefix (R, "");
    end Image;
 
-{% if length %}
-{% if endianness in ["either", "big"] %}
+{% if length and endianness in ["either", "big"] %}
    function Image (R : in T) return String is
    begin
       return Image_With_Prefix (R, "");
    end Image;
 
 {% endif %}
-{% if endianness in ["either", "little"] %}
+{% if length and endianness in ["either", "little"] %}
    function Image (R : in T_Le) return String is
    begin
       return Image_With_Prefix (R, "");
    end Image;
 
-{% endif %}
 {% endif %}
 end {{ name }}.Representation;
