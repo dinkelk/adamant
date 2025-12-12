@@ -10,8 +10,8 @@ package Basic_Types is
 
    -- Define a byte as an 8-bit mod type:
    subtype Byte is Interfaces.Unsigned_8
-   with Object_Size => 8,
-        Value_Size => 8;
+      with Object_Size => 8,
+           Value_Size => 8;
 
    -- Define a collection of bytes indexed by a subtype of Natural.
    --
@@ -51,8 +51,8 @@ package Basic_Types is
    for Unsafe_Byte_Array_Access'Storage_Size use 0; -- Make thin.
 
    -- Volatile version of byte array, used for accessing hardware buffers:
-   type Volatile_Byte_Array is new Byte_Array with
-      Volatile => True;
+   type Volatile_Byte_Array is new Byte_Array
+      with Volatile => True;
    type Volatile_Byte_Array_Access is access all Volatile_Byte_Array;
 
    ------------------------------------------------------------
@@ -61,31 +61,31 @@ package Basic_Types is
 
    -- Define a word as a 32-bit mod type
    subtype Word is Interfaces.Unsigned_32
-     with Object_Size => 32,
-          Value_Size => 32;
+      with Object_Size => 32,
+           Value_Size => 32;
 
    -- Define index type similar to byte array
    subtype Word_Array_Index is Natural range Natural'First .. Natural'Last - 1;
 
    -- Native endianness word array definition
    type Word_Array is array (Word_Array_Index range <>) of Word
-     with Component_Size => 32;
+      with Component_Size => 32;
    pragma Warnings (Off, "pragma Pack for ""Word_Array"" ignored");
    pragma Pack (Word_Array);
    pragma Warnings (On, "pragma Pack for ""Word_Array"" ignored");
 
    -- Little endian word array definition
    type Word_Array_Le is new Word_Array
-     with Component_Size => 32,
-          Scalar_Storage_Order => System.Low_Order_First;
+      with Component_Size => 32,
+           Scalar_Storage_Order => System.Low_Order_First;
    pragma Warnings (Off, "pragma Pack for ""Word_Array_Le"" ignored");
    pragma Pack (Word_Array_Le);
    pragma Warnings (On, "pragma Pack for ""Word_Array_Le"" ignored");
 
    -- Big endian word array definition
    type Word_Array_Be is new Word_Array
-     with Component_Size => 32,
-          Scalar_Storage_Order => System.High_Order_First;
+      with Component_Size => 32,
+           Scalar_Storage_Order => System.High_Order_First;
    pragma Warnings (Off, "pragma Pack for ""Word_Array_Be"" ignored");
    pragma Pack (Word_Array_Be);
    pragma Warnings (On, "pragma Pack for ""Word_Array_Be"" ignored");
@@ -98,19 +98,55 @@ package Basic_Types is
    type Word_Array_Be_Access is access all Word_Array_Be;
 
    -- Volatile version of word array, used for accessing hardware buffers:
-   type Volatile_Word_Array is new Word_Array with
-      Volatile => True;
+   type Volatile_Word_Array is new Word_Array
+      with Volatile => True,
+           Volatile_Components => True;
    type Volatile_Word_Array_Access is access all Volatile_Word_Array;
 
    -- Volatile version of LE word array, used for accessing hardware buffers:
-   type Volatile_Word_Array_Le is new Word_Array_Le with
-      Volatile => True;
+   type Volatile_Word_Array_Le is new Word_Array_Le
+      with Volatile => True,
+           Volatile_Components => True;
    type Volatile_Word_Array_Le_Access is access all Volatile_Word_Array_Le;
 
    -- Volatile version of BE word array, used for accessing hardware buffers:
-   type Volatile_Word_Array_Be is new Word_Array_Be with
-      Volatile => True;
+   type Volatile_Word_Array_Be is new Word_Array_Be
+      with Volatile => True,
+           Volatile_Components => True;
    type Volatile_Word_Array_Be_Access is access all Volatile_Word_Array_Be;
+
+   -- Atomic version of word array, used for accessing memory mapped IO or hardware registers:
+   type Atomic_Word_Array is new Word_Array
+      with Volatile => True,
+           Volatile_Components => True,
+           Atomic_Components => True;
+   type Atomic_Word_Array_Access is access all Atomic_Word_Array;
+
+   -- Atomic version of LE word array, used for accessing memory mapped IO or hardware registers:
+   type Atomic_Word_Array_Le is new Word_Array_Le
+      with Volatile => True,
+           Volatile_Components => True,
+           Atomic_Components => True;
+   type Atomic_Word_Array_Le_Access is access all Atomic_Word_Array_Le;
+
+   -- Atomic version of BE word array, used for accessing memory mapped IO or hardware registers:
+   type Atomic_Word_Array_Be is new Word_Array_Be
+      with Volatile => True,
+           Volatile_Components => True,
+           Atomic_Components => True;
+   type Atomic_Word_Array_Be_Access is access all Atomic_Word_Array_Be;
+
+   -- Register version of word array (same as Atomic for 32-bit components):
+   subtype Register_Word_Array is Atomic_Word_Array;
+   subtype Register_Word_Array_Access is Atomic_Word_Array_Access;
+
+   -- Register version of LE word array (same as Atomic for 32-bit components):
+   subtype Register_Word_Array_Le is Atomic_Word_Array_Le;
+   subtype Register_Word_Array_Le_Access is Atomic_Word_Array_Le_Access;
+
+   -- Register version of BE word array (same as Atomic for 32-bit components):
+   subtype Register_Word_Array_Be is Atomic_Word_Array_Be;
+   subtype Register_Word_Array_Be_Access is Atomic_Word_Array_Be_Access;
 
    ----------------------------------------
    -- Positive integers (nonstandard size):
@@ -147,13 +183,13 @@ package Basic_Types is
 
    -- Define a 64 bit polymorphic type that can hold most primitive
    -- ada types. This can be useful in making things more generic.
-   subtype Poly_64_Type is Byte_Array (Natural'First .. Natural'First + 8 - 1) with
-      Object_Size => 64;
+   subtype Poly_64_Type is Byte_Array (Natural'First .. Natural'First + 8 - 1)
+      with Object_Size => 64;
 
    -- Define a 32 bit polymorphic type that can hold many primitive
    -- ada types. This can be useful in making things more generic.
-   subtype Poly_32_Type is Byte_Array (Natural'First .. Natural'First + 4 - 1) with
-      Object_Size => 32;
+   subtype Poly_32_Type is Byte_Array (Natural'First .. Natural'First + 4 - 1)
+      with Object_Size => 32;
 
    -- Generic poly type definition, set to 64-bit type.
    subtype Poly_Type is Poly_64_Type;
