@@ -163,21 +163,10 @@ package {{ name }} is
    -- Access type for T_Unconstrained.
    type T_Unconstrained_Access is access all T_Unconstrained;
 
-   -- Volatile unconstrained type definition:
-   type Volatile_T_Unconstrained is new T_Unconstrained
-      with Component_Size => Element_Size,
-           Scalar_Storage_Order => System.High_Order_First,
-           Volatile => True,
-           Volatile_Components => True;
-
-   -- Access type for Volatile_T_Unconstrained.
-   type Volatile_T_Unconstrained_Access is access all Volatile_T_Unconstrained;
-
 {% endif %}
 {% if length %}
    -- Packed constrained type definition.
 {% if element.is_packed_type %}
-   -- type T is array (Constrained_Index_Type) of {{ element.type_package }}.T
    type T is new T_Unconstrained (Constrained_Index_Type)
 {% elif (element.size % 8) == 0 %}
    type T is new T_Unconstrained (Constrained_Index_Type)
@@ -214,21 +203,10 @@ package {{ name }} is
    -- Access type for T_Unconstrained.
    type T_Le_Unconstrained_Access is access all T_Le_Unconstrained;
 
-   -- Volatile unconstrained type with little endian definition:
-   type Volatile_T_Le_Unconstrained is new T_Le_Unconstrained
-      with Component_Size => Element_Size,
-           Scalar_Storage_Order => System.Low_Order_First,
-           Volatile => True,
-           Volatile_Components => True;
-
-   -- Access type for Volatile_T_Le_Unconstrained.
-   type Volatile_T_Le_Unconstrained_Access is access all Volatile_T_Le_Unconstrained;
-
 {% endif %}
 {% if length %}
    -- Packed type definition with little endian definition.
 {% if element.is_packed_type %}
-   -- type T_Le is array (Constrained_Index_Type) of {{ element.type_package }}.T_Le
    type T_Le is new T_Le_Unconstrained (Constrained_Index_Type)
 {% elif (element.size % 8) == 0 %}
    type T_Le is new T_Le_Unconstrained (Constrained_Index_Type)
@@ -263,8 +241,19 @@ package {{ name }} is
    -- correct reading of the {{ volatile_descriptor|lower }} variables. For example, two successive
    -- readings of the same variable cannot be optimized to just one or reordered.
    -- Important: You should use the Register type for accessing hardware registers.
-   -- type {{ volatile_descriptor }}_T is array (Constrained_Index_Type) of {{ element.type }}
-   type {{ volatile_descriptor }}_T is new {{ volatile_descriptor }}_T_Unconstrained (Constrained_Index_Type)
+
+   -- {{ volatile_descriptor }} unconstrained type with big endian definition:
+   type {{ volatile_descriptor }}_T_Unconstrained is array (Unconstrained_Index_Type range <>) of {{ element.type }}
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.Low_Order_First,
+           Volatile => True,
+           Volatile_Components => True;
+
+   -- Access type for {{ volatile_descriptor }}_T_Unconstrained
+   type {{ volatile_descriptor }}_T_Unconstrained_Access is access all {{ volatile_descriptor }}_T_Unconstrained;
+
+   -- {{ volatile_descriptor }} constrained type with big endian definition:
+   type {{ volatile_descriptor }}_T is array (Constrained_Index_Type) of {{ element.type }}
       with Component_Size => Element_Size,
 {% if length %}
            Scalar_Storage_Order => System.High_Order_First,
@@ -278,8 +267,9 @@ package {{ name }} is
            Volatile => True,
            Volatile_Components => True;
 
-   -- Create access type to packed and unpacked records:
+   -- Access type for {{ volatile_descriptor }}_T
    type {{ volatile_descriptor }}_T_Access is access all {{ volatile_descriptor }}_T;
+
 {% endif %}
 {% if endianness in ["either", "little"] %}
    -- {{ volatile_descriptor }} little endian packed type definition:
@@ -290,8 +280,19 @@ package {{ name }} is
    -- correct reading of the {{ volatile_descriptor|lower }} variables. For example, two successive
    -- readings of the same variable cannot be optimized to just one or reordered.
    -- Important: You should use the Register type for accessing hardware registers.
-   -- type {{ volatile_descriptor }}_T_Le is array (Constrained_Index_Type) of {{ element.type }}
-   type {{ volatile_descriptor }}_T_Le is new {{ volatile_descriptor }}_T_Le_Unconstrained (Constrained_Index_Type)
+
+   -- {{ volatile_descriptor }} unconstrained type with little endian definition:
+   type {{ volatile_descriptor }}_T_Le_Unconstrained is array (Unconstrained_Index_Type range <>) of {{ element.type }}
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.Low_Order_First,
+           Volatile => True,
+           Volatile_Components => True;
+
+   -- Access type for {{ volatile_descriptor }}_T_Le_Unconstrained
+   type {{ volatile_descriptor }}_T_Le_Unconstrained_Access is access all {{ volatile_descriptor }}_T_Le_Unconstrained;
+
+   -- {{ volatile_descriptor }} constrained type with little endian definition:
+   type {{ volatile_descriptor }}_T_Le is array (Constrained_Index_Type) of {{ element.type }}
       with Component_Size => Element_Size,
 {% if length %}
            Scalar_Storage_Order => System.Low_Order_First,
@@ -305,9 +306,30 @@ package {{ name }} is
            Volatile => True,
            Volatile_Components => True;
 
+   -- Access type for {{ volatile_descriptor }}_T_Le
    type {{ volatile_descriptor }}_T_Le_Access is access all {{ volatile_descriptor }}_T_Le;
+
 {% endif %}
 {% else %}
+{% if (element.size % 8) == 0 and endianness in ["either", "big"] %}
+   -- Volatile unconstrained type definition:
+   -- Note: This type is volatile. You should use this type to specify that the
+   -- variable in question may suddenly change in value. For example, this may
+   -- occur due to a device writing to a shared buffer. When this pragma is used,
+   -- the compiler must suppress any optimizations that would interfere with the
+   -- correct reading of the volatile variables. For example, two successive
+   -- readings of the same variable cannot be optimized to just one or reordered.
+   -- Important: You should use the Register type for accessing hardware registers.
+   type Volatile_T_Unconstrained is new T_Unconstrained
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.High_Order_First,
+           Volatile => True,
+           Volatile_Components => True;
+
+   -- Access type for Volatile_T_Unconstrained
+   type Volatile_T_Unconstrained_Access is access all Volatile_T_Unconstrained;
+
+{% endif %}
 {% if length and endianness in ["either", "big"] %}
    -- Volatile packed type definition:
    -- Note: This type is volatile. You should use this type to specify that the
@@ -329,6 +351,25 @@ package {{ name }} is
 
    -- Access type for Volatile_T
    type Volatile_T_Access is access all Volatile_T;
+
+{% endif %}
+{% if (element.size % 8) == 0 and endianness in ["either", "little"] %}
+   -- Volatile unconstrained type definition:
+   -- Note: This type is volatile. You should use this type to specify that the
+   -- variable in question may suddenly change in value. For example, this may
+   -- occur due to a device writing to a shared buffer. When this pragma is used,
+   -- the compiler must suppress any optimizations that would interfere with the
+   -- correct reading of the volatile variables. For example, two successive
+   -- readings of the same variable cannot be optimized to just one or reordered.
+   -- Important: You should use the Register type for accessing hardware registers.
+   type Volatile_T_Le_Unconstrained is new T_Le_Unconstrained
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.High_Order_First,
+           Volatile => True,
+           Volatile_Components => True;
+
+   -- Access type for Volatile_T_Le_Unconstrained
+   type Volatile_T_Le_Unconstrained_Access is access all Volatile_T_Le_Unconstrained;
 
 {% endif %}
 {% if length and endianness in ["either", "little"] %}
@@ -360,7 +401,7 @@ package {{ name }} is
    -- have components that are exactly 32 bits in size and are not themselves
    -- packed types.
    --
-{% if endianness in ["either", "big"] %}
+{% if (element.size % 8) == 0 and endianness in ["either", "big"] %}
    -- Atomic unconstrained type definition:
    -- Note: This type is atomic. Use this type to specify that the code
    -- generated must read and write the type or variable from memory atomically,
@@ -379,28 +420,8 @@ package {{ name }} is
 
    -- Access type for Atomic_T_Unconstrained
    type Atomic_T_Unconstrained_Access is access all Atomic_T_Unconstrained;
-{% endif %}
-{% if endianness in ["either", "little"] %}
-   -- Atomic unconstrained type with little endian definition:
-   -- Note: This type is atomic. Use this type to specify that the code
-   -- generated must read and write the type or variable from memory atomically,
-   -- i.e. as a single/non-interruptible operation. It implies pragma Volatile,
-   -- the difference is that pragma Atomic is stronger: the compilation must
-   -- fail if the variable cannot be updated atomically.
-   -- Important: Atomic types create a synchronization point and can be used for
-   -- very limited intertask communication. However, protected objects should almost
-   -- always be preferred.
-   type Atomic_T_Le_Unconstrained is new T_Le_Unconstrained
-      with Component_Size => Element_Size,
-           Scalar_Storage_Order => System.Low_Order_First,
-           Volatile => True,
-           Volatile_Components => True,
-           Atomic_Components => True;
 
-   -- Access type for Atomic_T_Le_Unconstrained
-   type Atomic_T_Le_Unconstrained_Access is access all Atomic_T_Le_Unconstrained;
 {% endif %}
-
 {% if length and endianness in ["either", "big"] %}
    -- Atomic packed type definition:
    -- Note: This type is atomic. Use this type to specify that the code
@@ -424,6 +445,27 @@ package {{ name }} is
 
    -- Access type for Atomic_T
    type Atomic_T_Access is access all Atomic_T;
+
+{% endif %}
+{% if (element.size % 8) == 0 and endianness in ["either", "little"] %}
+   -- Atomic unconstrained type with little endian definition:
+   -- Note: This type is atomic. Use this type to specify that the code
+   -- generated must read and write the type or variable from memory atomically,
+   -- i.e. as a single/non-interruptible operation. It implies pragma Volatile,
+   -- the difference is that pragma Atomic is stronger: the compilation must
+   -- fail if the variable cannot be updated atomically.
+   -- Important: Atomic types create a synchronization point and can be used for
+   -- very limited intertask communication. However, protected objects should almost
+   -- always be preferred.
+   type Atomic_T_Le_Unconstrained is new T_Le_Unconstrained
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.Low_Order_First,
+           Volatile => True,
+           Volatile_Components => True,
+           Atomic_Components => True;
+
+   -- Access type for Atomic_T_Le_Unconstrained
+   type Atomic_T_Le_Unconstrained_Access is access all Atomic_T_Le_Unconstrained;
 
 {% endif %}
 {% if length and endianness in ["either", "little"] %}
@@ -451,7 +493,7 @@ package {{ name }} is
    type Atomic_T_Le_Access is access all Atomic_T_Le;
 
 {% endif %}
-{% if endianness in ["either", "big"] %}
+{% if (element.size % 8) == 0 and endianness in ["either", "big"] %}
    -- Register unconstrained type definition:
    -- Note: This type is the same as Atomic for arrays with component sizes of 32-bits.
    -- Important: You should use a Register type for accessing memory mapped IO or
@@ -465,21 +507,7 @@ package {{ name }} is
 
    -- Access type for Register_T_Unconstrained
    type Register_T_Unconstrained_Access is access all Register_T_Unconstrained;
-{% endif %}
-{% if endianness in ["either", "little"] %}
-   -- Register unconstrained type with little endian definition:
-   -- Note: This type is the same as Atomic for arrays with component sizes of 32-bits.
-   -- Important: You should use a Register type for accessing memory mapped IO or
-   -- hardware registers.
-   type Register_T_Le_Unconstrained is new T_Le_Unconstrained
-      with Component_Size => Element_Size,
-           Scalar_Storage_Order => System.Low_Order_First,
-           Volatile => True,
-           Volatile_Components => True,
-           Atomic_Components => True;
 
-   -- Access type for Register_T_Le_Unconstrained
-   type Register_T_Le_Unconstrained_Access is access all Register_T_Le_Unconstrained;
 {% endif %}
 {% if length and endianness in ["either", "big"] %}
    -- Register packed type definition:
@@ -499,6 +527,22 @@ package {{ name }} is
 
    -- Access type for Register_T
    type Register_T_Access is access all Register_T;
+
+{% endif %}
+{% if (element.size % 8) == 0 and endianness in ["either", "little"] %}
+   -- Register unconstrained type with little endian definition:
+   -- Note: This type is the same as Atomic for arrays with component sizes of 32-bits.
+   -- Important: You should use a Register type for accessing memory mapped IO or
+   -- hardware registers.
+   type Register_T_Le_Unconstrained is new T_Le_Unconstrained
+      with Component_Size => Element_Size,
+           Scalar_Storage_Order => System.Low_Order_First,
+           Volatile => True,
+           Volatile_Components => True,
+           Atomic_Components => True;
+
+   -- Access type for Register_T_Le_Unconstrained
+   type Register_T_Le_Unconstrained_Access is access all Register_T_Le_Unconstrained;
 
 {% endif %}
 {% if length and endianness in ["either", "little"] %}
