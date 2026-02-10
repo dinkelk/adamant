@@ -96,7 +96,7 @@ package body Component.Stack_Monitor.Implementation is
             -- Move the stack index back 100 bytes.
             Start_Index := @ - 100;
 
-            -- If the start index went negative then reset it to zero and we we will start from there.
+            -- If the start index went negative then reset it to zero and we will start from there.
             if Start_Index <= 0 then
                Start_Index := 0;
                exit;

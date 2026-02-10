@@ -62,7 +62,7 @@ package body Component.Command_Rejector.Implementation is
    ---------------------------------------
    -- Commands received on this connector will be checked against the command reject list. Commands not found in the command reject list they will be forwarded.
    overriding procedure Command_T_To_Forward_Recv_Sync (Self : in out Instance; Arg : in Command.T) is
-      -- Look up to see if this command is in the protected list list:
+      -- Look up to see if this command is in the protected list:
       Id_To_Find : Command_Id renames Arg.Header.Id;
       Ignore_Found_Id : Command_Id;
       Ignore_Found_Index : Natural;

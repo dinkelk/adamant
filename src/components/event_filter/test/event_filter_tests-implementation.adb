@@ -117,7 +117,7 @@ package body Event_Filter_Tests.Implementation is
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 3);
 
-      -- Make sure no data products were thrown since we dont call a tick
+      -- Make sure no data products were thrown since we don't call a tick
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
 
    end Test_Received_Event;
@@ -669,7 +669,7 @@ package body Event_Filter_Tests.Implementation is
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Enable_Event_Filtering_Id, Status => Success));
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
       Natural_Assert.Eq (T.Enable_Event_Filter_History.Get_Count, 1);
-      -- Data product, no tick so the total counts dont get updated here
+      -- Data product, no tick so the total counts don't get updated here
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
       Natural_Assert.Eq (T.Component_Filter_State_History.Get_Count, 3);
       Component_State_Assert.Eq (T.Component_Filter_State_History.Get (3).Component_Filter_State, Event_Filter_Entry_Enums.Global_Filter_State.Enabled);

@@ -131,7 +131,7 @@ package Component.Memory_Manager.Implementation.Tester is
    overriding procedure Memory_Unavailable (Self : in out Instance);
    -- Cannot release a memory region with an unexpected ID.
    overriding procedure Unexpected_Memory_Id (Self : in out Instance; Arg : in Ided_Memory_Region.T);
-   -- Cannot release a memory region when the memory region is currently available (ie. already released).
+   -- Cannot release a memory region when the memory region is currently available (i.e. already released).
    overriding procedure Memory_Already_Released (Self : in out Instance; Arg : in Ided_Memory_Region.T);
    -- The component is currently dumping the virtual memory location for the following region.
    overriding procedure Dumping_Memory (Self : in out Instance; Arg : in Virtual_Memory_Region_Positive.T);

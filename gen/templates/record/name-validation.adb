@@ -36,7 +36,7 @@ package body {{ name }}.Validation is
 {% endif %}
    begin
       -- Sometimes the valid functions below will NEVER be false, since the type can never be out of range,
-      -- ie. with an Unsigned_16. If this is the case Ada warns that some code can never be executed. This
+      -- i.e. with an Unsigned_16. If this is the case Ada warns that some code can never be executed. This
       -- is OK and we want the compiler to delete this code, so ignore the warning.
       pragma Warnings (Off, "this code can never be executed and has been deleted");
       pragma Warnings (Off, "redundant conversion, expression is of type ""Natural""");
@@ -171,7 +171,7 @@ package body {{ name }}.Validation is
 {% endif %}
    begin
       -- Sometimes the valid functions below will NEVER be false, since the type can never be out of range,
-      -- ie. with an Unsigned_16. If this is the case Ada warns that some code can never be executed. This
+      -- i.e. with an Unsigned_16. If this is the case Ada warns that some code can never be executed. This
       -- is OK and we want the compiler to delete this code, so ignore the warning.
       pragma Warnings (Off, "this code can never be executed and has been deleted");
       pragma Warnings (Off, "redundant conversion, expression is of type ""Natural""");
@@ -305,7 +305,7 @@ package body {{ name }}.Validation is
 {% endif %}
    begin
       -- Sometimes the valid functions below will NEVER be false, since the type can never be out of range,
-      -- ie. with an Unsigned_16. If this is the case Ada warns that some code can never be executed. This
+      -- i.e. with an Unsigned_16. If this is the case Ada warns that some code can never be executed. This
       -- is OK and we want the compiler to delete this code, so ignore the warning.
       pragma Warnings (Off, "this code can never be executed and has been deleted");
       pragma Warnings (Off, "redundant conversion, expression is of type ""Natural""");

@@ -317,7 +317,7 @@ package body Component.Fault_Correction.Implementation is
          -- Grab the table entry:
          Table_Entry : Fault_Response_Table_Entry renames Self.Fault_Response_Table.all (Index);
       begin
-         -- Enable the response if disabled. If the status is in any other state (ie. Fault)
+         -- Enable the response if disabled. If the status is in any other state (i.e. Fault)
          -- we are just going to leave it.
          case Table_Entry.Status is
             when Disabled =>

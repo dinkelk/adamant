@@ -331,7 +331,7 @@ package body Component.Command_Sequencer.Implementation.Tester is
       Self.Starting_Sequence_History.Push (Arg);
    end Starting_Sequence;
 
-   -- The sequence engine as finished its execution of the parent sequence.
+   -- The sequence engine has finished its execution of the parent sequence.
    overriding procedure Finished_Sequence (Self : in out Instance; Arg : in Packed_Sequence_Engine_Id.T) is
    begin
       -- Push the argument onto the test history for looking at later:
