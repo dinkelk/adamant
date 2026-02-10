@@ -591,7 +591,7 @@ package body Event_Limiter_Tests.Implementation is
       Event_Id_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get (1).Header.Id, 6);
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 2);
-      -- Should be limited at this point if enabled so make sure we dont get the forwarded event after this point
+      -- Should be limited at this point if enabled so make sure we don't get the forwarded event after this point
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 2);
       T.Event_T_Send (Incoming_Event);
@@ -665,7 +665,7 @@ package body Event_Limiter_Tests.Implementation is
       Event_Id_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get (1).Header.Id, 2);
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 2);
-      -- Should be limited at this point so make sure we dont get the forwarded event after this point
+      -- Should be limited at this point so make sure we don't get the forwarded event after this point
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 2);
       T.Event_T_Send (Incoming_Event);
@@ -682,7 +682,7 @@ package body Event_Limiter_Tests.Implementation is
       Event_Id_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get (1).Header.Id, 8);
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 2);
-      -- Should be limited at this point so make sure we dont get the forwarded event after this point
+      -- Should be limited at this point so make sure we don't get the forwarded event after this point
       T.Event_T_Send (Incoming_Event);
       Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 2);
       T.Event_T_Send (Incoming_Event);

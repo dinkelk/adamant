@@ -311,7 +311,7 @@ package body Command_Protector_Tests.Implementation is
       T : Component.Command_Protector.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T := (Header => (Source_Id => 0, Id => 2, Arg_Buffer_Length => 19), Arg_Buffer => [others => 88]);
    begin
-      -- OK dont arm the component:
+      -- OK don't arm the component:
       Cmd.Header.Id := 4;
       T.Command_T_To_Forward_Send (Cmd);
 
@@ -332,7 +332,7 @@ package body Command_Protector_Tests.Implementation is
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 1);
       Packet_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (1), T.Packets.Error_Packet_Truncate (T.System_Time, Cmd));
 
-      -- OK dont arm the component:
+      -- OK don't arm the component:
       Cmd.Header.Id := 77;
       T.Command_T_To_Forward_Send (Cmd);
 

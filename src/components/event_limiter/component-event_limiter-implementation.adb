@@ -246,7 +246,7 @@ package body Component.Event_Limiter.Implementation is
       Self.Event_Array.Increment_Counter (Arg.Header.Id, Status);
       -- Only when status is an Event_Max_Limit, then we don't do anything. Otherwise, the event gets passed on
       case Status is
-         -- When invalid or successful, we just pass through the event (dont need to know if enabled or disabled)
+         -- When invalid or successful, we just pass through the event (don't need to know if enabled or disabled)
          when Success | Invalid_Id =>
             Self.Event_Forward_T_Send_If_Connected (Arg);
             -- If we hit a max, then the package takes care of the accounting and knows it was enabled.
@@ -291,7 +291,7 @@ package body Component.Event_Limiter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -318,7 +318,7 @@ package body Component.Event_Limiter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -355,7 +355,7 @@ package body Component.Event_Limiter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -392,7 +392,7 @@ package body Component.Event_Limiter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;

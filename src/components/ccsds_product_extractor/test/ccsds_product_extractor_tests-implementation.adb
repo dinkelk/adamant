@@ -95,7 +95,7 @@ package body Ccsds_Product_Extractor_Tests.Implementation is
       Put_Line ("Testing Product Extractor Packets:");
       Put_Line ("----------------------------------");
 
-      -- Check that we dont have any events or data products sent yet
+      -- Check that we don't have any events or data products sent yet
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
 

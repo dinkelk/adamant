@@ -109,7 +109,7 @@ package Seq_Runtime is
    procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type);
 
    -- Get the ID of the sequence to load. This should be called after encountering a call/spawn/start
-   -- instruction, ie. in a Wait_Load_New_* state.
+   -- instruction, i.e. in a Wait_Load_New_* state.
    function Get_Seq_Id_To_Load (Self : in Instance) return Sequence_Types.Sequence_Id;
 
    -- Get the last time that the runtime was executed.

@@ -199,7 +199,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -226,7 +226,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -263,7 +263,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -300,7 +300,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;

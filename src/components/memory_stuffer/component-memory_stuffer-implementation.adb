@@ -138,7 +138,7 @@ package body Component.Memory_Stuffer.Implementation is
    -----------------------------------------------
    -- Description:
    --    These are the commands for the Memory Stuffer component.
-   -- An "arm" command which enables the next write write command to a protected memory to be accepted. The "armed" state of the component will expire on the next command to this component no matter what it is or after the configurable timeout.
+   -- An "arm" command which enables the next write command to a protected memory to be accepted. The "armed" state of the component will expire on the next command to this component no matter what it is or after the configurable timeout.
    overriding function Arm_Protected_Write (Self : in out Instance; Arg : in Packed_Arm_Timeout.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
