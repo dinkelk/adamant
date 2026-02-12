@@ -1,7 +1,7 @@
 ---
 # Optional - a description of the view
 description: This is the command view.
-# Optional - layout direction, default is ;left-to-right'.
+# Optional - layout direction, default is 'left-to-right'.
 # Other options include: 'top-to-bottom', 'right-to-left',
 # and 'bottom-to-top'.
 layout: left-to-right
