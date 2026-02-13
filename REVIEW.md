@@ -36,3 +36,21 @@ This file tracks potential bugs, logic errors, and inconsistencies discovered du
 - **Description:** Event name `Dump_Event_States_Recieved` is misspelled (should be `Received`). However, this name is defined in YAML event models and propagates into auto-generated Ada identifiers and hand-written code. Renaming in YAML alone would break the build; a coordinated rename across YAML + generated code + implementation + tests is required.
 - **Severity:** Low (cosmetic typo in identifier, no functional impact)
 - **Note:** Requires coordinated rename across ~32 references in 8+ files. Not safe to fix as a simple spelling correction.
+
+## Issue #6: ARM64 CI workflows only test one component instead of entire repo
+
+- **Date found:** 2026-02-13
+- **Files:**
+  - `.github/workflows/style_all_arm64.yml`
+  - `.github/workflows/test_all_arm64.yml`
+- **Description:** The ARM64 style workflow runs `redo src/components/command_router/style_all` (only command_router) while the non-ARM64 version runs `redo style_all` (entire repo). Similarly, the ARM64 test workflow runs `redo src/components/command_router/coverage_all` instead of `redo coverage_all`. This means ARM64 CI only validates one component.
+- **Severity:** Medium (CI coverage gap — ARM64 builds are not fully tested)
+- **Note:** Likely a copy-paste error from testing. The x86 workflows are correct.
+
+## Issue #7: Missing `disp` call in MATLAB test file
+
+- **Date found:** 2026-02-13
+- **File:** `doc/example_architecture/record_m/test.m`
+- **Description:** Line `("serializing and deserializing example record:");` is missing `disp` — should be `disp("serializing...")`. Without it, MATLAB would try to index `ans` with a string, causing a runtime error.
+- **Resolution:** Fixed — added `disp`.
+- **Severity:** Medium (test would fail at runtime)
