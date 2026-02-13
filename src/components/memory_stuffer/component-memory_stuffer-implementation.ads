@@ -16,7 +16,7 @@ package Component.Memory_Stuffer.Implementation is
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
-   -- This component requires a list of memory regions which it can write to. These regions can either be protected (requiring and arm command prior to execution) or unprotected, as specified by the second parameter.
+   -- This component requires a list of memory regions which it can write to. These regions can either be protected (requiring an arm command prior to execution) or unprotected, as specified by the second parameter.
    --
    -- Init Parameters:
    -- Memory_Regions : Memory_Manager_Types.Memory_Region_Array_Access - An access to a list of memory regions.

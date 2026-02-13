@@ -247,7 +247,7 @@ package body Component.Event_Filter.Implementation is
             Self.Event_Entries.Set_Filter_State (Event_Id_State_Change, Event_Filter_State.Filtered, Status);
             case Status is
                when Invalid_Id =>
-                  pragma Assert (False, "Found Invalid_Id for the Event Limiter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -284,7 +284,7 @@ package body Component.Event_Filter.Implementation is
             Self.Event_Entries.Set_Filter_State (Event_Id_State_Change, Event_Filter_State.Unfiltered, Status);
             case Status is
                when Invalid_Id =>
-                  pragma Assert (False, "Found Invalid_Id for the Event Limiter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -325,7 +325,7 @@ package body Component.Event_Filter.Implementation is
       use Command_Execution_Status;
       Timestamp : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- All we need to do here is enable the component level variable
+      -- All we need to do here is disable the component level variable
       Self.Event_Entries.Set_Global_Enable_State (Global_Filter_State.Disabled);
       Self.Event_T_Send_If_Connected (Self.Events.Disable_Event_Filter (Timestamp));
       -- Update the data product as well
