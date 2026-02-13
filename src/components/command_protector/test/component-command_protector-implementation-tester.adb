@@ -214,7 +214,7 @@ package body Component.Command_Protector.Implementation.Tester is
    -----------------------------------------------
    -- Description:
    --    Packets for the Command Protector component.
-   -- This packet contains a protected command that was dropped due the component not being `armed'.
+   -- This packet contains a protected command that was dropped due to the component not being `armed'.
    overriding procedure Error_Packet (Self : in out Instance; Arg : in Command.T) is
    begin
       -- Push the argument onto the test history for looking at later:

@@ -1287,7 +1287,7 @@ Below is the example packed record definition called \textit{example\_record}, s
 
 \yamlcodef{../example_architecture/example_record.record.yaml}
 
-This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed record \textit{fields} which require a \textit{name}, \textit{type}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed arrays, or other packed records. The \textit{format} field is where a developer can describe out how the field is represented in memory in its packed form. This field takes an enumeration of the form \textit{U}, \textit{I}, \textit{F} or \textit{E} (for unsigned, signed, floating point, or enumeration) followed by the number of bits used to represent it. A table of example memory representations is laid out below:
+This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed record \textit{fields} which require a \textit{name}, \textit{type}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed arrays, or other packed records. The \textit{format} field is where a developer can describe how the field is represented in memory in its packed form. This field takes an enumeration of the form \textit{U}, \textit{I}, \textit{F} or \textit{E} (for unsigned, signed, floating point, or enumeration) followed by the number of bits used to represent it. A table of example memory representations is laid out below:
 
 \captionof{table}{Example Packed Record Format Specifications}
 \begin{xltabular}{\textwidth}{ | l | X | }
@@ -1343,7 +1343,7 @@ Note also that with every packed record there are a series of \texttt{Serialized
 
 \subsubsection{Packed Record Validation} \label{Packed Record Validation}
 
-Using the serialization and deserialization functions shown in the previous section can be error prone. Consider the field in our record \texttt{Value\_2}, which only has a valid integer range between -2 and 3. It is possible that when calling the deserialization function \texttt{From\_Byte\_Array}, the incoming byte array might contain a bit representation the puts the \texttt{Value\_2} field out of range, ie. 5. The call to \texttt{From\_Byte\_Array} will not fail, but any subsequent operation using the \texttt{packed\_Type} variable will fail with an Ada constraint error, due the range check failing on \texttt{Value\_2}. \\
+Using the serialization and deserialization functions shown in the previous section can be error prone. Consider the field in our record \texttt{Value\_2}, which only has a valid integer range between -2 and 3. It is possible that when calling the deserialization function \texttt{From\_Byte\_Array}, the incoming byte array might contain a bit representation that puts the \texttt{Value\_2} field out of range, ie. 5. The call to \texttt{From\_Byte\_Array} will not fail, but any subsequent operation using the \texttt{packed\_Type} variable will fail with an Ada constraint error, due to the range check failing on \texttt{Value\_2}. \\
 
 Adamant packed records have a method for mitigating this using an autocoded child package which performs validation on the type. To build the validation child package run the following:
 
@@ -1628,7 +1628,7 @@ Note that it is up to the user to make sure their MATLAB path is configured to i
 
 \subsubsection{Nested Packed Records} \label{Nested Packed Records}
 
-Packed records or packed arrays (discussed in in Section \ref{Packed Arrays}) can also contain fields that are themselves packed records (or arrays). These types can be nested arbitrarily deep, but there are some limitations on nesting that will be discussed in this section. \\
+Packed records or packed arrays (discussed in Section \ref{Packed Arrays}) can also contain fields that are themselves packed records (or arrays). These types can be nested arbitrarily deep, but there are some limitations on nesting that will be discussed in this section. \\
 
 See an example below, a packed record that includes two fields that are of packed record type:
 
@@ -1712,7 +1712,7 @@ To define a packed array, a developer should create a YAML model file of the for
 
 \yamlcodef{../example_architecture/example_array.array.yaml}
 
-This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed array \textit{type}, \textit{length}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed records, or other packed arrays. The \textit{format} field is where a developer can describe out how the field will be represented in memory in its packed form, and is identical to the format specification for packed records. The \textit{format} specification is not necessary if the array type is a packed record or packed array since the length of the type in memory is known from that type's model, see Section \ref{Nested Packed Records}. See the previous sections for more details on \textit{format}. The \textit{length} field specifies how many elements the packed array contains. Unconstrained packed arrays are not currently supported in Adamant.
+This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed array \textit{type}, \textit{length}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed records, or other packed arrays. The \textit{format} field is where a developer can describe how the field will be represented in memory in its packed form, and is identical to the format specification for packed records. The \textit{format} specification is not necessary if the array type is a packed record or packed array since the length of the type in memory is known from that type's model, see Section \ref{Nested Packed Records}. See the previous sections for more details on \textit{format}. The \textit{length} field specifies how many elements the packed array contains. Unconstrained packed arrays are not currently supported in Adamant.
 
 \subsubsection{Packed Array Ada Specification}
 
@@ -2114,7 +2114,7 @@ The register set can be used like any normal packed record, except that accessin
 
 \subsubsection{Packed Register Arrays}
 
-If all the registers in a register set are of the same type you can used a packed array instead of a packed record to described the hardware. For example, to describe a set of 10 32-bit registers that should be interpreted as unsigned integers you can define the following packed array.
+If all the registers in a register set are of the same type you can use a packed array instead of a packed record to describe the hardware. For example, to describe a set of 10 32-bit registers that should be interpreted as unsigned integers you can define the following packed array.
 
 \yamlcodef{../example_architecture/example_register_array.array.yaml}
 
@@ -2484,7 +2484,7 @@ redo build/template/test.adb
 \end{minted}
 \vspace{5mm} %5mm vertical space
 
-We can map the the files above to their package names in the package diagram shown in Section \ref{Anatomy of a Component Unit Test}. Below is the map of package names to the location of their autogenerated source:
+We can map the files above to their package names in the package diagram shown in Section \ref{Anatomy of a Component Unit Test}. Below is the map of package names to the location of their autogenerated source:
 
 \vspace{5mm} %5mm vertical space
 \begin{spaceditemize}
@@ -4949,7 +4949,7 @@ This section presents component design topics that are for more experienced Adam
 
 Adamant provides a feature that allows for a component to operate on one or more generic parameters. This uses the underlying Ada feature for \href{https://learn.adacore.com/courses/intro-to-ada/chapters/generics.html}{\textcolor{blue}{generic packages}}. The advantage of defining a component with generic parameters is that these parameters can be used as connector types, allowing the component to operate on data in a generic manner. The actual type that the component operates on is not determined until the generic component is instantiated in an assembly. If components can be generic, they are much more likely to be reusable. \\
 
-Two good example components that use this feature in Adamant are the the \textit{logger} component, which logs data of a generic type to an in-memory circular buffer, \textit{src/components/loggers/logger}, and the \textit{splitter} component, which can split any \textit{send} connector into an array of outputs, \textit{src/components/splitter}. The splitter component is simple and demonstrates a minimal usage of the generic feature, so it is ideal to use as an example for this section of the document. \\
+Two good example components that use this feature in Adamant are the \textit{logger} component, which logs data of a generic type to an in-memory circular buffer, \textit{src/components/loggers/logger}, and the \textit{splitter} component, which can split any \textit{send} connector into an array of outputs, \textit{src/components/splitter}. The splitter component is simple and demonstrates a minimal usage of the generic feature, so it is ideal to use as an example for this section of the document. \\
 
 Let's begin by taking a look at the \textit{splitter} component model: \\
 
