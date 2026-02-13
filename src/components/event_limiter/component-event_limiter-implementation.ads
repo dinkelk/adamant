@@ -21,8 +21,8 @@ package Component.Event_Limiter.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- event_Id_Start : Event_Types.Event_Id - The number of packets that the component contains internally. This is the available buffer that the component has to store events. When all packets are exhausted, then the component begins dropping events. The component needs to be at least double buffered, meaning a minimum of two packets need to be allocated.
-   -- event_Id_Stop : Event_Types.Event_Id - The number of ticks that can be received before a partial packet timeout occurs. When a partial packet timeout occurs, a packet containing at least one event is sent out, and then the timeout is reset. A value of zero passed for this parameter will disable the partial packet timeout, meaning only full packets are ever sent out of the component.
+   -- Event_Id_Start : Event_Types.Event_Id - The event ID that begins the range of ids that the component will include for potential limiting of events.
+   -- Event_Id_Stop : Event_Types.Event_Id - The event ID that ends the range of ids that the component will include for potential limiting of events.
    -- event_Disable_List : Two_Counter_Entry.Event_Id_List - A list of event IDs that are enabled by default
    -- event_Limit_Persistence : Two_Counter_Entry.Persistence_Type - The initial persistence of the number of events to allow before limiting them between ticks (1 to 7)
    --
