@@ -27,7 +27,7 @@ At its core, Adamant is a component-based framework. Component-based frameworks 
   \item \textbf{Encapsulation} - A component hides the details of its internal behavior and state and only allows other components to access its functionality through the interface it presents. 
   \item \textbf{Independence} - Components do not depend on other components, they depend only on their interfaces. This means that changes to one component are unlikely to ripple through the entire system. 
   \item \textbf{Reusability} - Some components may be designed for a project-specific task, however, many components can be designed in a generic way such that they can be reused in similar systems with no modification. In addition, a component can be placed in a variety of execution contexts and be still expected to function as designed.
-  \item \textbf{Replaceability} - Because a component is simply represented by its interfaces, it can substituted for another component as long as it adheres to the same interface. 
+  \item \textbf{Replaceability} - Because a component is simply represented by its interfaces, it can be substituted for another component as long as it adheres to the same interface. 
 \end{itemize}
 
 Components in Adamant communicate with one another through strongly typed \textit{connectors}. Components can have many connectors, of many different types, which can either send or receive data or both. Because connectors are exposed in the design, data flow within an Adamant architecture is not obscured, but rather can be easily inspected by a viewer of the design.

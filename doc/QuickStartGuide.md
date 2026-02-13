@@ -269,7 +269,7 @@ $ cp build/template/* .
 
 These files contain the actual tests that are run during unit test. By default, the tests are empty and fail. You should fill in the implementation of your tests into these files. See unit testing examples in the `src/components` directory.
 
-There are many other outputs that can be built by `redo` in a unit test directory. These files are needed to compile the unit test executable, but they usually don't need to be looked at by a developer. There function is described below for completeness:
+There are many other outputs that can be built by `redo` in a unit test directory. These files are needed to compile the unit test executable, but they usually don't need to be looked at by a developer. Their function is described below for completeness:
 
 * `build/src/<component_name>_tests.ad[b,s]` - These are the auto generated unit test base class package files. These files contain test startup and teardown procedures and abstract test methods, forcing the user to implement them in the inheriting package.
 * `build/src/<component_name>_tests-implementation-suite.ad[b,s]` - These are the auto generated unit tests suite files. This source organizes the test into a single suite for execution by `test.adb`.
@@ -469,7 +469,7 @@ redo build/png/<view_name>.png
 redo build/svg/<view_name>.svg
 ```
 
-From here you can generate the view  diagram by running `redo build/svg/<view_name>.svg`. You can then open this output in a web browser to view the diagram. ".png" and ".eps" versions of the diagram can also be built using the appropriate `redo` commands, as seen above.
+From here you can generate the view diagram by running `redo build/svg/<view_name>.svg`. You can then open this output in a web browser to view the diagram. ".png" and ".eps" versions of the diagram can also be built using the appropriate `redo` commands, as seen above.
 
 ## Creating Assembly Documentation
 

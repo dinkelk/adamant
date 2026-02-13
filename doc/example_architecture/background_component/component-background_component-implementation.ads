@@ -20,7 +20,7 @@ private
    -- bytes of data put into the packet. Since this data can be set by
    -- multiple external tasks simultaneously, and could be being copied
    -- into a packet at the same time, we need to protect access to the
-   -- data too ensure there is no race condition and that the data never
+   -- data to ensure there is no race condition and that the data never
    -- gets corrupted.
    protected type Protected_Data is
       -- Set the data.
