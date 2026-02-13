@@ -22,3 +22,17 @@ This file tracks potential bugs, logic errors, and inconsistencies discovered du
 - **Resolution:** Fixed — comment updated to say "-8".
 - **Severity:** Low (comment only, no runtime impact)
 - **Note:** Worth verifying the intended test values if the original author meant `-9` (which would imply different input values).
+
+### Issue 5 — 2026-02-12
+- **File(s):**
+  - `src/components/event_filter/event_filter.events.yaml`
+  - `src/components/event_filter/component-event_filter-implementation.adb`
+  - `src/components/event_filter/test/component-event_filter-implementation-tester.adb`
+  - `src/components/event_filter/test/component-event_filter-implementation-tester.ads`
+  - `src/components/event_limiter/event_limiter.events.yaml`
+  - `src/components/event_limiter/component-event_limiter-implementation.adb`
+  - `src/components/event_limiter/test/component-event_limiter-implementation-tester.adb`
+  - `src/components/event_limiter/test/component-event_limiter-implementation-tester.ads`
+- **Description:** Event name `Dump_Event_States_Recieved` is misspelled (should be `Received`). However, this name is defined in YAML event models and propagates into auto-generated Ada identifiers and hand-written code. Renaming in YAML alone would break the build; a coordinated rename across YAML + generated code + implementation + tests is required.
+- **Severity:** Low (cosmetic typo in identifier, no functional impact)
+- **Note:** Requires coordinated rename across ~32 references in 8+ files. Not safe to fix as a simple spelling correction.
