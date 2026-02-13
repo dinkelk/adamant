@@ -1254,7 +1254,7 @@ Everything works as expected and produces the test output:
 
 Often in embedded systems, communication protocols and hardware devices require a very specific binary format for transferred bytes or bits to properly function. However, technical differences in processors and compilers can often make code built to talk to these devices difficult to implement in a cross-platform and portable way. For instance, processors used in the design of embedded systems can be either big or little endian, depending on the chosen platform. Embedded systems often communicate with other embedded processors or end-user systems which have an endianness different from their own. If not carefully handled, these differences in endianness can be one of the largest sources of defects encountered while debugging embedded software. Besides endianness issues, the ``packed"-ness, that is, the amount of padding supplied around individual types, of a struct or array in processor memory differs based on the compiler used. The differences in endianness and ``packed"-ness can make writing portable software difficult without a layer of abstraction to handle the differences. \\
 
-Adamant aims to solve these problem through the use of \textit{packed types}.  In Adamant, packed types are modeled using a YAML specification. From the specification, the following type definitions are generated:
+Adamant aims to solve these problems through the use of \textit{packed types}.  In Adamant, packed types are modeled using a YAML specification. From the specification, the following type definitions are generated:
 
 \vspace{5mm} %5mm vertical space
 \begin{spaceditemize}
@@ -1264,7 +1264,7 @@ Adamant aims to solve these problem through the use of \textit{packed types}.  I
 \end{spaceditemize}
 \vspace{5mm} %5mm vertical space
 
-The \texttt{T} and \texttt{T\_Le} types can be thought of as the \textit{serialized} version of the record, where the bit layout and endianness is known, no matter the compiler or processor that the code is running on. The \texttt{U} version of the type can be thought of as the \textit{native} version of the type, which has been optimized by the compiler for the target processor. Adamant provides subprograms to convert between these 3 types so that a user can easily pack, unpack, or swap the endianness of the data at will. Subprogams to reinterpret packed types as an array of bytes (serialization) or to reinterpret an array of bytes as a packed type (deserialization) are also provided. \\
+The \texttt{T} and \texttt{T\_Le} types can be thought of as the \textit{serialized} version of the record, where the bit layout and endianness is known, no matter the compiler or processor that the code is running on. The \texttt{U} version of the type can be thought of as the \textit{native} version of the type, which has been optimized by the compiler for the target processor. Adamant provides subprograms to convert between these 3 types so that a user can easily pack, unpack, or swap the endianness of the data at will. Subprograms to reinterpret packed types as an array of bytes (serialization) or to reinterpret an array of bytes as a packed type (deserialization) are also provided. \\
 
 For each of the types above, Adamant also provides facilities to validate that the values in the type are within range, pretty print the type, check the value of the type during testing via assertions, and produce HTML and PDF documentation for the type. These features are discussed in the following subsections.
 
@@ -1486,7 +1486,7 @@ The python classes use the \texttt{bitstring} python module which allows easily 
   \item \textbf{\texttt{\_\_init\_\_}} - Create a packed record. The record field values are optional upon initialization, and will be set to the default or \texttt{None} if there is no default. During initialization, the class performs extensive type checking of the record fields to make sure that their values adhere to ranges of the equivalent Ada types.
   \item \textbf{\texttt{\_\_eq\_\_}} - Compares two packed records for equality. For packed records containing floating-point fields, an optional \texttt{epsilon} parameter can be passed to allow tolerant comparisons (e.g., \texttt{a.\_\_eq\_\_(b, epsilon=0.0001)}). See below for additional details on epsilon comparisons.
   \item \textbf{\texttt{serialized\_length}} - Equivalent to the Ada \texttt{Serialized\_Length} function, returns the length of the packed type.
-  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the python class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form an turns it into a python class.
+  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the python class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form and turns it into a python class.
   \item \textbf{\texttt{create\_from\_byte\_array}} - Creates a new packed record object from a serialized byte array.
   \item \textbf{\texttt{\_\_repr\_\_}, \texttt{\_\_str\_\_} and \texttt{to\_string}} - Equivalent to the Ada \texttt{Representation.Image} function; creates a human readable string version of the packed record.
   \item \textbf{\texttt{to\_tuple\_string}} - Equivalent to the Ada \texttt{Representation.To\_Tuple\_String} function; creates a log-friendly string of the packed record.
@@ -1576,11 +1576,11 @@ The MATLAB classes use the \texttt{Bit\_Array} MATLAB class, found in \textit{gn
 
 \vspace{5mm} %5mm vertical space
 \begin{spaceditemize}
-  \item \textbf{\texttt{Example\_Record}} - The constructor used to create a packed record object. The record field values are optional required initialization. The class performs extensive type checking of the record fields to make sure that their values adhere to ranges of the equivalent Ada types, where possible.
+  \item \textbf{\texttt{Example\_Record}} - The constructor used to create a packed record object. The record field values are optionally required upon initialization. The class performs extensive type checking of the record fields to make sure that their values adhere to ranges of the equivalent Ada types, where possible.
   \item \textbf{\texttt{eq}} - Compares two packed records for equality.
   \item \textbf{\texttt{ne}} - Opposite of \texttt{eq}.
   \item \textbf{\texttt{serialized\_length}} - Equivalent to the Ada \texttt{Serialized\_Length} function, returns the length of the packed type.
-  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the MATLAB class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form an turns it into a MATLAB class.
+  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the MATLAB class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form and turns it into a MATLAB class.
   \item \textbf{\texttt{create\_from\_byte\_array}} - Creates a new packed record object from a serialized byte array.
   \item \textbf{\texttt{create\_empty}} - Creates a new packed record object where the default values of all fields is zero, or the lowest legal value where zero is not allowed.
   \item \textbf{\texttt{to\_string}} - Equivalent to the Ada \texttt{Representation.Image} function; creates a human readable string version of the packed record.
@@ -2972,7 +2972,7 @@ There are times, however, when we actually \textit{want} to overflow a queue dur
 \textit{queued\_component\_tests-implementation.adb}:
 \adacodef{../example_architecture/queued_component/test2/queued_component_tests-implementation.adb}
 
-In this case, we have added the line \texttt{Self.Tester.Sxpect\_Packed\_U16\_T\_Send\_Dropped := True;} which tells the tester component that the next connector call will overflow the queue. When this is set, the component will not throw an assertion. See the new output below.
+In this case, we have added the line \texttt{Self.Tester.Expect\_Packed\_U16\_T\_Send\_Dropped := True;} which tells the tester component that the next connector call will overflow the queue. When this is set, the component will not throw an assertion. See the new output below.
 
 \vspace{5mm} %5mm vertical space
 \inputminted{text}{../example_architecture/queued_component/test2/output.txt}
@@ -2995,7 +2995,7 @@ Adamant provides priority queueing for a component if a \texttt{priority} is spe
 \textit{priority\_queued\_component.component.yaml}
 \yamlcodef{../example_architecture/priority_queued_component/priority_queued_component.component.yaml}
 
-You can that a priority of 1 has been specified for the \texttt{Packed\_Byte\_T\_Recv\_Async} connector and a priority of 2 has been specified for the \texttt{Packed\_U16\_T\_Recv\_Async} connector. Connector's of higher numeric valued priorities will be serviced before connectors of lower numeric valued priorities. So in this case if both an \texttt{Packed\_U16\_T\_Recv\_Async} and a \texttt{Packed\_Byte\_T\_Recv\_Async} item are put on the queue, the \texttt{Packed\_U16\_T\_Recv\_Async} item will be dequeued first, no matter the order in which the items were enqueued. \\
+You can see that a priority of 1 has been specified for the \texttt{Packed\_Byte\_T\_Recv\_Async} connector and a priority of 2 has been specified for the \texttt{Packed\_U16\_T\_Recv\_Async} connector. Connectors of higher numeric valued priorities will be serviced before connectors of lower numeric valued priorities. So in this case if both an \texttt{Packed\_U16\_T\_Recv\_Async} and a \texttt{Packed\_Byte\_T\_Recv\_Async} item are put on the queue, the \texttt{Packed\_U16\_T\_Recv\_Async} item will be dequeued first, no matter the order in which the items were enqueued. \\
 
 The connector \texttt{priority} can be any integer value between 0 and 255, inclusive. Connectors with an identical priority value will have their enqueued items serviced in FIFO order. Note that if not specified, the priority for a \texttt{recv\_async} connector is assumed to be 0. If all connectors have the same priority, the component is instantiated with a standard Adamant queue instead of a priority queue. Specifying \texttt{priority} for a connector not of kind \texttt{recv\_async} is considered illegal and will produce a modeling error. \\
 
@@ -4195,7 +4195,7 @@ The following is the hand-coded implementation package body for the \textit{pack
 \textit{component-packet\_component-implementation.adb}:
 \adacodef{../example_architecture/packet_component/component-packet_component-implementation.adb}
 
-As can be seen, the component record contains the variable \texttt{Self.Count} which is sent out as a packet. Packets are constructed using the packet creation functions provided by \texttt{Self.Packets}, which is an instantiation of \texttt{Packet\_Component\_Packets.Instance}. Packets are created and then sent out of the \texttt{packet\_T\_Send} connector. Note that since no type was provided for the \texttt{Counter} packet in the model, we have to supply our own byte array to populate the packet. In this case, they byte array is generated by serializing the \texttt{Self.Count} value using the \texttt{Packed\_U16} packed record serialization function.
+As can be seen, the component record contains the variable \texttt{Self.Count} which is sent out as a packet. Packets are constructed using the packet creation functions provided by \texttt{Self.Packets}, which is an instantiation of \texttt{Packet\_Component\_Packets.Instance}. Packets are created and then sent out of the \texttt{packet\_T\_Send} connector. Note that since no type was provided for the \texttt{Counter} packet in the model, we have to supply our own byte array to populate the packet. In this case, the byte array is generated by serializing the \texttt{Self.Count} value using the \texttt{Packed\_U16} packed record serialization function.
 
 \subsubsection{Packet Unit Testing}
 
