@@ -12,7 +12,7 @@ from datetime import datetime
 # and prints its output to the commandline and to a file:
 if __name__ == "__main__":
     # Parse the commandline arguments:
-    parser = argparse.ArgumentParser(description="Decode a event log dump.")
+    parser = argparse.ArgumentParser(description="Decode an event log dump.")
     parser.add_argument(
         "ip", metavar="IP", type=str, help="IP of socket you want to connect to"
     )

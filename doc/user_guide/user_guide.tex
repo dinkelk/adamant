@@ -3699,7 +3699,7 @@ Below is a unit test implementation package that provides a single unit test, \t
 \textit{event\_component\_tests-implementation.adb}:
 \adacodef{../example_architecture/event_component/test/event_component_tests-implementation.adb}
 
-If a component has a event model, the autocoded tester package includes some modifications to make unit testing events simpler. Just as with connectors, a distinct history is included for every event defined in the component's event model within the tester component. This history can be queried and assertions can be run against it in the same way you would a connector history. \\
+If a component has an event model, the autocoded tester package includes some modifications to make unit testing events simpler. Just as with connectors, a distinct history is included for every event defined in the component's event model within the tester component. This history can be queried and assertions can be run against it in the same way you would a connector history. \\
 
 As can be seen in the unit test code above, some \texttt{Tick.T}s are sent to the component which causes many events to be produced. The total number of events produced is checked using the event connector history. The amount and content of each individual event received is checked by asserting against the individual event histories provided in the tester component. \\
 
