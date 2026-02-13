@@ -86,3 +86,37 @@ This file tracks potential bugs, logic errors, and inconsistencies discovered du
 - **Description:** Section name says "Cpu Usage Packet Header:" but this is the parameter table template, not CPU monitor. Should be "Parameter Packet Header:".
 - **Resolution:** Fixed.
 - **Severity:** Low (cosmetic in generated UI)
+
+## Deep Review Pass - 2026-02-13
+
+### Bugs / Significant Issues Found
+
+1. **architecture_description_document.tex**: Says "component without a queue" but the next sentence references "messages from its queue" — contradictory. Fixed to "with a queue".
+
+2. **event_limiter .ads/.adb**: Init parameter descriptions for `event_Id_Start` and `event_Id_Stop` were copy-pasted from `event_packetizer` and described packet counts/timeouts instead of event ID ranges. Fixed to match YAML model.
+
+3. **pid_controller .ads**: Init parameter comment listed `diagnostic_Stats_Length : Unsigned_16` but actual parameter is `Moving_Average_Max_Samples : Natural`. Fixed.
+
+4. **event_filter .adb**: Assert messages referenced "Event Limiter" instead of "Event Filter" (copy-paste from event_limiter). Fixed.
+
+5. **event_filter .adb**: Comment said "enable the component level variable" in `Disable_Event_Filtering` function. Fixed to "disable".
+
+6. **fault_correction .adb**: "to product that data product" → "to produce that data product".
+
+7. **memory_stuffer .adb**: "Do copy memory is the destination" → "Do copy memory if the destination".
+
+### Spelling/Grammar Fixes
+
+- user_guide.tex: "permeates" → "permeate", "an all below it" → "and all below it" (3x), "an Ada package an unit testing" → "and", "a error message" → "an error message", "a event model" → "an event model"
+- src/README.md: "data_structure/" → "data_structures/"
+- database/README.md: "lookuplike" → "lookup like"
+- copy_all_matlab_autocode.sh: usage message referenced wrong script name
+- instructions.md: "an sequence" → "a sequence"
+- logger tests: "pointer send via" → "pointer sent via" (36 occurrences across 2 files)
+- memory_stuffer: "requiring and arm command" → "requiring an arm command" (3 files)
+- memory_stuffer: "Disabled protected write" → "Disable protected write"
+- stack_monitor: "first bye not matching" → "first byte not matching"
+- fault_correction: "not allowed fault response table" → "not allowed in fault response table"
+- socket_event_decoder.py: "a event log" → "an event log"
+- ccsds_downsampler requirements: "a initial list" → "an initial list"
+- moving_average test: "a invalid initialization" → "an invalid initialization"
