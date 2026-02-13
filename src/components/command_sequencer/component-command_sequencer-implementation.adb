@@ -223,7 +223,7 @@ package body Component.Command_Sequencer.Implementation is
             when Unsigned_Word_Le | Unsigned_Long_Le | Signed_Word_Le | Signed_Long_Le | Float_Le =>
                return False;
             -- We need to know if the telemetry is signed, since bit representation must be
-            -- handled differently (two's compliment) than with other types.
+            -- handled differently (two's complement) than with other types.
             when Signed_Byte | Signed_Word_Be | Signed_Long_Be =>
                Is_Signed := True;
                return True;
