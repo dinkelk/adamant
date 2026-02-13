@@ -130,7 +130,7 @@ package body Component.Stack_Monitor.Implementation is
                Index := @ + 1;
             end loop;
 
-            -- Ok, we found the first bye not matching the pattern. Save the index we found to speed up this
+            -- Ok, we found the first byte not matching the pattern. Save the index we found to speed up this
             -- calculation next time and return the result as a percentage.
             Stack_Index := Index;
             return Byte ((Unsigned_32 (Stack_Bytes'Last - Index) * 100) / Unsigned_32 (Stack_Bytes'Last));
