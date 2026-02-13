@@ -31,5 +31,5 @@ events:
   - name: Unfilter_Event_Range_Invalid_Id
     description: This event indicates that changing the state for the range to disabled, failed due to an invalid id.
     param_type: Event_Filter_Id_Range.T
-  - name: Dump_Event_States_Recieved
+  - name: Dump_Event_States_Received
     description: Event that indicates the process of building the packet that stores the event states has started and will send the packet once we go through a decrement cycle.

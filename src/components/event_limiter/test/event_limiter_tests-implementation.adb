@@ -480,7 +480,7 @@ package body Event_Limiter_Tests.Implementation is
       -- Command and event info
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Event_States_Id, Status => Success));
-      Natural_Assert.Eq (T.Dump_Event_States_Recieved_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Dump_Event_States_Received_History.Get_Count, 1);
 
       Natural_Assert.Eq (T.Event_Limiter_State_Packet_History.Get_Count, 0);
       T.Tick_T_Send (Input_Tick);
@@ -494,7 +494,7 @@ package body Event_Limiter_Tests.Implementation is
       -- Command and event info
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Event_States_Id, Status => Success));
-      Natural_Assert.Eq (T.Dump_Event_States_Recieved_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Dump_Event_States_Received_History.Get_Count, 2);
 
       Natural_Assert.Eq (T.Event_Limiter_State_Packet_History.Get_Count, 1);
       T.Tick_T_Send (Input_Tick);
@@ -509,7 +509,7 @@ package body Event_Limiter_Tests.Implementation is
       -- Command and event info
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 3);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (3), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Event_States_Id, Status => Success));
-      Natural_Assert.Eq (T.Dump_Event_States_Recieved_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Dump_Event_States_Received_History.Get_Count, 3);
 
       Natural_Assert.Eq (T.Event_Limiter_State_Packet_History.Get_Count, 2);
       T.Tick_T_Send (Input_Tick);
@@ -885,7 +885,7 @@ package body Event_Limiter_Tests.Implementation is
       -- Command and event info
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 4);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (4), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Event_States_Id, Status => Success));
-      Natural_Assert.Eq (T.Dump_Event_States_Recieved_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Dump_Event_States_Received_History.Get_Count, 1);
 
       -- Packet check
       Natural_Assert.Eq (T.Event_Limiter_State_Packet_History.Get_Count, 0);
@@ -927,7 +927,7 @@ package body Event_Limiter_Tests.Implementation is
       -- Command and event info
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 6);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (6), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Event_States_Id, Status => Success));
-      Natural_Assert.Eq (T.Dump_Event_States_Recieved_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Dump_Event_States_Received_History.Get_Count, 2);
 
       -- Packet check
       Natural_Assert.Eq (T.Event_Limiter_State_Packet_History.Get_Count, 1);
