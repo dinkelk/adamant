@@ -443,7 +443,7 @@ package body Component.Event_Limiter.Implementation is
       use Command_Execution_Status;
    begin
       Self.Send_Event_State_Packet.Set_Var (True);
-      Self.Event_T_Send_If_Connected (Self.Events.Dump_Event_States_Recieved (Self.Sys_Time_T_Get));
+      Self.Event_T_Send_If_Connected (Self.Events.Dump_Event_States_Received (Self.Sys_Time_T_Get));
       return Success;
    end Dump_Event_States;
 
