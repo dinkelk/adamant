@@ -54,3 +54,35 @@ This file tracks potential bugs, logic errors, and inconsistencies discovered du
 - **Description:** Line `("serializing and deserializing example record:");` is missing `disp` — should be `disp("serializing...")`. Without it, MATLAB would try to index `ans` with a string, causing a runtime error.
 - **Resolution:** Fixed — added `disp`.
 - **Severity:** Medium (test would fail at runtime)
+
+## Issue #8: "two's compliment" → "two's complement" in MATLAB Bit_Array
+
+- **Date found:** 2026-02-13
+- **File:** `gnd/matlab/Bit_Array.m`
+- **Description:** Two comments use "compliment" (a flattering remark) instead of "complement" (the mathematical term for two's complement representation).
+- **Resolution:** Fixed.
+- **Severity:** Low (comment only)
+
+## Issue #9: Duplicate `<b>Summary:</b>` in seq template
+
+- **Date found:** 2026-02-13
+- **File:** `src/components/command_sequencer/gen/templates/assembly/name_seq.html`
+- **Description:** The Summary label appears twice in the info block.
+- **Resolution:** Fixed — removed duplicate.
+- **Severity:** Low (cosmetic in generated HTML)
+
+## Issue #10: Extra `>` in CPU monitor XML template
+
+- **Date found:** 2026-02-13
+- **File:** `src/components/cpu_monitor/gen/templates/assembly/name_cpu_monitor.xml`
+- **Description:** Line has `</tableHeading>>` with an extra `>` — invalid XML that would cause parsing errors in generated output.
+- **Resolution:** Fixed.
+- **Severity:** Medium (would produce malformed XML)
+
+## Issue #11: Copy-paste error in parameter table XML template section name
+
+- **Date found:** 2026-02-13
+- **File:** `src/components/parameters/gen/templates/parameter_table/name.xml`
+- **Description:** Section name says "Cpu Usage Packet Header:" but this is the parameter table template, not CPU monitor. Should be "Parameter Packet Header:".
+- **Resolution:** Fixed.
+- **Severity:** Low (cosmetic in generated UI)
