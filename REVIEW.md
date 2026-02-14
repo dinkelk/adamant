@@ -120,3 +120,12 @@ This file tracks potential bugs, logic errors, and inconsistencies discovered du
 - socket_event_decoder.py: "a event log" → "an event log"
 - ccsds_downsampler requirements: "a initial list" → "an initial list"
 - moving_average test: "a invalid initialization" → "an invalid initialization"
+
+## Batch 2026-02-14 Deep Read (doc/example_architecture continued)
+
+### Fixes Applied
+- init_base_component .ads: "an base package" → "a base package" (grammar)
+- example_component_set_id_bases commands.yaml: "Command Router component" → "Example Component" (copy-paste from command_router)
+
+### Potential Bugs (not fixed — need maintainer review)
+- initialized_component .adb: `Enabled_At_Startup` parameter is stored in Init but never checked in `Tick_T_Recv_Sync`. The description says "If False, no packets will be produced" but the code always sends packets regardless. Likely missing an `if Self.Enabled_At_Startup then` guard.

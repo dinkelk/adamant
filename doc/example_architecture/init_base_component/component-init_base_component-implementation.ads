@@ -5,7 +5,7 @@
 -- Includes:
 with Tick;
 
--- This is an example component with an base package initialization.
+-- This is an example component with a base package initialization.
 package Component.Init_Base_Component.Implementation is
 
    -- The component class instance record:
