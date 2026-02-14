@@ -64,11 +64,11 @@ package body Pid_Controller_Tests.Implementation is
 
       Self.Tester.Component_Instance.Init (Control_Frequency => 100.0, Database_Update_Period => 3, Moving_Average_Max_Samples => 10, Moving_Average_Init_Samples => 5);
 
-      -- The pacekt is sent on some period of the control, but we do not necessarily care about the control values yet.
+      -- The packet is sent on some period of the control, but we do not necessarily care about the control values yet.
       T.Control_Input_U_Send (((0, 0), 0.0, 0.0, 0.0, True));
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
 
-      -- Make sure that the first time with a count, we have the pacekt setup with that count.
+      -- Make sure that the first time with a count, we have the packet setup with that count.
       T.Command_T_Send (T.Commands.Start_Diagnostics ((Duration => 2)));
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);

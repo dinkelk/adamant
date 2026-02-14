@@ -40,7 +40,7 @@ package Byte_Array_Util is
    -- an error is returned, otherwise Success is returned and the extracted value is supplied in Value,
    -- right shifted as much as possible.
    --
-   -- Note: This function assumes Value represents the type in big endian, ie. MSB first, LSB last (right)
+   -- Note: This function assumes Value represents the type in big endian, i.e. MSB first, LSB last (right)
    type Extract_Poly_Type_Status is (Success, Error);
    function Extract_Poly_Type (Src : in Byte_Array; Offset : in Natural; Size : in Positive; Is_Signed : in Boolean; Value : out Poly_32_Type) return Extract_Poly_Type_Status;
 
@@ -59,7 +59,7 @@ package Byte_Array_Util is
    --   Error - The Offset and Size do not fit in the provided destination byte array and thus the "set" operation cannot
    --               be performed.
    --
-   -- Note: This function assumes Value represents the type in big endian, ie. MSB first, LSB last (right)
+   -- Note: This function assumes Value represents the type in big endian, i.e. MSB first, LSB last (right)
    type Set_Poly_Type_Status is (Success, Error, Truncation_Error);
    function Set_Poly_Type (Dest : in out Byte_Array; Offset : in Natural; Size : in Positive; Value : in Poly_32_Type; Truncation_Allowed : Boolean := False) return Set_Poly_Type_Status;
 

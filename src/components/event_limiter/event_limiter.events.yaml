@@ -37,5 +37,5 @@ events:
   - name: Set_New_Persistence
     description: Indicates that the persistence of the number of events until we limit was changed to a new value between 1 and 7.
     param_type: Event_Limiter_Persistence_Type.T
-  - name: Dump_Event_States_Recieved
+  - name: Dump_Event_States_Received
     description: Event that indicates the process of building the packet that stores the event states has started and will send the packet once we go through a decrement cycle.

@@ -244,7 +244,7 @@ This section contains what you need to know in order to get started with Adamant
 
 \subsection{Project Setup} \label{Project Setup}
 
-One of the goals of Adamant is to produce highly modular embedded software. This goal does not end with the final deployed system, however. The same principles permeates through the implementation of Adamant and even to how one sets up their project. The Adamant framework itself is currently contained in a single repository that contains the generic code, generators, reusable components, and build system. What is not included in the Adamant repository is a final deployment of embedded software, known in Adamant as an \textit{assembly}. \textit{Assemblies}, by design, are always tailored to a specific project's requirements and target platform. In the Adamant ecosystem, this code is thought of as mission-specific code and thus is always contained in a repository separate from the Adamant framework, which is scoped to be generic and reusable. \\
+One of the goals of Adamant is to produce highly modular embedded software. This goal does not end with the final deployed system, however. The same principles permeate through the implementation of Adamant and even to how one sets up their project. The Adamant framework itself is currently contained in a single repository that contains the generic code, generators, reusable components, and build system. What is not included in the Adamant repository is a final deployment of embedded software, known in Adamant as an \textit{assembly}. \textit{Assemblies}, by design, are always tailored to a specific project's requirements and target platform. In the Adamant ecosystem, this code is thought of as mission-specific code and thus is always contained in a repository separate from the Adamant framework, which is scoped to be generic and reusable. \\
 
 When working with Adamant you will always have a minimum of 2 repositories, one that includes the Adamant framework, and another that contains your mission specific deployment, or \textit{assembly}. However, it may make sense to have 3, 4, or more repositories that make up your system. Adamant poses no limit on how you modularize your system, and allows you to tie the compilation of everything together via the \textit{build path}, which is detailed in Section \ref{The Build Path}. \\
 
@@ -489,9 +489,9 @@ In addition to specific commands, Adamant also provides a set of build commands 
   \item \textbf{\texttt{redo clean\_all}} - removes all \textit{build/} directories from this entire repository
   \item \textbf{\texttt{redo clear\_cache}} - remove the persistent model cache that the build system uses to increase performance, see Section \ref{The Model Cache}
   \item \textbf{\texttt{redo templates}} - finds and builds all autocoded templates (in \textit{build/template/}) that can be built from this directory
-  \item \textbf{\texttt{redo test\_all}} - finds and runs all unit tests from this directory an all below it. Note: Add a \textit{.skip\_test} file to a directory to exclude it from being run by \texttt{redo test\_all}.
-  \item \textbf{\texttt{redo coverage\_all}} - finds and runs all unit tests from this directory an all below it and generates coverage reports for each. Note: Add a \textit{.skip\_test} or \textit{.skip\_coverage} file to a directory to exclude it from being run by \texttt{redo coverage\_all}.
-  \item \textbf{\texttt{redo publish}} - builds all autocoded documentation from this directory an all below it, and copies over the ``published" version of that documentation
+  \item \textbf{\texttt{redo test\_all}} - finds and runs all unit tests from this directory and all below it. Note: Add a \textit{.skip\_test} file to a directory to exclude it from being run by \texttt{redo test\_all}.
+  \item \textbf{\texttt{redo coverage\_all}} - finds and runs all unit tests from this directory and all below it and generates coverage reports for each. Note: Add a \textit{.skip\_test} or \textit{.skip\_coverage} file to a directory to exclude it from being run by \texttt{redo coverage\_all}.
+  \item \textbf{\texttt{redo publish}} - builds all autocoded documentation from this directory and all below it, and copies over the ``published" version of that documentation
   \item \textbf{\texttt{redo targets}} - shows a list of all available \textit{build targets}, see Section \ref{The Build Target}
   \item \textbf{\texttt{redo prove}} - runs \texttt{GNATprove} to analyze any SPARK code found within the current directory, see Section \ref{Creating a SPARK Package}
   \item \textbf{\texttt{redo test}} - compiles and runs a unit test - note: this command is only available if a \textit{test.adb}, \textit{test.c(pp)}, or \textit{test.py} file is found in this directory
@@ -810,7 +810,7 @@ We can see that two directories were created under \textit{build/}: \textit{obj/
 
 A few things should be noted about this example. First, we did not need to add the \textit{hello\_world} directory to the \textit{build path}, see Section \ref{The Build Path}, since this is a main file, and will not be imported by any other package. Adamant automatically adds your current working directory to the \textit{build path} so was able to compile the program without issue. Second, a \texttt{redo run} rule will be available any time a \textit{main.adb} is found in a directory. This rule allows effortless compilation and running of any executable program, so long as it is named \texttt{main.adb}. You will likely end up with many \textit{main.adb} programs in your repository during development. Again, none of these directories should be added to the \textit{build path} because 1) they do not need to be and 2) there would be many name conflicts that violate the Adamant constraint of only allowing unique file names within the \textit{build path}. \\
 
-The next section further expands on this example by creating an Ada package an unit testing it.
+The next section further expands on this example by creating an Ada package and unit testing it.
 
 \subsection{Creating a Package}
 
@@ -1254,7 +1254,7 @@ Everything works as expected and produces the test output:
 
 Often in embedded systems, communication protocols and hardware devices require a very specific binary format for transferred bytes or bits to properly function. However, technical differences in processors and compilers can often make code built to talk to these devices difficult to implement in a cross-platform and portable way. For instance, processors used in the design of embedded systems can be either big or little endian, depending on the chosen platform. Embedded systems often communicate with other embedded processors or end-user systems which have an endianness different from their own. If not carefully handled, these differences in endianness can be one of the largest sources of defects encountered while debugging embedded software. Besides endianness issues, the ``packed"-ness, that is, the amount of padding supplied around individual types, of a struct or array in processor memory differs based on the compiler used. The differences in endianness and ``packed"-ness can make writing portable software difficult without a layer of abstraction to handle the differences. \\
 
-Adamant aims to solve these problem through the use of \textit{packed types}.  In Adamant, packed types are modeled using a YAML specification. From the specification, the following type definitions are generated:
+Adamant aims to solve these problems through the use of \textit{packed types}.  In Adamant, packed types are modeled using a YAML specification. From the specification, the following type definitions are generated:
 
 \vspace{5mm} %5mm vertical space
 \begin{spaceditemize}
@@ -1264,7 +1264,7 @@ Adamant aims to solve these problem through the use of \textit{packed types}.  I
 \end{spaceditemize}
 \vspace{5mm} %5mm vertical space
 
-The \texttt{T} and \texttt{T\_Le} types can be thought of as the \textit{serialized} version of the record, where the bit layout and endianness is known, no matter the compiler or processor that the code is running on. The \texttt{U} version of the type can be thought of as the \textit{native} version of the type, which has been optimized by the compiler for the target processor. Adamant provides subprograms to convert between these 3 types so that a user can easily pack, unpack, or swap the endianness of the data at will. Subprogams to reinterpret packed types as an array of bytes (serialization) or to reinterpret an array of bytes as a packed type (deserialization) are also provided. \\
+The \texttt{T} and \texttt{T\_Le} types can be thought of as the \textit{serialized} version of the record, where the bit layout and endianness is known, no matter the compiler or processor that the code is running on. The \texttt{U} version of the type can be thought of as the \textit{native} version of the type, which has been optimized by the compiler for the target processor. Adamant provides subprograms to convert between these 3 types so that a user can easily pack, unpack, or swap the endianness of the data at will. Subprograms to reinterpret packed types as an array of bytes (serialization) or to reinterpret an array of bytes as a packed type (deserialization) are also provided. \\
 
 For each of the types above, Adamant also provides facilities to validate that the values in the type are within range, pretty print the type, check the value of the type during testing via assertions, and produce HTML and PDF documentation for the type. These features are discussed in the following subsections.
 
@@ -1287,7 +1287,7 @@ Below is the example packed record definition called \textit{example\_record}, s
 
 \yamlcodef{../example_architecture/example_record.record.yaml}
 
-This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed record \textit{fields} which require a \textit{name}, \textit{type}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed arrays, or other packed records. The \textit{format} field is where a developer can describe out how the field is represented in memory in its packed form. This field takes an enumeration of the form \textit{U}, \textit{I}, \textit{F} or \textit{E} (for unsigned, signed, floating point, or enumeration) followed by the number of bits used to represent it. A table of example memory representations is laid out below:
+This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed record \textit{fields} which require a \textit{name}, \textit{type}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed arrays, or other packed records. The \textit{format} field is where a developer can describe how the field is represented in memory in its packed form. This field takes an enumeration of the form \textit{U}, \textit{I}, \textit{F} or \textit{E} (for unsigned, signed, floating point, or enumeration) followed by the number of bits used to represent it. A table of example memory representations is laid out below:
 
 \captionof{table}{Example Packed Record Format Specifications}
 \begin{xltabular}{\textwidth}{ | l | X | }
@@ -1304,7 +1304,7 @@ This YAML model file above contains comments explaining whether or not each fiel
     \texttt{E5x10} & an array of ten 5-bit enumerations \\ \hline
 \end{xltabular}
 
-Ada uses the \textit{format} specification to understand the number of bits taken up by the type. If the number of bits specified in the representation field is not compatible with the type specified in the type field, the Ada compiler will warn or error, telling the user to fix the inconsistency. The enumeration portion of the \textit{format} is needed is to make the record visible to a ground system, such as Hydra. Adamant currently supports the display of many representations in Hydra including all signed and unsigned integers from 1 to 64 bits and floating point numbers of 32 and 64 precision and enumeration types. There is no support in Adamant or Hydra to display values with representations over 64 bits in length. The record should be further divided or an array \textit{format} should be used in this case. Note that an entire record's length must end on a 1 byte (8-bit) boundary, or a error message will be produced. Add additional fields of pad bytes to make the total length of the record end on an 8-bit boundary. \\
+Ada uses the \textit{format} specification to understand the number of bits taken up by the type. If the number of bits specified in the representation field is not compatible with the type specified in the type field, the Ada compiler will warn or error, telling the user to fix the inconsistency. The enumeration portion of the \textit{format} is needed is to make the record visible to a ground system, such as Hydra. Adamant currently supports the display of many representations in Hydra including all signed and unsigned integers from 1 to 64 bits and floating point numbers of 32 and 64 precision and enumeration types. There is no support in Adamant or Hydra to display values with representations over 64 bits in length. The record should be further divided or an array \textit{format} should be used in this case. Note that an entire record's length must end on a 1 byte (8-bit) boundary, or an error message will be produced. Add additional fields of pad bytes to make the total length of the record end on an 8-bit boundary. \\
 
 Note that packed records can also specify fields with types that are themselves other packed records (or packed arrays, discussed in Section \ref{Packed Arrays}). In this case, a \textit{format} specification for that field is not necessary. The concept of nesting packed records within other packed records is discussed further in Section \ref{Nested Packed Records}. Including records or arrays defined in raw Ada packages (ie. not modeled using Adamant) are not allowed to be included in packed records, since they are, by default, unpacked in representation and their lengths and bit layout is not known to the Adamant modeling system.
 
@@ -1343,7 +1343,7 @@ Note also that with every packed record there are a series of \texttt{Serialized
 
 \subsubsection{Packed Record Validation} \label{Packed Record Validation}
 
-Using the serialization and deserialization functions shown in the previous section can be error prone. Consider the field in our record \texttt{Value\_2}, which only has a valid integer range between -2 and 3. It is possible that when calling the deserialization function \texttt{From\_Byte\_Array}, the incoming byte array might contain a bit representation the puts the \texttt{Value\_2} field out of range, ie. 5. The call to \texttt{From\_Byte\_Array} will not fail, but any subsequent operation using the \texttt{packed\_Type} variable will fail with an Ada constraint error, due the range check failing on \texttt{Value\_2}. \\
+Using the serialization and deserialization functions shown in the previous section can be error prone. Consider the field in our record \texttt{Value\_2}, which only has a valid integer range between -2 and 3. It is possible that when calling the deserialization function \texttt{From\_Byte\_Array}, the incoming byte array might contain a bit representation that puts the \texttt{Value\_2} field out of range, ie. 5. The call to \texttt{From\_Byte\_Array} will not fail, but any subsequent operation using the \texttt{packed\_Type} variable will fail with an Ada constraint error, due to the range check failing on \texttt{Value\_2}. \\
 
 Adamant packed records have a method for mitigating this using an autocoded child package which performs validation on the type. To build the validation child package run the following:
 
@@ -1486,7 +1486,7 @@ The python classes use the \texttt{bitstring} python module which allows easily 
   \item \textbf{\texttt{\_\_init\_\_}} - Create a packed record. The record field values are optional upon initialization, and will be set to the default or \texttt{None} if there is no default. During initialization, the class performs extensive type checking of the record fields to make sure that their values adhere to ranges of the equivalent Ada types.
   \item \textbf{\texttt{\_\_eq\_\_}} - Compares two packed records for equality. For packed records containing floating-point fields, an optional \texttt{epsilon} parameter can be passed to allow tolerant comparisons (e.g., \texttt{a.\_\_eq\_\_(b, epsilon=0.0001)}). See below for additional details on epsilon comparisons.
   \item \textbf{\texttt{serialized\_length}} - Equivalent to the Ada \texttt{Serialized\_Length} function, returns the length of the packed type.
-  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the python class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form an turns it into a python class.
+  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the python class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form and turns it into a python class.
   \item \textbf{\texttt{create\_from\_byte\_array}} - Creates a new packed record object from a serialized byte array.
   \item \textbf{\texttt{\_\_repr\_\_}, \texttt{\_\_str\_\_} and \texttt{to\_string}} - Equivalent to the Ada \texttt{Representation.Image} function; creates a human readable string version of the packed record.
   \item \textbf{\texttt{to\_tuple\_string}} - Equivalent to the Ada \texttt{Representation.To\_Tuple\_String} function; creates a log-friendly string of the packed record.
@@ -1576,11 +1576,11 @@ The MATLAB classes use the \texttt{Bit\_Array} MATLAB class, found in \textit{gn
 
 \vspace{5mm} %5mm vertical space
 \begin{spaceditemize}
-  \item \textbf{\texttt{Example\_Record}} - The constructor used to create a packed record object. The record field values are optional required initialization. The class performs extensive type checking of the record fields to make sure that their values adhere to ranges of the equivalent Ada types, where possible.
+  \item \textbf{\texttt{Example\_Record}} - The constructor used to create a packed record object. The record field values are optionally required upon initialization. The class performs extensive type checking of the record fields to make sure that their values adhere to ranges of the equivalent Ada types, where possible.
   \item \textbf{\texttt{eq}} - Compares two packed records for equality.
   \item \textbf{\texttt{ne}} - Opposite of \texttt{eq}.
   \item \textbf{\texttt{serialized\_length}} - Equivalent to the Ada \texttt{Serialized\_Length} function, returns the length of the packed type.
-  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the MATLAB class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form an turns it into a MATLAB class.
+  \item \textbf{\texttt{to\_byte\_array} and \texttt{from\_byte\_array}} - Equivalent to the Ada serialization/deserialization functions \texttt{Serialization.To\_Byte\_Array} and \texttt{Serialization.From\_Byte\_Array}; converts the MATLAB class to a serialized byte array whose bits correspond to the layout of the packed big-endian type (\texttt{T}) in Ada, or takes a byte array of this form and turns it into a MATLAB class.
   \item \textbf{\texttt{create\_from\_byte\_array}} - Creates a new packed record object from a serialized byte array.
   \item \textbf{\texttt{create\_empty}} - Creates a new packed record object where the default values of all fields is zero, or the lowest legal value where zero is not allowed.
   \item \textbf{\texttt{to\_string}} - Equivalent to the Ada \texttt{Representation.Image} function; creates a human readable string version of the packed record.
@@ -1628,7 +1628,7 @@ Note that it is up to the user to make sure their MATLAB path is configured to i
 
 \subsubsection{Nested Packed Records} \label{Nested Packed Records}
 
-Packed records or packed arrays (discussed in in Section \ref{Packed Arrays}) can also contain fields that are themselves packed records (or arrays). These types can be nested arbitrarily deep, but there are some limitations on nesting that will be discussed in this section. \\
+Packed records or packed arrays (discussed in Section \ref{Packed Arrays}) can also contain fields that are themselves packed records (or arrays). These types can be nested arbitrarily deep, but there are some limitations on nesting that will be discussed in this section. \\
 
 See an example below, a packed record that includes two fields that are of packed record type:
 
@@ -1712,7 +1712,7 @@ To define a packed array, a developer should create a YAML model file of the for
 
 \yamlcodef{../example_architecture/example_array.array.yaml}
 
-This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed array \textit{type}, \textit{length}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed records, or other packed arrays. The \textit{format} field is where a developer can describe out how the field will be represented in memory in its packed form, and is identical to the format specification for packed records. The \textit{format} specification is not necessary if the array type is a packed record or packed array since the length of the type in memory is known from that type's model, see Section \ref{Nested Packed Records}. See the previous sections for more details on \textit{format}. The \textit{length} field specifies how many elements the packed array contains. Unconstrained packed arrays are not currently supported in Adamant.
+This YAML model file above contains comments explaining whether or not each field is optional or required. The main portion of the model is the packed array \textit{type}, \textit{length}, and \textit{format} specification. The type of the field can be any Ada type, including arrays, records, enumerations, packed records, or other packed arrays. The \textit{format} field is where a developer can describe how the field will be represented in memory in its packed form, and is identical to the format specification for packed records. The \textit{format} specification is not necessary if the array type is a packed record or packed array since the length of the type in memory is known from that type's model, see Section \ref{Nested Packed Records}. See the previous sections for more details on \textit{format}. The \textit{length} field specifies how many elements the packed array contains. Unconstrained packed arrays are not currently supported in Adamant.
 
 \subsubsection{Packed Array Ada Specification}
 
@@ -2114,7 +2114,7 @@ The register set can be used like any normal packed record, except that accessin
 
 \subsubsection{Packed Register Arrays}
 
-If all the registers in a register set are of the same type you can used a packed array instead of a packed record to described the hardware. For example, to describe a set of 10 32-bit registers that should be interpreted as unsigned integers you can define the following packed array.
+If all the registers in a register set are of the same type you can use a packed array instead of a packed record to describe the hardware. For example, to describe a set of 10 32-bit registers that should be interpreted as unsigned integers you can define the following packed array.
 
 \yamlcodef{../example_architecture/example_register_array.array.yaml}
 
@@ -2484,7 +2484,7 @@ redo build/template/test.adb
 \end{minted}
 \vspace{5mm} %5mm vertical space
 
-We can map the the files above to their package names in the package diagram shown in Section \ref{Anatomy of a Component Unit Test}. Below is the map of package names to the location of their autogenerated source:
+We can map the files above to their package names in the package diagram shown in Section \ref{Anatomy of a Component Unit Test}. Below is the map of package names to the location of their autogenerated source:
 
 \vspace{5mm} %5mm vertical space
 \begin{spaceditemize}
@@ -2972,7 +2972,7 @@ There are times, however, when we actually \textit{want} to overflow a queue dur
 \textit{queued\_component\_tests-implementation.adb}:
 \adacodef{../example_architecture/queued_component/test2/queued_component_tests-implementation.adb}
 
-In this case, we have added the line \texttt{Self.Tester.Sxpect\_Packed\_U16\_T\_Send\_Dropped := True;} which tells the tester component that the next connector call will overflow the queue. When this is set, the component will not throw an assertion. See the new output below.
+In this case, we have added the line \texttt{Self.Tester.Expect\_Packed\_U16\_T\_Send\_Dropped := True;} which tells the tester component that the next connector call will overflow the queue. When this is set, the component will not throw an assertion. See the new output below.
 
 \vspace{5mm} %5mm vertical space
 \inputminted{text}{../example_architecture/queued_component/test2/output.txt}
@@ -2995,7 +2995,7 @@ Adamant provides priority queueing for a component if a \texttt{priority} is spe
 \textit{priority\_queued\_component.component.yaml}
 \yamlcodef{../example_architecture/priority_queued_component/priority_queued_component.component.yaml}
 
-You can that a priority of 1 has been specified for the \texttt{Packed\_Byte\_T\_Recv\_Async} connector and a priority of 2 has been specified for the \texttt{Packed\_U16\_T\_Recv\_Async} connector. Connector's of higher numeric valued priorities will be serviced before connectors of lower numeric valued priorities. So in this case if both an \texttt{Packed\_U16\_T\_Recv\_Async} and a \texttt{Packed\_Byte\_T\_Recv\_Async} item are put on the queue, the \texttt{Packed\_U16\_T\_Recv\_Async} item will be dequeued first, no matter the order in which the items were enqueued. \\
+You can see that a priority of 1 has been specified for the \texttt{Packed\_Byte\_T\_Recv\_Async} connector and a priority of 2 has been specified for the \texttt{Packed\_U16\_T\_Recv\_Async} connector. Connectors of higher numeric valued priorities will be serviced before connectors of lower numeric valued priorities. So in this case if both an \texttt{Packed\_U16\_T\_Recv\_Async} and a \texttt{Packed\_Byte\_T\_Recv\_Async} item are put on the queue, the \texttt{Packed\_U16\_T\_Recv\_Async} item will be dequeued first, no matter the order in which the items were enqueued. \\
 
 The connector \texttt{priority} can be any integer value between 0 and 255, inclusive. Connectors with an identical priority value will have their enqueued items serviced in FIFO order. Note that if not specified, the priority for a \texttt{recv\_async} connector is assumed to be 0. If all connectors have the same priority, the component is instantiated with a standard Adamant queue instead of a priority queue. Specifying \texttt{priority} for a connector not of kind \texttt{recv\_async} is considered illegal and will produce a modeling error. \\
 
@@ -3699,7 +3699,7 @@ Below is a unit test implementation package that provides a single unit test, \t
 \textit{event\_component\_tests-implementation.adb}:
 \adacodef{../example_architecture/event_component/test/event_component_tests-implementation.adb}
 
-If a component has a event model, the autocoded tester package includes some modifications to make unit testing events simpler. Just as with connectors, a distinct history is included for every event defined in the component's event model within the tester component. This history can be queried and assertions can be run against it in the same way you would a connector history. \\
+If a component has an event model, the autocoded tester package includes some modifications to make unit testing events simpler. Just as with connectors, a distinct history is included for every event defined in the component's event model within the tester component. This history can be queried and assertions can be run against it in the same way you would a connector history. \\
 
 As can be seen in the unit test code above, some \texttt{Tick.T}s are sent to the component which causes many events to be produced. The total number of events produced is checked using the event connector history. The amount and content of each individual event received is checked by asserting against the individual event histories provided in the tester component. \\
 
@@ -4195,7 +4195,7 @@ The following is the hand-coded implementation package body for the \textit{pack
 \textit{component-packet\_component-implementation.adb}:
 \adacodef{../example_architecture/packet_component/component-packet_component-implementation.adb}
 
-As can be seen, the component record contains the variable \texttt{Self.Count} which is sent out as a packet. Packets are constructed using the packet creation functions provided by \texttt{Self.Packets}, which is an instantiation of \texttt{Packet\_Component\_Packets.Instance}. Packets are created and then sent out of the \texttt{packet\_T\_Send} connector. Note that since no type was provided for the \texttt{Counter} packet in the model, we have to supply our own byte array to populate the packet. In this case, they byte array is generated by serializing the \texttt{Self.Count} value using the \texttt{Packed\_U16} packed record serialization function.
+As can be seen, the component record contains the variable \texttt{Self.Count} which is sent out as a packet. Packets are constructed using the packet creation functions provided by \texttt{Self.Packets}, which is an instantiation of \texttt{Packet\_Component\_Packets.Instance}. Packets are created and then sent out of the \texttt{packet\_T\_Send} connector. Note that since no type was provided for the \texttt{Counter} packet in the model, we have to supply our own byte array to populate the packet. In this case, the byte array is generated by serializing the \texttt{Self.Count} value using the \texttt{Packed\_U16} packed record serialization function.
 
 \subsubsection{Packet Unit Testing}
 
@@ -4949,7 +4949,7 @@ This section presents component design topics that are for more experienced Adam
 
 Adamant provides a feature that allows for a component to operate on one or more generic parameters. This uses the underlying Ada feature for \href{https://learn.adacore.com/courses/intro-to-ada/chapters/generics.html}{\textcolor{blue}{generic packages}}. The advantage of defining a component with generic parameters is that these parameters can be used as connector types, allowing the component to operate on data in a generic manner. The actual type that the component operates on is not determined until the generic component is instantiated in an assembly. If components can be generic, they are much more likely to be reusable. \\
 
-Two good example components that use this feature in Adamant are the the \textit{logger} component, which logs data of a generic type to an in-memory circular buffer, \textit{src/components/loggers/logger}, and the \textit{splitter} component, which can split any \textit{send} connector into an array of outputs, \textit{src/components/splitter}. The splitter component is simple and demonstrates a minimal usage of the generic feature, so it is ideal to use as an example for this section of the document. \\
+Two good example components that use this feature in Adamant are the \textit{logger} component, which logs data of a generic type to an in-memory circular buffer, \textit{src/components/loggers/logger}, and the \textit{splitter} component, which can split any \textit{send} connector into an array of outputs, \textit{src/components/splitter}. The splitter component is simple and demonstrates a minimal usage of the generic feature, so it is ideal to use as an example for this section of the document. \\
 
 Let's begin by taking a look at the \textit{splitter} component model: \\
 

@@ -199,7 +199,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -226,7 +226,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -247,7 +247,7 @@ package body Component.Event_Filter.Implementation is
             Self.Event_Entries.Set_Filter_State (Event_Id_State_Change, Event_Filter_State.Filtered, Status);
             case Status is
                when Invalid_Id =>
-                  pragma Assert (False, "Found Invalid_Id for the Event Limiter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -263,7 +263,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -284,7 +284,7 @@ package body Component.Event_Filter.Implementation is
             Self.Event_Entries.Set_Filter_State (Event_Id_State_Change, Event_Filter_State.Unfiltered, Status);
             case Status is
                when Invalid_Id =>
-                  pragma Assert (False, "Found Invalid_Id for the Event Limiter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -300,7 +300,7 @@ package body Component.Event_Filter.Implementation is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
          when Issue_Packet_Type.No_Issue =>
-            null; -- Dont send a packet so nothing to do
+            null; -- Don't send a packet so nothing to do
       end case;
 
       return Ret;
@@ -325,7 +325,7 @@ package body Component.Event_Filter.Implementation is
       use Command_Execution_Status;
       Timestamp : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- All we need to do here is enable the component level variable
+      -- All we need to do here is disable the component level variable
       Self.Event_Entries.Set_Global_Enable_State (Global_Filter_State.Disabled);
       Self.Event_T_Send_If_Connected (Self.Events.Disable_Event_Filter (Timestamp));
       -- Update the data product as well
@@ -339,7 +339,7 @@ package body Component.Event_Filter.Implementation is
       use Command_Execution_Status;
    begin
       Self.Send_Event_State_Packet.Set_Var (True);
-      Self.Event_T_Send_If_Connected (Self.Events.Dump_Event_States_Recieved (Self.Sys_Time_T_Get));
+      Self.Event_T_Send_If_Connected (Self.Events.Dump_Event_States_Received (Self.Sys_Time_T_Get));
       return Success;
    end Dump_Event_States;
 
