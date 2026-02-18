@@ -303,7 +303,7 @@ package body Component.{{ name }} is
                Dispatch_To : constant Dispatch_Procedure := Dispatch_Table (Id_Record.Id);
             begin
                Dispatch_To (Self{% if connectors.arrayed_invokee() %}, Id_Record.Index{% endif %}, Bytes (Bytes'First .. Bytes'First + Length - 1));
-               pragma Annotate (GNASAS, False_Positive, "range check", "We never put items on queue larger than Bytes'Length.");
+               pragma Annotate (GNATSAS, False_Positive, "range check", "We never put items on queue larger than Bytes'Length.");
             end;
          -- Error was returned:
          when Error =>
@@ -319,7 +319,7 @@ package body Component.{{ name }} is
 {% if connectors.requires_priority_queue() %}
          -- Unexpected status was returned:
          when Too_Small =>
-            -- The buffer should never be to small since it is sized to match the largest possible queue element size.
+            -- The buffer should never be too small since it is sized to match the largest possible queue element size.
             pragma Assert (False);
 {% endif %}
       end case;
@@ -360,7 +360,7 @@ package body Component.{{ name }} is
 {% if connectors.requires_priority_queue() %}
          -- Unexpected status was returned:
          when Too_Small =>
-            -- The buffer should never be to small since it is sized to match the largest possible queue element size.
+            -- The buffer should never be too small since it is sized to match the largest possible queue element size.
             pragma Assert (False);
             return False;
 {% endif %}
@@ -435,7 +435,7 @@ package body Component.{{ name }} is
                when Full => return Message_Dropped;
                -- Push too large, this shouldn't ever happen.
                when Too_Large =>
-                  -- The buffer should never be to large the queue elements are sized to match the largest possible type.
+                  -- The buffer should never be too large the queue elements are sized to match the largest possible type.
                   pragma Assert (False);
 {% else %}
                -- Push failed, return to caller.
@@ -494,7 +494,7 @@ package body Component.{{ name }} is
 {% endif %}
 {% if connectors.requires_priority_queue() %}
                   when Too_Large =>
-                     -- The buffer should never be to large the queue elements are sized to match the largest possible type.
+                     -- The buffer should never be too large the queue elements are sized to match the largest possible type.
                      pragma Assert (False);
 {% endif %}
                end case;
@@ -682,12 +682,12 @@ package body Component.{{ name }} is
 {% endif %}
 {% if connector.count == 0 %}
       -- Convert the index to the correct connector specific index type. If this type
-      -- conversion fails, then there is a bug, since this was already checked an enqueue.
+      -- conversion fails, then there is a bug, since this was already checked at enqueue.
       subtype Constrained_{{ connector.name }}_Index is {{ connector.name }}_Index range {{ connector.name }}_Index'First .. {{ connector.name }}_Index'First + Self.{{ connector.name }}_Count - 1;
       Idx : constant Constrained_{{ connector.name }}_Index := Constrained_{{ connector.name }}_Index (Index);
 {% elif connector.count > 1 %}
       -- Convert the index to the correct connector specific index type. If this type
-      -- conversion fails, then there is a bug, since this was already checked an enqueue.
+      -- conversion fails, then there is a bug, since this was already checked at enqueue.
       Idx : constant {{ connector.name }}_Index := {{ connector.name }}_Index (Index);
 {% endif %}
    begin
