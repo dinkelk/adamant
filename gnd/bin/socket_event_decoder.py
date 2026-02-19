@@ -136,7 +136,7 @@ if __name__ == "__main__":
     packet_len = temp_pack._max_serialized_length
     min_packet_len = temp_pack._min_serialized_length
 
-    # Decode incomoing packets:
+    # Decode incoming packets:
     print_log("Starting event logging at " + timestamp_str() + ":")
     while True:
         try:
