@@ -146,7 +146,7 @@ package body Component.Command_Protector.Implementation.Tester is
       Self.Accepted_Protected_Command_History.Push (Arg);
    end Accepted_Protected_Command;
 
-   -- The component received the arm command an is now armed.
+   -- The component received the arm command and is now armed.
    overriding procedure Armed (Self : in out Instance; Arg : in Packed_Arm_Timeout.T) is
    begin
       -- Push the argument onto the test history for looking at later:
