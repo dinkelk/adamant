@@ -1,5 +1,5 @@
 ---
-description: This view shows the passive context.
+description: This view shows the mixed context.
 layout: left-to-right
 filters:
   - name: rm_component

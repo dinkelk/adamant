@@ -32,7 +32,7 @@ package body Component.Ccsds_Serial_Interface.Implementation is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- On this connector the Socket Interface Component receives data and sends it out of the socket.
+   -- On this connector the Serial Interface Component receives data and sends it out of the serial port.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
       use Serializer_Types;
       Num_Bytes_Serialized : Natural;
