@@ -287,7 +287,7 @@ package Component.Command_Sequencer.Implementation.Tester is
    overriding procedure Unexpected_Register_Source (Self : in out Instance; Arg : in Command_Response.T);
    -- An error occurred while executing a sequence.
    overriding procedure Sequence_Execution_Error (Self : in out Instance; Arg : in Engine_Error_Type.T);
-   -- A sequence timed out waiting on a command response of subsequence load.
+   -- A sequence timed out waiting on a command response or subsequence load.
    overriding procedure Sequence_Timeout_Error (Self : in out Instance; Arg : in Engine_Error_Type.T);
    -- A command response was received with an unexpected command ID.
    overriding procedure Unexpected_Command_Response_Id (Self : in out Instance; Arg : in Unexpected_Command_Response_Info.T);
