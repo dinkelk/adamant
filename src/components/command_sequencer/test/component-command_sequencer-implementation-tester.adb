@@ -493,7 +493,7 @@ package body Component.Command_Sequencer.Implementation.Tester is
       Self.Sequence_Execution_Error_History.Push (Arg);
    end Sequence_Execution_Error;
 
-   -- A sequence timed out waiting on a command response of subsequence load.
+   -- A sequence timed out waiting on a command response or subsequence load.
    overriding procedure Sequence_Timeout_Error (Self : in out Instance; Arg : in Engine_Error_Type.T) is
    begin
       -- Push the argument onto the test history for looking at later:
