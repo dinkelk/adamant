@@ -142,7 +142,7 @@ package Seq_Runtime is
    -- Get the engine kill start ID.
    function Get_Kill_Eng_Start (Self : in Instance) return Sequence_Engine_Id;
 
-   -- Get the engine kill stop ID.
+   -- Get the number of engines to kill.
    function Get_Num_Eng_Kill (Self : in Instance) return Sequence_Engine_Id;
 
    -- Get the string to print if in the Print state.

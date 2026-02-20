@@ -199,7 +199,7 @@ package Seq is
    -- Get the sequence ID of the first engine to kill.
    function Get_Kill_Eng_Start (Self : in Engine) return Sequence_Engine_Id;
 
-   -- Get the sequence ID of the last engine to kill.
+   -- Get the number of engines to kill.
    function Get_Num_Eng_Kill (Self : in Engine) return Sequence_Engine_Id;
 
    -- Get the string to print if in the Print state.
