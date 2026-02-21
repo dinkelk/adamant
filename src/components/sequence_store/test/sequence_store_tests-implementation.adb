@@ -601,7 +601,7 @@ package body Sequence_Store_Tests.Implementation is
       Natural_Assert.Eq (T.Cannot_Activate_Duplicate_Sequence_Id_History.Get_Count, 2);
       Packed_Sequence_Id_Assert.Eq (T.Cannot_Activate_Duplicate_Sequence_Id_History.Get (2), (Id => 22));
 
-      -- Make sure slot 0 inctive:
+      -- Make sure slot 0 inactive:
       Sequence_Store_Slot_Header_Assert.Eq (Slot_0_Header, (Slot_Info => (Reserved => 22, State => Inactive, Validity => Unchecked), Seq_Header => (Crc => [0, 0], Version => 0, Category => 0, Id => 22, Length => 10)));
    end Test_Activate_Deactivate_Slot_Fail;
 
