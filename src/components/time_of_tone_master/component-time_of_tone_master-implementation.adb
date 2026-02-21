@@ -130,7 +130,7 @@ package body Component.Time_Of_Tone_Master.Implementation is
       return Success;
    end Enable_Time_At_Tone;
 
-   -- This enables the sending of time at tone messages.
+   -- This disables the sending of time at tone messages.
    overriding function Disable_Time_At_Tone (Self : in out Instance) return Command_Execution_Status.E is
       use Tat_State;
       use Command_Execution_Status;
