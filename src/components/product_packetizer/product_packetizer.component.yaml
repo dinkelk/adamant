@@ -1,6 +1,6 @@
 ---
 description: |
-  The product packetizer requests data products from an external component and packetizes them into packets at a configurable rate. The packets that this component produces is configured via an autocoded table provided at instantiation.
+  The product packetizer requests data products from an external component and packetizes them into packets at a configurable rate. The packets that this component produces are configured via an autocoded table provided at instantiation.
 execution: passive
 discriminant:
   description: This component requires a list of packet descriptions which outline the packets that the component is responsible for building. This list should be provided as an autocoded output from a product_packets.yaml file.
