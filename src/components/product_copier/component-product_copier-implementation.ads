@@ -11,7 +11,7 @@ with Tick;
 -- The use case in mind was for the two locations to be databases (e.g.
 -- Product_Database instances), and for this component to take snapshots of a
 -- source database at a fixed interval. The idea is that if the values stored in
--- source database is constantly in flux, then the destination database could
+-- the source database is constantly in flux, then the destination database could
 -- provide a stable view of the source -- within a tick, the values in the
 -- destination database will not change between reads.
 package Component.Product_Copier.Implementation is

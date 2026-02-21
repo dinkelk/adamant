@@ -20,7 +20,7 @@ package Component.Memory_Packetizer_Fixed_Id.Implementation is
    --
    -- Init Parameters:
    -- max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
-   -- time_Period_In_Seconds : Positive - The time period in seconds over which the measure the number of packets produced.
+   -- time_Period_In_Seconds : Positive - The time period in seconds over which to measure the number of packets produced.
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1);
 
