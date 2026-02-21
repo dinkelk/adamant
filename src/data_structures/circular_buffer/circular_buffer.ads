@@ -10,7 +10,7 @@ package Circular_Buffer is
    type Pop_Status is (Success, Empty);
 
    -- Basic Buffer definition:
-   -- This is the a base type for many other data structures which use
+   -- This is a base type for many other data structures which use
    -- a byte array buffer as their central functioning. This type is pretty
    -- useless on its own. It can be instantiated, deleted, and queried for
    -- meta data, but no access to the internal buffer is granted the user.
