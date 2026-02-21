@@ -17,7 +17,7 @@ connectors:
   - description: This is the base tick for the component.
     type: Tick.T
     kind: recv_sync
-  - description: Send a packet of cpu execution times.
+  - description: Send a packet of stack and secondary stack usage.
     type: Packet.T
     kind: send
   - description: The system time is retrieved via this connector.
