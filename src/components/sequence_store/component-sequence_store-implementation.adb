@@ -361,11 +361,11 @@ package body Component.Sequence_Store.Implementation is
          end;
       end loop;
 
-      -- Make sure that the slot summares for all the slots in this component will fit in a
+      -- Make sure that the slot summaries for all the slots in this component will fit in a
       -- single packet. This is an assumption that this component makes when creating the
       -- packet.
       pragma Assert (Packed_Slot_Summary.Size_In_Bytes * Self.Slots.all'Length <= Packet_Types.Packet_Buffer_Type'Length,
-         "The slot summary is to large to fit in a single packet.");
+         "The slot summary is too large to fit in a single packet.");
 
       -- If configured to do so, we should check the validity of all the sequences at startup by
       -- computing CRCs over them and then updating their header information accordingly.
@@ -542,7 +542,7 @@ package body Component.Sequence_Store.Implementation is
    -- Command handler primitives:
    -----------------------------------------------
    -- Description:
-   --    These are the commands for the Parameter Store component.
+   --    These are the commands for the Sequence Store component.
    -- Activate a sequence slot so that its contents can be fetched.
    overriding function Activate_Slot (Self : in out Instance; Arg : in Packed_Slot_Number.T) return Command_Execution_Status.E is
       use Command_Execution_Status;

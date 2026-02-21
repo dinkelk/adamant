@@ -1,6 +1,6 @@
 ---
 description: |
-  The Sequence Store component is responsible for storing and managing access to a set of memory regions (slots) which each hold a single sequence. The managed memory regions are usually located in nonvolatile storage and can be read or written to via this component. Sequences are uploaded to slots and then accesses via sequence ID. Sequences can be activated (allowed to be fetched) or deactivated (not allowed to be fetch) by command. The component enforces that all activated sequences have unique IDs. The component will disallow the activation of a sequence if it shares an ID with an already activated sequence.
+  The Sequence Store component is responsible for storing and managing access to a set of memory regions (slots) which each hold a single sequence. The managed memory regions are usually located in nonvolatile storage and can be read or written to via this component. Sequences are uploaded to slots and then accessed via sequence ID. Sequences can be activated (allowed to be fetched) or deactivated (not allowed to be fetched) by command. The component enforces that all activated sequences have unique IDs. The component will disallow the activation of a sequence if it shares an ID with an already activated sequence.
 execution: active
 with:
   - Sequence_Store_Types
