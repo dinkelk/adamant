@@ -16,7 +16,7 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Sync_Period : in Positive := 1; Enabled_State : in Ptp_State.Ptp_State_Type := Ptp_State.Enabled) is
    begin
-      -- Save of variables:
+      -- Save variables:
       Self.Sync_Period := Sync_Period;
       Self.State := Enabled_State;
    end Init;
