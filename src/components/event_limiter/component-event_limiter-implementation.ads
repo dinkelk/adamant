@@ -23,7 +23,7 @@ package Component.Event_Limiter.Implementation is
    -- Init Parameters:
    -- Event_Id_Start : Event_Types.Event_Id - The event ID that begins the range of ids that the component will include for potential limiting of events.
    -- Event_Id_Stop : Event_Types.Event_Id - The event ID that ends the range of ids that the component will include for potential limiting of events.
-   -- event_Disable_List : Two_Counter_Entry.Event_Id_List - A list of event IDs that are enabled by default
+   -- event_Disable_List : Two_Counter_Entry.Event_Id_List - A list of event IDs that are disabled by default
    -- event_Limit_Persistence : Two_Counter_Entry.Persistence_Type - The initial persistence of the number of events to allow before limiting them between ticks (1 to 7)
    --
    overriding procedure Init
@@ -107,7 +107,7 @@ private
    -- Command handler primitives:
    -----------------------------------------------
    -- Description:
-   --    These are the commands for the event packetizer component.
+   --    These are the commands for the event limiter component.
    -- Enable the event limiter for a specific event ID.
    overriding function Enable_Event_Limit (Self : in out Instance; Arg : in Event_Single_State_Cmd_Type.T) return Command_Execution_Status.E;
    -- Disable the event limiter for a specific event ID.

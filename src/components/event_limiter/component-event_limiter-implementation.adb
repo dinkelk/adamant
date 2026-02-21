@@ -269,7 +269,7 @@ package body Component.Event_Limiter.Implementation is
    -- Command handler primitives:
    -----------------------------------------------
    -- Description:
-   --    These are the commands for the event packetizer component.
+   --    These are the commands for the event limiter component.
    -- Enable the event limiter for a specific event ID.
    overriding function Enable_Event_Limit (Self : in out Instance; Arg : in Event_Single_State_Cmd_Type.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
