@@ -11,6 +11,6 @@ parameters:
   - component_A.Parameter_I32
   - component_C.The_Tick
   - component_A.Parameter_U16
-  # Or add ALL the parameters for a component on order
+  # Or add ALL the parameters for a component in order
   # by simply specifying the "Component_Instance_Name"
   - component_B
