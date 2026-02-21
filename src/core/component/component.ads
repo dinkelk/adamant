@@ -4,7 +4,7 @@ with System;
 with Basic_Types;
 
 -- This is a base component. There is not much here, but
--- this provides an base type for which other types can
+-- this provides a base type for which other types can
 -- use to operate on more specific components.
 package Component is
 

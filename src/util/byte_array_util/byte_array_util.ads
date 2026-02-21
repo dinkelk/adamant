@@ -10,7 +10,7 @@ package Byte_Array_Util is
       with Inline => True;
 
    -- Helper function which returns a signed length. This can be negative if
-   -- 'First > 'Last, where as 'Length will be zero. This can be helpful in
+   -- 'First > 'Last, whereas 'Length will be zero. This can be helpful in
    -- helping static analysis tools understand certain things.
    function Signed_Length (A : in Byte_Array) return Integer is (A'Last - A'First + 1)
       with Inline => True;
@@ -51,7 +51,7 @@ package Byte_Array_Util is
    --
    -- The Set_Poly_Type_Status is returned from the function
    --    Success - The polytype was successfully stored in the destination byte array
-   --    Truncation_Error - If truncation is not allowed (e. Truncation_Allowed = False) then this can occur. This means
+   --    Truncation_Error - If truncation is not allowed (i.e. Truncation_Allowed = False) then this can occur. This means
    --                                 that the provided polytype value exceeds the value representable in a type with Size size in
    --                                 bytes. This means that some information will be lost during the "set" operation. If this is
    --                                 intended, then Truncation_Allowed must be set to True. In this case, Truncation_Error will

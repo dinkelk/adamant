@@ -68,7 +68,7 @@ package body Byte_Array_Util is
    -- 0x3F or 0b00111111
    function Bit_Mask (Num_Ones : in Natural) return Unsigned_8 is (Shift_Left (1, Num_Ones) - 1)
       with Inline => True;
-   -- Does a modula 8 operation but the result is between 1-8 instead of 0-7. So 8 is traded for 0.
+   -- Does a modulo 8 operation but the result is between 1-8 instead of 0-7. So 8 is traded for 0.
    function Mod_1_8 (Val : in Natural) return Natural is (((Val - 1) mod 8) + 1)
       with Inline => True;
 
