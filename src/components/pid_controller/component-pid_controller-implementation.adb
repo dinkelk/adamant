@@ -111,7 +111,7 @@ package body Component.Pid_Controller.Implementation is
          Pid_Proportional_Output : constant Short_Float := Self.P_Gain.Value * Pid_Control_Error;
          -- Integral control
          Pid_Integral_Output : Short_Float := Self.Control_Out_Prev_I + Self.I_Gain.Value * Self.Time_Step * Self.Control_Error_Prev;
-         -- Derivataive control
+         -- Derivative control
          Pid_Derivative_Output : constant Short_Float := Self.Control_Out_Prev_D * (1.0 - (Self.N_Filter.Value * Self.Time_Step)) + (Pid_Control_Error - Self.Control_Error_Prev) * Self.D_Gain.Value * Self.N_Filter.Value;
          -- Total control output
          Pid_Control_Output : Short_Float;

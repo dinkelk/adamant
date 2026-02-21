@@ -8,7 +8,7 @@ with Tick;
 with Command;
 with Product_Packet_Types;
 
--- The product packetizer requests data products from an external component and packetizes them into packets at a configurable rate. The packets that this component produces is configured via an autocoded table.
+-- The product packetizer requests data products from an external component and packetizes them into packets at a configurable rate. The packets that this component produces are configured via an autocoded table.
 --
 package Component.Product_Packetizer.Implementation is
 

@@ -109,7 +109,7 @@ package Seq_Runtime is
    procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type);
 
    -- Get the ID of the sequence to load. This should be called after encountering a call/spawn/start
-   -- instruction, ie. in a Wait_Load_New_* state.
+   -- instruction, i.e. in a Wait_Load_New_* state.
    function Get_Seq_Id_To_Load (Self : in Instance) return Sequence_Types.Sequence_Id;
 
    -- Get the last time that the runtime was executed.
@@ -142,7 +142,7 @@ package Seq_Runtime is
    -- Get the engine kill start ID.
    function Get_Kill_Eng_Start (Self : in Instance) return Sequence_Engine_Id;
 
-   -- Get the engine kill stop ID.
+   -- Get the number of engines to kill.
    function Get_Num_Eng_Kill (Self : in Instance) return Sequence_Engine_Id;
 
    -- Get the string to print if in the Print state.

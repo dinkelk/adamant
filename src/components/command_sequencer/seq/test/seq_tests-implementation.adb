@@ -436,7 +436,7 @@ package body Seq_Tests.Implementation is
       end;
 
       -- Test seq 10
-      -- Sequence 10 tests the telemetery routines, both regular waits and wait on B
+      -- Sequence 10 tests the telemetry routines, both regular waits and wait on B
       declare
          Sequence : Memory_Region.T;
          Buffer : Basic_Types.Byte_Array_Access;
@@ -499,7 +499,7 @@ package body Seq_Tests.Implementation is
       end;
 
       -- Test seq 10 with timeouts
-      -- Sequence 10 tests the telemetery routines, both regular waits and wait on B
+      -- Sequence 10 tests the telemetry routines, both regular waits and wait on B
       declare
          Sequence : Memory_Region.T;
          Buffer : Basic_Types.Byte_Array_Access;
@@ -557,7 +557,7 @@ package body Seq_Tests.Implementation is
       end;
 
       -- Test seq 10 with absolute time in the past.
-      -- Sequence 10 tests the telemetery routines, both regular waits and wait on B
+      -- Sequence 10 tests the telemetry routines, both regular waits and wait on B
       declare
          Sequence : Memory_Region.T;
          Buffer : Basic_Types.Byte_Array_Access;

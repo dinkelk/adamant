@@ -155,7 +155,7 @@ package Component.Pid_Controller.Implementation.Tester is
    -- Packet handler primitives:
    -----------------------------------------------
    -- Description:
-   --    Data products for the pid controller component.
+   --    Packets for the PID controller component.
    -- The diagnostic packet that is issued based on the number of samples set by command. Samples are taken at the control rate. Includes error, reference, and current.
    overriding procedure Pid_Controller_Diagnostic_Packet (Self : in out Instance; Arg : in Packet.T);
 

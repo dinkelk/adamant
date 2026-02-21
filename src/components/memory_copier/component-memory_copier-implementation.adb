@@ -68,7 +68,7 @@ package body Component.Memory_Copier.Implementation is
       --
       -- Note, the protected buffer and the sync object are both protected objects, so there
       -- is no risk of data corruption (which would be a serious problem), there is just risk of
-      -- out of order synchronization, which should not occur is the assembly is designed
+      -- out of order synchronization, which should not occur if the assembly is designed
       -- correctly, as described above.
    end Memory_Region_Release_T_Recv_Sync;
 
@@ -86,7 +86,7 @@ package body Component.Memory_Copier.Implementation is
       -- Request the source memory region:
       Request : constant Memory_Region_Request.T := Self.Memory_Region_Request_T_Get;
       -- Calculate the minimum length that the requested region must have in order for
-      -- the virtual memoy region to be valid.
+      -- the virtual memory region to be valid.
       Min_Length : constant Natural := Virtual_Region.Address + Virtual_Region.Length;
    begin
       -- Initialize out parameter to null in case we fail to find memory region

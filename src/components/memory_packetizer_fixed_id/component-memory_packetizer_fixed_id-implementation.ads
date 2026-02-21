@@ -20,7 +20,7 @@ package Component.Memory_Packetizer_Fixed_Id.Implementation is
    --
    -- Init Parameters:
    -- max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
-   -- time_Period_In_Seconds : Positive - The time period in seconds over which the measure the number of packets produced.
+   -- time_Period_In_Seconds : Positive - The time period in seconds over which to measure the number of packets produced.
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1);
 
@@ -46,7 +46,7 @@ private
    -- set up code. This method is generally called by the assembly
    -- main.adb after all component initialization and tasks have been started.
    -- Some activities need to only be run once at startup, but cannot be run
-   -- safely until everything is up and running, ie. command registration, initial
+   -- safely until everything is up and running, i.e. command registration, initial
    -- data product updates. This procedure should be implemented to do these things
    -- if necessary.
    overriding procedure Set_Up (Self : in out Instance);
