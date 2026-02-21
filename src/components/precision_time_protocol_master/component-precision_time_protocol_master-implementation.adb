@@ -11,7 +11,7 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- sync_Period : Positive - The number of ticks between sending precision time protocol messages. A value of zero disables syncing.
+   -- sync_Period : Positive - The number of ticks between sending precision time protocol messages.
    -- enabled_State : Ptp_State.Ptp_State_Type - Is precision time protocol enabled or disabled by default at startup.
    --
    overriding procedure Init (Self : in out Instance; Sync_Period : in Positive := 1; Enabled_State : in Ptp_State.Ptp_State_Type := Ptp_State.Enabled) is
