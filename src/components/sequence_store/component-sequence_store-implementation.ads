@@ -11,7 +11,7 @@ with Binary_Tree;
 with Sequence_Store_Types;
 with Sequence_Types;
 
--- The Parameter Store component is responsible for storing and managing access to a set of memory regions (slots) which each hold a single sequence. The managed memory regions are usually located in nonvolatile storage and can be read or written to via this component.
+-- The Sequence Store component is responsible for storing and managing access to a set of memory regions (slots) which each hold a single sequence. The managed memory regions are usually located in nonvolatile storage and can be read or written to via this component.
 package Component.Sequence_Store.Implementation is
 
    -- The component class instance record:
@@ -73,7 +73,7 @@ private
 
    -- The component class instance record:
    type Instance is new Sequence_Store.Base_Instance with record
-      -- An array of memory regions, each which hold a sequence.
+      -- An array of memory regions, each of which holds a sequence.
       Slots : Sequence_Slot_Array_Access := null;
       -- A list (binary tree) of active sequences. This allows for
       -- quick lookup of available sequences without having to linearly
@@ -134,7 +134,7 @@ private
    overriding function Check_Slot (Self : in out Instance; Arg : in Packed_Slot_Number.T) return Command_Execution_Status.E;
    -- Check the CRC of sequences in all sequence store slots to see if they match the CRCs found in their headers.
    overriding function Check_All_Slots (Self : in out Instance) return Command_Execution_Status.E;
-   -- Produce a packet with the currently storage slot summary information.
+   -- Produce a packet with the current storage slot summary information.
    overriding function Dump_Summary (Self : in out Instance) return Command_Execution_Status.E;
 
    -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:

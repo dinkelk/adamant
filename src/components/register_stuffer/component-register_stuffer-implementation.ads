@@ -6,7 +6,7 @@
 with Command;
 with Arm_State;
 
--- This component services a commands to stuff and dump registers. This component is different than the memory stuffer/dumper in that it atomically sets 32-bit little endian registers, which is a requirement on some hardware. It rejects commands to stuff or dump addresses that are not on a 4-byte boundary. Note that this component assumes all registers it accesses are little endian. Another version of this component needs to be created to access registers as big endian.
+-- This component services commands to stuff and dump registers. This component is different than the memory stuffer/dumper in that it atomically sets 32-bit little endian registers, which is a requirement on some hardware. It rejects commands to stuff or dump addresses that are not on a 4-byte boundary. Note that this component assumes all registers it accesses are little endian. Another version of this component needs to be created to access registers as big endian.
 package Component.Register_Stuffer.Implementation is
 
    -- The component class instance record:
