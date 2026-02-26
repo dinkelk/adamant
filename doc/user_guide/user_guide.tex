@@ -625,49 +625,49 @@ The target can also be set globally in your shell configuration file (ie. \texti
 Linux
 Description:   The default Linux target. This is simply a rename of Linux_Debug.
 Project File:  /home/user/adamant/redo/targets/gpr/linux_debug.gpr
-Path Files:    .all_path, .64bit_path, .Linux_Base_path, .Linux_Debug_path, .Linux_path
+Path Files:    .all_path, .64bit_path, .Linux_Base_Path, .Linux_Debug_Path, .Linux_Path
 Python Module: /home/user/adamant/redo/targets/linux.py
 Python Class:  Linux
 
 Linux_Debug
 Description:   This native 64-bit Linux target has no optimization, compiles with debug flagsenabled, and enforces the Ravenscar profile.
 Project File:  /home/user/adamant/redo/targets/gpr/linux_debug.gpr
-Path Files:    .all_path, .64bit_path, .Linux_Base_path, .Linux_Debug_path, .Linux_path
+Path Files:    .all_path, .64bit_path, .Linux_Base_Path, .Linux_Debug_Path, .Linux_Path
 Python Module: /home/user/adamant/redo/targets/linux.py
 Python Class:  Linux_Debug
 
 Linux_Test
 Description:   Same as Linux_Debug except it does not enforce the Ravenscar profile and linkswith AUnit.
 Project File:  /home/user/adamant/redo/targets/gpr/linux_test.gpr
-Path Files:    .all_path, .64bit_path, .Linux_Base_path, .Linux_Test_path, .Linux_path
+Path Files:    .all_path, .64bit_path, .Linux_Base_Path, .Linux_Test_Path, .Linux_Path
 Python Module: /home/user/adamant/redo/targets/linux.py
 Python Class:  Linux_Test
 
 Pico
 Description:   This is the default Raspberry Pi Pico microprocessor cross compile target. This is simply a rename of Pico_Development.
 Project File:  /home/user/adamant_example/redo/targets/gpr/pico_development.gpr
-Path Files:    .all_path, .Pico_Development_path, .Pico_Base_path, .Pico_path, .arm_bare_board_path, .bb_path, .32bit_path
+Path Files:    .all_path, .Pico_Development_Path, .Pico_Base_Path, .Pico_Path, .arm_bare_board_path, .bb_path, .32bit_path
 Python Module: /home/user/adamant_example/redo/targets/pico.py
 Python Class:  Pico
 
 Pico_Debug
 Description:   This target compiles for the Raspberry Pi Pico microprocessor. It has optimization disabled in both the Adamant code and the runtime code. It enforces all possible validation checks with pragma Initialize_Scalars enabled.
 Project File:  /home/user/adamant_example/redo/targets/gpr/pico_debug.gpr
-Path Files:    .all_path, .Pico_Debug_path, .Pico_Base_path, .Pico_path, .arm_bare_board_path, .bb_path, .32bit_path
+Path Files:    .all_path, .Pico_Debug_Path, .Pico_Base_Path, .Pico_Path, .arm_bare_board_path, .bb_path, .32bit_path
 Python Module: /home/user/adamant_example/redo/targets/pico.py
 Python Class:  Pico_Debug
 
 Pico_Development
 Description:   This target compiles for the Raspberry Pi Pico microprocessor. It has optimization enabled and enforces all possible validation checks with pragma Initialize_Scalars enabled.
 Project File:  /home/user/adamant_example/redo/targets/gpr/pico_development.gpr
-Path Files:    .all_path, .Pico_Development_path, .Pico_Base_path, .Pico_path, .arm_bare_board_path, .bb_path, .32bit_path
+Path Files:    .all_path, .Pico_Development_Path, .Pico_Base_Path, .Pico_Path, .arm_bare_board_path, .bb_path, .32bit_path
 Python Module: /home/user/adamant_example/redo/targets/pico.py
 Python Class:  Pico_Development
 
 Pico_Production
 Description:   This target compiles for the Raspberry Pi Pico microprocessor. It has optimization enabled and only enforces the Ada Reference Manual validation checks.
 Project File:  /home/user/adamant_example/redo/targets/gpr/pico_production.gpr
-Path Files:    .all_path, .bb_path, .Pico_Base_path, .Pico_path, .arm_bare_board_path, .Pico_Production_path, .32bit_path
+Path Files:    .all_path, .bb_path, .Pico_Base_Path, .Pico_Path, .arm_bare_board_path, .Pico_Production_Path, .32bit_path
 Python Module: /home/user/adamant_example/redo/targets/pico.py
 Python Class:  Pico_Production
 \end{minted}
@@ -695,8 +695,8 @@ The Adamant build system uses a \textit{build path} in the form \texttt{\url{/pa
 \begin{minted}{text}
 > cd to/dir/to/add/to/path
 > touch .all_path        # This code can be compiled for any target, or
-> touch .Linux_path      # This code can only be compiled for the "Linux" target, or
-> touch .Linux_Test_path # This code can only be compiled for the "Linux_Test" target
+> touch .Linux_Path      # This code can only be compiled for the "Linux" target, or
+> touch .Linux_Test_Path # This code can only be compiled for the "Linux_Test" target
 \end{minted}
 \vspace{5mm} %5mm vertical space
 
@@ -4958,7 +4958,7 @@ Let's begin by taking a look at the \textit{splitter} component model: \\
 
 As can be seen, this component uses the YAML tag \texttt{generic} to define the component's generic types. An optional \texttt{description} is provided followed by a list of generic parameters. Each parameter must include a parameter \texttt{name} and optionally a \texttt{description}. \\
 
-Each parameter can also specify two other tags that are not specified for the \textit{splitter} component, \texttt{formal\_type} and \texttt{optional}. If not specified, the \texttt{formal\_type} for the generic is assumed to be \texttt{Type T is private;}. This formal generic type has specific semantic meaning in Ada. For a list of the different formal types available in Ada see the table found in the \href{https://en.wikibooks.org/wiki/Ada_Programming/Generics#Generic_formal_types}{\textcolor{blue}{Ada Wiki}}. As can be seen from the link, the default \texttt{formal\_type} defines a generic parameter that can be any nonlimited definite type. To override this conservative generic formal type, you can specify the \texttt{formal\_type} field manually. See the \textit{logger} component for an example of manually defining a \texttt{formal\_type}. \\
+Each parameter can also specify two other tags that are not specified for the \textit{splitter} component, \texttt{formal\_type} and \texttt{optional}. If not specified, the \texttt{formal\_type} for the generic is assumed to be \texttt{Type T is private;}. This formal generic type has specific semantic meaning in Ada. For a list of the different formal types available in Ada see the table found in the \href{https://en.wikibooks.org/wiki/Ada_Programming/Generics#Generic_Formal_Types}{\textcolor{blue}{Ada Wiki}}. As can be seen from the link, the default \texttt{formal\_type} defines a generic parameter that can be any nonlimited definite type. To override this conservative generic formal type, you can specify the \texttt{formal\_type} field manually. See the \textit{logger} component for an example of manually defining a \texttt{formal\_type}. \\
 
 If the \texttt{formal\_type} field includes a default value, you can inform the Adamant modeling system of this by setting the \texttt{optional} field to \texttt{True}. This will enable a user to instantiate the component without defining a concrete type for the generic parameter, using the provided default instead. \\
 
@@ -5015,7 +5015,7 @@ generic:
       description: The generic type of data passed to this components recv_async connector.
     - name: Serialized_Length
       description: A method that returns the serialized length of an item of type T. This is useful for serializing variable length packed types onto the queue.
-      formal_type: "with function Serialized_Length(src : in T; num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;"
+      formal_type: "with function Serialized_Length(src : in T; Num_Bytes_Serialized : out Natural) return Serializer_Types.Serialization_Status;"
 ...
 etc.
 \end{yamlcode}
@@ -5062,9 +5062,9 @@ components:
       - "Interrupt_Data_Type => Tick.T"
       - "Set_Interrupt_Data_Time => Tick_Interrupt_Handler.Set_Tick_Time"
     discriminant:
-      - "interrupt_Priority => System.Interrupt_Priority'Last"
-      - "interrupt_Id => Ada.Interrupts.Names.SIGUSR1"
-      - "custom_Interrupt_Procedure => Tick_Interrupt_Handler.Handler'Access"
+      - "Interrupt_Priority => System.Interrupt_Priority'Last"
+      - "Interrupt_Id => Ada.Interrupts.Names.SIGUSR1"
+      - "Custom_Interrupt_Procedure => Tick_Interrupt_Handler.Handler'Access"
   ... 
 connections: 
   ...
@@ -5107,7 +5107,7 @@ components:
     stack_size: 50000
     secondary_stack_size: 10000
     init_base:
-      - "queue_Size => 8192"
+      - "Queue_Size => 8192"
     init:
       - "addr => \"127.0.0.1\""
       - "port => 2001"
@@ -5298,17 +5298,17 @@ In addition, Adamant will always produce a list of warning for any unconnected c
 
 \vspace{5mm} %5mm vertical space
 \begin{minted}{text}
-Warning science_assembly.assembly.yaml: component 'rate_Group_Instance' has 
+Warning science_assembly.assembly.yaml: component 'Rate_Group_Instance' has 
   unattached connector 'Tick_T_Recv_Sync'.
-Warning science_assembly.assembly.yaml: component 'rate_Group_Instance' has 
+Warning science_assembly.assembly.yaml: component 'Rate_Group_Instance' has 
   unattached connector 'Tick_T_Send[2]'.
-Warning science_assembly.assembly.yaml: component 'rate_Group_Instance' has 
+Warning science_assembly.assembly.yaml: component 'Rate_Group_Instance' has 
   unattached connector 'Tick_T_Send[3]'.
-Warning science_assembly.assembly.yaml: component 'rate_Group_Instance' has 
+Warning science_assembly.assembly.yaml: component 'Rate_Group_Instance' has 
   unattached connector 'Tick_T_Send[4]'.
-Warning science_assembly.assembly.yaml: component 'rate_Group_Instance' has 
+Warning science_assembly.assembly.yaml: component 'Rate_Group_Instance' has 
   unattached connector 'Tick_T_Send[5]'.
-Warning science_assembly.assembly.yaml: component 'command_Router_Instance' has 
+Warning science_assembly.assembly.yaml: component 'Command_Router_Instance' has 
   unattached connector 'Command_T_Recv_Async'.
 \end{minted}
 \vspace{5mm} %5mm vertical space
@@ -5607,8 +5607,8 @@ Sometimes you want Adamant to define a compact ID space for the IDed entity, but
 # We set events to start at  0x1000 and data products to 
 # start at 0x2000
 id_bases: 
-  - "event_Id_Base => 4096"
-  - "data_Product_Id_Base => 8192"
+  - "Event_Id_Base => 4096"
+  - "Data_Product_Id_Base => 8192"
 
 # Below is the rest of the assembly model.
   ...

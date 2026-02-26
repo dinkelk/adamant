@@ -49,7 +49,7 @@ $ touch .all_path
 in that directory. To add a file to the build path for a specific target, such as the "Linux" build path, you can run:
 
 ```
-$ touch .Linux_path
+$ touch .Linux_Path
 ```
 
 For more information on build targets see the "Setting the Build Target" section.
