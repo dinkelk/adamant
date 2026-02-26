@@ -25,9 +25,9 @@ package Event_Filter_Entry is
    -- Initialization/destruction functions:
    --
    -- Init Parameters:
-   -- event_Id_Start : Event_Id - The event ID that begins the range of ids that the component will include for filtering of events.
-   -- event_Id_Stop : Event_Id - The event ID that ends the range of ids that the component will include for filtering of events.
-   -- event_Filter_List : Event_Id_List - A list of event IDs that are enabled for filtering by default
+   -- Event_Id_Start : Event_Id - The event ID that begins the range of ids that the component will include for filtering of events.
+   -- Event_Id_Stop : Event_Id - The event ID that ends the range of ids that the component will include for filtering of events.
+   -- Event_Filter_List : Event_Id_List - A list of event IDs that are enabled for filtering by default
    --
    procedure Init (Self : in out Instance; Event_Id_Start : in Event_Id; Event_Id_Stop : in Event_Id; Event_Filter_List : in Event_Id_List);
    procedure Destroy (Self : in out Instance);

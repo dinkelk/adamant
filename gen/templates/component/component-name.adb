@@ -92,7 +92,7 @@ package body Component.{{ name }} is
 {% endfor %}
       -- Single update function to copy all the parameters from the
       -- staged versions to the working copy passed in. This function
-      -- also resets the parameters_Updated boolean to False.
+      -- also resets the Parameters_Updated boolean to False.
       procedure Copy_From_Staged (
 {% for par in parameters %}
          {{ par.name }} : in out {% if par.type_package %}{{ par.type_package }}.U{% else %}{{ par.type }}{% endif %}{{ ";" if not loop.last }}
@@ -201,7 +201,7 @@ package body Component.{{ name }} is
 {% endif %}
 {% if set_id_bases %}
    -----------------------------------------------------------------------
-   -- Initialize the id_Bases for any commands, data products, or events:
+   -- Initialize the Id_Bases for any commands, data products, or events:
    -----------------------------------------------------------------------
 {% if set_id_bases.description %}
 {{ printMultiLine(set_id_bases.description, '   -- ') }}
@@ -857,7 +857,7 @@ package body Component.{{ name }} is
    begin
       -- Copy length into poly type:
       Byte_Array_Util.Safe_Right_Copy (P_Type, Command_Arg_Buffer_Length.Serialization.To_Byte_Array ((Arg_Buffer_Length => Cmd.Header.Arg_Buffer_Length)));
-      -- Call up to the command_Invalid function for handling.
+      -- Call up to the Command_Invalid function for handling.
       Base_Instance'Class (Self).Invalid_Command (Cmd, Unsigned_32'Last, P_Type);
    end Handle_Command_Length_Error;
 
@@ -934,7 +934,7 @@ package body Component.{{ name }} is
                   -- Copy args into poly type:
                   Byte_Array_Util.Safe_Right_Copy (P_Type, Cmd.Arg_Buffer (Cmd.Arg_Buffer'First .. Cmd.Arg_Buffer'First + Arg_Deserializer.Serialized_Length - 1));
 {% endif %}
-                  -- Call up to the command_Invalid function for handling.
+                  -- Call up to the Command_Invalid function for handling.
                   Base_Instance'Class (Self).Invalid_Command (Cmd, Errant_Field, P_Type);
                   return Command_Response_Status.Validation_Error;
                end;
@@ -1065,7 +1065,7 @@ package body Component.{{ name }} is
    begin
       -- Copy length into poly type:
       Byte_Array_Util.Safe_Right_Copy (P_Type, Parameter_Buffer_Length.Serialization.To_Byte_Array ((Buffer_Length => Par.Header.Buffer_Length)));
-      -- Call up to the parameter_Invalid function for handling.
+      -- Call up to the Parameter_Invalid function for handling.
       Base_Instance'Class (Self).Invalid_Parameter (Par, Unsigned_32'Last, P_Type);
    end Handle_Parameter_Length_Error;
 
@@ -1120,7 +1120,7 @@ package body Component.{{ name }} is
                   -- Copy parameter value into poly type:
                   Byte_Array_Util.Safe_Right_Copy (P_Type, Par.Buffer (Par.Buffer'First .. Par.Buffer'First + Buffer_Deserializer.Serialized_Length - 1));
 {% endif %}
-                  -- Call up to the parameter_Invalid function for handling.
+                  -- Call up to the Parameter_Invalid function for handling.
                   Base_Instance'Class (Self).Invalid_Parameter (Par, Errant_Field, P_Type);
                   return Parameter_Update_Status.Validation_Error;
                end;

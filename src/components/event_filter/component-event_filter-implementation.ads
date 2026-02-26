@@ -20,9 +20,9 @@ package Component.Event_Filter.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- event_Id_Start_Range : Event_Types.Event_Id - The event ID that begins the range of ids that the component will include for filtering of events.
-   -- event_Id_End_Range : Event_Types.Event_Id - The event ID that ends the range of ids that the component will include for filtering of events.
-   -- event_Filter_List : Event_Filter_Entry.Event_Id_List - A list of event IDs that are filtered by default
+   -- Event_Id_Start_Range : Event_Types.Event_Id - The event ID that begins the range of ids that the component will include for filtering of events.
+   -- Event_Id_End_Range : Event_Types.Event_Id - The event ID that ends the range of ids that the component will include for filtering of events.
+   -- Event_Filter_List : Event_Filter_Entry.Event_Id_List - A list of event IDs that are filtered by default
    --
    overriding procedure Init (Self : in out Instance; Event_Id_Start_Range : in Event_Types.Event_Id; Event_Id_End_Range : in Event_Types.Event_Id; Event_Filter_List : in Event_Filter_Entry.Event_Id_List := [1 .. 0 => 0]);
 

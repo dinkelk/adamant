@@ -11,9 +11,9 @@ package body Component.Time_At_Tone_Master.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- wait_Time_Ms : Natural - Number of milliseconds the master waits between the sending of the time message and the sending of the tone message. This is implemented internally by an Ada 'delay until' statement.
-   -- sync_Period : Positive - The number of ticks between sending clock sync messages.
-   -- enabled_State : Tat_State.Tat_State_Type - Is time at tone enabled or disabled by default at startup.
+   -- Wait_Time_Ms : Natural - Number of milliseconds the master waits between the sending of the time message and the sending of the tone message. This is implemented internally by an Ada 'delay until' statement.
+   -- Sync_Period : Positive - The number of ticks between sending clock sync messages.
+   -- Enabled_State : Tat_State.Tat_State_Type - Is time at tone enabled or disabled by default at startup.
    --
    overriding procedure Init (Self : in out Instance; Wait_Time_Ms : in Natural; Sync_Period : in Positive := 1; Enabled_State : in Tat_State.Tat_State_Type := Tat_State.Enabled) is
       use Tat_State;

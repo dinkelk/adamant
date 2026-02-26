@@ -9,8 +9,8 @@ package body Component.Time_Of_Tone_Master.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- sync_Period : Positive - The number of ticks between sending clock sync messages.
-   -- enabled_State : Tat_State.Tat_State_Type - Is time at tone enabled or disabled by default at startup.
+   -- Sync_Period : Positive - The number of ticks between sending clock sync messages.
+   -- Enabled_State : Tat_State.Tat_State_Type - Is time at tone enabled or disabled by default at startup.
    --
    overriding procedure Init (Self : in out Instance; Sync_Period : in Positive := 1; Enabled_State : in Tat_State.Tat_State_Type := Tat_State.Enabled) is
       use Tat_State;

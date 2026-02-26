@@ -34,7 +34,7 @@ package body Pid_Controller_Tests.Implementation is
       Self.Tester.Connect;
 
       -- Call component init here.
-      --self.tester.component_Instance.Init(control_Frequency => 100.0, database_Update_Period => 3, moving_Average_Max_Samples => 10, moving_Average_Init_Samples => 5);
+      --self.tester.Component_Instance.Init(Control_Frequency => 100.0, Database_Update_Period => 3, Moving_Average_Max_Samples => 10, Moving_Average_Init_Samples => 5);
 
       -- Call the component set up method that the assembly would normally call.
       Self.Tester.Component_Instance.Set_Up;

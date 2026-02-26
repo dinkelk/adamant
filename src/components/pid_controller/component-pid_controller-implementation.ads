@@ -20,8 +20,8 @@ package Component.Pid_Controller.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- control_Frequency : Short_Float - The frequency in Hz at which the PID controller is being driven. This determines the time step for the PID controller to use in the algorithm.
-   -- database_Update_Period : Unsigned_16 - The period in which to update the data products
+   -- Control_Frequency : Short_Float - The frequency in Hz at which the PID controller is being driven. This determines the time step for the PID controller to use in the algorithm.
+   -- Database_Update_Period : Unsigned_16 - The period in which to update the data products
    -- Moving_Average_Max_Samples : Natural - The number of diagnostic samples to keep to perform the mean, variance, and max
    -- Moving_Average_Init_Samples : Integer - The number of samples to initialize the object with. Must be less than the max, and is optional to set to the max with -1
    --

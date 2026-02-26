@@ -13,7 +13,7 @@ package body Component.Command_Rejector.Implementation is
    -- This component requires a list of command ID to reject at initialization.
    --
    -- Init Parameters:
-   -- command_Id_Reject_List : Command_Id_List - The list of command IDs to reject.
+   -- Command_Id_Reject_List : Command_Id_List - The list of command IDs to reject.
    --
    overriding procedure Init (Self : in out Instance; Command_Id_Reject_List : in Command_Id_List) is
    begin

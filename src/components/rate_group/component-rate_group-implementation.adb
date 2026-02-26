@@ -101,7 +101,7 @@ package body Component.Rate_Group.Implementation is
             end if;
          end if;
 
-         -- If the ticks_Per_Timing_Report is greater than zero, then we need to send out a
+         -- If the Ticks_Per_Timing_Report is greater than zero, then we need to send out a
          -- data product periodically.
          if Self.Ticks_Per_Timing_Report > 0 then
             -- Increment the number of ticks.

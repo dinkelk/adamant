@@ -942,7 +942,7 @@ package body Component.Command_Sequencer.Implementation is
             -- If the status of the command response is a Register_Source status, then we need to set our command
             -- source id. Otherwise we should perform the action associated with receiving a command response.
             for The_Engine of Self.Seq_Engines.all loop
-               -- Engine state can only go from Uninitialized to inactive via the set_Source_Id procedure.
+               -- Engine state can only go from Uninitialized to inactive via the Set_Source_Id procedure.
                if The_Engine.Get_Engine_State = Uninitialized then
                   The_Engine.Set_Source_Id (Arg.Source_Id);
                   Source_Id_Set := True;

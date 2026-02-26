@@ -30,7 +30,7 @@ with Invalid_Sequence_Crc_Info.Assertion; use Invalid_Sequence_Crc_Info.Assertio
 with Invalid_Sequence_Length_Info.Assertion; use Invalid_Sequence_Length_Info.Assertion;
 with Sequence_Store_Memory_Region_Fetch.Assertion; use Sequence_Store_Memory_Region_Fetch.Assertion;
 with Interfaces; use Interfaces;
-with Test_Slots; use Test_Slots; -- slot_N_Memory variables declared here.
+with Test_Slots; use Test_Slots; -- Slot_N_Memory variables declared here.
 with Test_Sequence_Store;
 
 package body Sequence_Store_Tests.Implementation is

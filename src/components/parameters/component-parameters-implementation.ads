@@ -20,7 +20,7 @@ package Component.Parameters.Implementation is
    -- memory allocation for the parameter manager's internal parameter table.
    -- Preallocated memory can be provided via the "bytes" access type. Note the size
    -- of the preallocated memory MUST match the size of the parameter table exactly,
-   -- as defined in the parameter_Entries parameter. If you would like to allocate
+   -- as defined in the Parameter_Entries parameter. If you would like to allocate
    -- the internal memory on the heap then "bytes" can be set to null.
    --
    -- Init Parameters:

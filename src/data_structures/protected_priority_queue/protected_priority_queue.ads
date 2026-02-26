@@ -52,7 +52,7 @@ package Protected_Priority_Queue is
    -- Provide the size of each queue element in bytes and the depth of the queue. The amount
    -- of data allocated on the heap to service this queue will be (in bytes):
    --
-   --    queue_Storage = element_Size*depth + (Priority_Type'Size + Natural'Size)*depth
+   --    Queue_Storage = Element_Size*depth + (Priority_Type'Size + Natural'Size)*depth
    --
    procedure Init (Self : in out Instance; Element_Size : in Positive; Depth : in Positive);
    -- Destroy all bytes on the queue:

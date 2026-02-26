@@ -153,7 +153,7 @@ package body Component.Event_Limiter.Implementation is
                      Num_Event_Limited_Event.Event_Id_Limited_Array (Integer (Num_Event_Limited_Event.Num_Event_Ids)) := Dec_Event_Id;
                      Num_Event_Limited_Event.Num_Event_Ids := @ + 1;
                   end if;
-                  -- Assert on the status. We know the range so we shouldn't get an invalid_Id error
+                  -- Assert on the status. We know the range so we shouldn't get an Invalid_Id error
                when Invalid_Id =>
                   pragma Assert (False, "Invalid_Id found when decrementing all event limiter counters which should not be possible: " & Natural'Image (Natural (Dec_Event_Id)));
             end case;

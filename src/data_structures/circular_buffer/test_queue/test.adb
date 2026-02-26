@@ -234,19 +234,19 @@ procedure Test is
    end Go;
 begin
 --   Put_Line("Create heap queue.");
---   heap_Queue.init(30);
+--   Heap_Queue.init(30);
 --   Put_Line("Passed.");
 --   Put_Line("");
 --
 --   Put_Line("----------------------------------");
 --   Put_Line("Testing heap queue.");
 --   Put_Line("----------------------------------");
---   Go(heap_Queue);
+--   Go(Heap_Queue);
 --   Put_Line("----------------------------------");
 --   Put_Line("");
 --
 --   Put_Line("Destroy heap queue.");
---   heap_Queue.destroy;
+--   Heap_Queue.destroy;
 --   Put_Line("Passed.");
 --   Put_Line("");
 --

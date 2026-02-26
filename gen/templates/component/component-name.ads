@@ -111,7 +111,7 @@ package Component.{{ name }} is
 {% endif %}
 {% if set_id_bases %}
    -----------------------------------------------------------------------
-   -- Initialize the id_Bases for any commands, data products, or events:
+   -- Initialize the Id_Bases for any commands, data products, or events:
    -----------------------------------------------------------------------
 {% if set_id_bases.description %}
 {{ printMultiLine(set_id_bases.description, '   -- ') }}

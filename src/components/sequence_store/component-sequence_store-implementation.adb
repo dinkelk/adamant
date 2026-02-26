@@ -119,7 +119,7 @@ package body Component.Sequence_Store.Implementation is
    end Is_Slot_Number_In_Range;
 
    -- Given a slot index, return the header for that slot. Note that this
-   -- function does not check the bounds of the slot_Index, it assumes that the caller
+   -- function does not check the bounds of the Slot_Index, it assumes that the caller
    -- has already checked the bounds.
    function Get_Slot_Header (Self : in Instance; Slot_Index : in Slot_Number) return Sequence_Store_Slot_Header.T is
       -- Overlay sequence header over the beginning of the appropriate slot. We know that this overlay
@@ -131,7 +131,7 @@ package body Component.Sequence_Store.Implementation is
    end Get_Slot_Header;
 
    -- Given a slot index, set the header for that slot. Note that this
-   -- function does not check the bounds of the slot_Index, it assumes that the caller
+   -- function does not check the bounds of the Slot_Index, it assumes that the caller
    -- has already checked the bounds.
    procedure Set_Slot_Header (Self : in Instance; Slot_Index : in Slot_Number; Header : in Sequence_Store_Slot_Header.T) is
       -- Overlay sequence header over the beginning of the appropriate slot. We know that this overlay

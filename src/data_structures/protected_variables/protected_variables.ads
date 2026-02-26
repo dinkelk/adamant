@@ -64,7 +64,7 @@ package Protected_Variables is
    -- The counter contains an incrementing counter and a period. This is usually used
    -- to hold data for a counter that, when reaches the period value, is reset to zero.
    -- The user usually checks to see when the counter has reached zero, using the
-   -- is_Count_At_Period function, and an action is performed if the returned value is true.
+   -- Is_Count_At_Period function, and an action is performed if the returned value is true.
    -- These variables often need to be grouped together into a single protected object
    -- to accommodate some operations that need to modify both automatically in a thread
    -- safe manner.

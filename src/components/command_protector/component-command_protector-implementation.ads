@@ -22,7 +22,7 @@ package Component.Command_Protector.Implementation is
    -- This component requires a list of protected command IDs at initialization.
    --
    -- Init Parameters:
-   -- protected_Command_Id_List : Command_Id_List - The list of command IDs to consider as protected commands.
+   -- Protected_Command_Id_List : Command_Id_List - The list of command IDs to consider as protected commands.
    --
    overriding procedure Init (Self : in out Instance; Protected_Command_Id_List : in Command_Id_List);
    not overriding procedure Final (Self : in out Instance);

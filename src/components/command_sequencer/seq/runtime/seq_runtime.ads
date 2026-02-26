@@ -216,11 +216,11 @@ private
    function Cmd_Jump_Not_Equal (Self : in out Instance) return Seq_Position;
    function Cmd_Return (Self : in out Instance) return Seq_Position;
    function Cmd_Wait_If_Zero (Self : in out Instance) return Seq_Position;
-   -- function cmd_Kill_Category             (Self : in out Instance) return Seq_Position; Remove from compiler, this instruction will NOT be implemented!
+   -- function Cmd_Kill_Category             (Self : in out Instance) return Seq_Position; Remove from compiler, this instruction will NOT be implemented!
    function Cmd_Kill_Engine (Self : in out Instance) return Seq_Position;
-   -- function cmd_Kill_Name                   (Self : in out Instance) return Seq_Position; Remove from compiler, this instruction will NOT be implemented!
-   -- function cmd_Subscribe                   (Self : in out Instance) return Seq_Position; Not implemented, Adamant does not do sub/unsub for telemetry items.
-   -- function cmd_Unsubscribe                (Self : in out Instance) return Seq_Position; Not implemented, Adamant does not do sub/unsub for telemetry items.
+   -- function Cmd_Kill_Name                   (Self : in out Instance) return Seq_Position; Remove from compiler, this instruction will NOT be implemented!
+   -- function Cmd_Subscribe                   (Self : in out Instance) return Seq_Position; Not implemented, Adamant does not do sub/unsub for telemetry items.
+   -- function Cmd_Unsubscribe                (Self : in out Instance) return Seq_Position; Not implemented, Adamant does not do sub/unsub for telemetry items.
    function Cmd_Eval_Flt (Self : in out Instance) return Seq_Position;
    function Cmd_Cast_F_To_U (Self : in out Instance) return Seq_Position;
    function Cmd_Cast_U_To_F (Self : in out Instance) return Seq_Position;

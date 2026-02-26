@@ -20,8 +20,8 @@ package Component.Stack_Monitor.Implementation is
    -- This component requires a list of tasks to monitor.
    --
    -- Init Parameters:
-   -- task_List : Task_Types.Task_Info_List_Access - A list of task info records to monitor.
-   -- packet_Period : Interfaces.Unsigned_16 - The period (in ticks) of how often to calculate value for and send out the packet. A period of zero disables sending of the packet.
+   -- Task_List : Task_Types.Task_Info_List_Access - A list of task info records to monitor.
+   -- Packet_Period : Interfaces.Unsigned_16 - The period (in ticks) of how often to calculate value for and send out the packet. A period of zero disables sending of the packet.
    --
    overriding procedure Init (Self : in out Instance; Task_List : in not null Task_Types.Task_Info_List_Access; Packet_Period : in Interfaces.Unsigned_16 := 1);
    not overriding procedure Final (Self : in out Instance);
