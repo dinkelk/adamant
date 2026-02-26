@@ -11,7 +11,7 @@ execution: active
 init:
   description: This component requires the maximum number of unique commands that it expects to need to route. This number will be used to size the internal router table on the heap. Any attempted command registrations beyond this limit will be reported as an error event and will not be registered.
   parameters:
-    - name: max_Number_Of_Commands
+    - name: Max_Number_Of_Commands
       type: Natural
       description: The maximum number of unique commands that can be registered with the command router component.
 connectors:

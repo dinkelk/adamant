@@ -5,11 +5,11 @@ execution: passive
 init:
   description: This component requires a list of tasks to monitor.
   parameters:
-    - name: task_List
+    - name: Task_List
       type: Task_Types.Task_Info_List_Access
       not_null: true
       description: A list of task info records to monitor.
-    - name: packet_Period
+    - name: Packet_Period
       type: Interfaces.Unsigned_16
       description: The period (in ticks) of how often to calculate value for and send out the packet. A period of zero disables sending of the packet.
       default: "1"

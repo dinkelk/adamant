@@ -8,7 +8,7 @@ execution: passive
 init:
   description: This component requires a list of command ID to reject at initialization.
   parameters:
-    - name: command_Id_Reject_List
+    - name: Command_Id_Reject_List
       type: Command_Id_List
       description: The list of command IDs to reject.
 connectors:
