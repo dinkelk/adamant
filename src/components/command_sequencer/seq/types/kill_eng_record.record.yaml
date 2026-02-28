@@ -10,8 +10,8 @@ fields:
     type: Seq_Types.Sequence_Engine_Id
     format: U8
   - name: Num_To_Kill
-    description: The number of engines to kill from Engine_Start (including Engine_Start)
-    type: Seq_Types.Sequence_Engine_Id
+    description: The number of engines to kill from Engine_Start (including Engine_Start).
+    type: Basic_Types.Byte
     format: U8
   - name: Pad
     description: Padding
