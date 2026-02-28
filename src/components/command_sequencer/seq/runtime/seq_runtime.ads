@@ -46,7 +46,14 @@ package Seq_Runtime is
    -- are encountered before a blocking state is reached than an error will be returned. This prevents an infinitely executing
    -- sequence from taking over the CPU.
    -- If the runtime is an error state, then it must be cleared before calling this function.
-   function Execute_Sequence (Self : in out Instance; Instruction_Limit : in Positive; Timestamp : in Sys_Time.T) return Seq_Runtime_State.E;
+   function Execute_Sequence (Self : in out Instance; Instruction_Limit : in Positive; Timestamp : in Sys_Time.T) return Seq_Runtime_State.E
+      with Pre => Self.Get_State /= Unloaded and then
+                  Self.Get_State /= Wait_Relative and then
+                  Self.Get_State /= Wait_Absolute and then
+                  Self.Get_State /= Wait_Telemetry_Set and then
+                  Self.Get_State /= Wait_Telemetry_Relative and then
+                  Self.Get_State /= Done and then
+                  Self.Get_State /= Error;
 
    -- If the sequence is in the Wait_Command state, this will fetch the next command to execute.
    function Get_Command (Self : in Instance) return Command.T with
