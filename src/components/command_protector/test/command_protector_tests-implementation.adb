@@ -283,7 +283,7 @@ package body Command_Protector_Tests.Implementation is
       Natural_Assert.Eq (T.Armed_State_Timeout_History.Get_Count, 3);
       Packed_Arm_Timeout_Assert.Eq (T.Armed_State_Timeout_History.Get (3), (Timeout => 22));
 
-      -- Send a command not in the protected list:
+      -- Send a command IN the protected list:
       Cmd.Header.Id := 19;
       T.Command_T_To_Forward_Send (Cmd);
 
