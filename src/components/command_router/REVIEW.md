@@ -210,3 +210,17 @@ There is no test that exercises the behavior of the 16-bit counters near `Unsign
 | 3 | I-4 | **Medium** | `Set_Up` source-ID registration loop doesn't check connector connectivity, inconsistent with command registration loop. |
 | 4 | I-3 | **Medium** | Sync connector dropped-handler path re-enters `Command_Response_T_Recv_Async` from caller's task context — review thread safety of framework send calls. |
 | 5 | T-1 | **Medium** | Router table unit test uses `Command_Id => 0` which is filtered in production code, reducing test representativeness. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Unprotected Command_Success_Count | Critical | Fixed | 985e203 | Changed to Protected_U16_Counter |
+| 2 | 16-bit counter overflow | High | Fixed | ee49799 | Saturation guards on all increments |
+| 3 | Missing connectivity check in Set_Up | Medium | Fixed | 35315cc | Added Is_Connected check |
+| 4 | Re-entrant call through sync dropped handler | Medium | Not Fixed | 2f2abff | Requires framework-level changes |
+| 5 | Router table test uses Command_Id=0 | Medium | Fixed | 32ae58d | Changed to Command_Id=5 |
+| 6 | No registration-complete guard | Low | Fixed | 09b4236 | Added flag + pragma Assert |
+| 7 | Noop self-test pattern | Low | Not Fixed | eae7fbb | Intentional by design |
+| 8 | Missing counter overflow test | Low | Not Fixed | a148401 | Needs test harness |
+| 9 | Missing dropped-command test | Low | Not Fixed | 978cf6c | Needs test harness |
