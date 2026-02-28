@@ -49,6 +49,7 @@ package Binary_Tree is
    -- Return: True means element was found. False means it was not. The element and index in the array where it was found are also returned.
    function Search (Self : in Instance; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive) return Boolean;
    -- Get an element via its index. This can be helpful to quickly retrieve an element in O(1) time if you have already obtained its index via "search".
+   -- Raises Constraint_Error if Element_Index > Size (out of logical bounds).
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type;
    -- Set an element via its index. This can be helpful to quickly set an element in O(1) time if you have already obtained its index via "search".
    -- WARNING: The caller MUST ensure that the new element maintains the sorted invariant of the tree.

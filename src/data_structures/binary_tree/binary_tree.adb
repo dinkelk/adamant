@@ -127,6 +127,9 @@ package body Binary_Tree is
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type is
    begin
       pragma Assert (Self.Tree /= null, "Binary_Tree.Get called before Init");
+      if Element_Index > Self.Size then
+         raise Constraint_Error with "Binary_Tree.Get: Element_Index out of bounds";
+      end if;
       return Self.Tree (Element_Index);
    end Get;
 
