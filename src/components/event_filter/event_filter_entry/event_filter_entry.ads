@@ -18,7 +18,6 @@ package Event_Filter_Entry is
 
    -- The type of data stored on the statistic array.
    type Event_Id_List is array (Natural range <>) of Event_Types.Event_Id;
-   type Event_Id_List_Access is access Event_Id_List;
 
    -- Type used to limit the number to 8 for the bit location of the event we are searching for.
    type Bit_Location_Type is mod 8;
