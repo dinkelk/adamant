@@ -199,3 +199,18 @@ Add a negative test confirming that sending a tick without calling Init raises `
 | 3 | **Low** | Test expected values derived empirically ("we got 16, so...") rather than analytically — tests may encode bugs as expected behavior | `tests-implementation.adb`, Edge_Case_Dividers, Mode_Comparison |
 | 4 | **Low** | Incorrect/misleading comments in Nominal and Boundary_Tick_Counts tests | `tests-implementation.adb` |
 | 5 | **Low** | No test for Internal mode with all-disabled dividers or for the documented divide-by-zero-on-missing-init behavior | `tests-implementation.adb` |
+
+---
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 3.1 | Max_Count Overflow on Multiplication | High | Fixed | f58c09c | Fix High review item: Max_Count Overflow on Multiplication |
+| 3.2 | All-Disabled Dividers Leaves Max_Count = 1 in Internal Mode | Medium | Fixed | 3277581 | Fix Medium review item: All-Disabled Dividers Degenerate Case |
+| 3.3 | Nominal Test Expected Count Comment Is Incorrect | Low | Fixed | 00e84f9 | Fix Low review item: Nominal Test Expected Count Comment |
+| 3.4 | Test Comments with Wrong Arithmetic | Low | Fixed | 013cd05 | Fix Low review item: Test Comments with Wrong Arithmetic |
+| 3.5 | Boundary_Tick_Counts Comment Error on Unsigned_32'Last mod 5 | Low | Fixed | 27098be | Fix Low review item: Boundary_Tick_Counts Comment Error |
+| 3.6 | Edge_Case_Dividers Uses Tick_Counter Mode After Init with All-Disabled | Info | Not Fixed | — | Informational only; no fix required |
+| 4.2 | Missing Test: Internal Mode with All-Disabled Dividers | Low | Fixed | 8cba8e8 | Fix Low review item: Missing Test for Internal Mode All-Disabled Dividers |
+| 4.3 | Missing Test: Init Not Called Before Tick | Low | Fixed | 113be50 | Fix Low review item: Missing Test for Init Not Called Before Tick |
