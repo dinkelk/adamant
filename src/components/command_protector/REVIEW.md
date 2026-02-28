@@ -118,3 +118,20 @@ Cmd.Header.Id := 19;
 | 3 | M2 | **Medium** | Requirement 4 ("unless it is another arm command") is misleading given the actual connector topology — the Arm command never flows through the forwarding path. |
 | 4 | T1 | **Medium** | No unit test for re-arming while already armed (timeout reset scenario). |
 | 5 | T4 | **Low** | Incorrect comment in `Test_Protected_Command_Accept` — says "not in the protected list" for command ID 19 which is protected. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | TOCTOU race on armed state | High | Fixed | 97595f7 | Added atomic Try_Unarm protected operation |
+| 2 | Unsigned_16 counter overflow | Medium | Fixed | 9efd6e2 | Saturating increment for both counters |
+| 3 | Misleading requirement 4 wording | Medium | Fixed | b91c3ca | Reworded to reflect connector topology |
+| 4 | Missing re-arm while armed test | Medium | Fixed | a0ba3c4 | Added Test_Rearm_While_Armed |
+| 5 | Missing arm on forward connector test | Medium | Fixed | 8f04453 | Added Test_Arm_Command_On_Forward_Connector |
+| 6 | Get_State function with out param | Medium | Fixed | 9005925 | Converted to procedure |
+| 7 | Grammar in comment | Low | Fixed | fe9bc22 | Removed extraneous word |
+| 8 | Document zero-means-infinite | Low | Fixed | d98a5e6 | Updated timeout type YAML |
+| 9 | Requirement says seconds not ticks | Low | Fixed | 8a48adc | Changed to ticks |
+| 10 | Two protected object calls | Low | Fixed | 88405a5 | Already addressed by item 1 |
+| 11 | Missing counter saturation test | Low | Fixed | 740e24e | Added Test_Counter_Saturation |
+| 12 | Misleading test comment | Low | Fixed | 08ef9a9 | Fixed comment for command ID 19 |
