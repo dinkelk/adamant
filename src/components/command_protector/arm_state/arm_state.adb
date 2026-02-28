@@ -66,6 +66,11 @@ package body Arm_State is
                      State := Command_Protector_Enums.Armed_State.Unarmed;
                      Timed_Out := True;
                   end if;
+               else
+                  -- Armed with zero timeout — defensive measure to prevent
+                  -- a stuck Armed state. Force transition to Unarmed.
+                  State := Command_Protector_Enums.Armed_State.Unarmed;
+                  Timed_Out := True;
                end if;
 
             when Unarmed =>
