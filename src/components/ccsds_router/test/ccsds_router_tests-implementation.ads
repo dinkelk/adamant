@@ -27,6 +27,8 @@ private
    overriding procedure Test_Sequence_Count_Wraparound (Self : in out Instance);
    -- This unit test verifies that in Drop_Dupes mode a retransmission after an intervening packet (seq A, B, A) warns but does not drop.
    overriding procedure Test_Non_Consecutive_Duplicate (Self : in out Instance);
+   -- This unit test verifies that a packet matching an APID with null destinations is silently consumed without routing or error.
+   overriding procedure Test_Null_Destination_Routing (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Ccsds_Router_Tests.Base_Instance with record

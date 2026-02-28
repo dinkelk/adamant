@@ -772,6 +772,33 @@ package body Ccsds_Router_Tests.Implementation is
       Ccsds_Space_Packet_Assert.Eq (T.Error_Packet_History.Get (3), Packet_6);
    end Test_Duplicate_Packet_Drop;
 
+   overriding procedure Test_Null_Destination_Routing (Self : in out Instance) is
+      T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- APID 8 has "ignore" destinations (null destination list) in the routing table.
+      -- Sending packets to it should be silently consumed: no routing, no events, no errors.
+
+      -- Send multiple packets to APID 8:
+      Packet_8.Header.Sequence_Count := Ccsds_Sequence_Count_Type (0);
+      T.Ccsds_Space_Packet_T_Send (Packet_8);
+      Packet_8.Header.Sequence_Count := Ccsds_Sequence_Count_Type (1);
+      T.Ccsds_Space_Packet_T_Send (Packet_8);
+      Packet_8.Header.Sequence_Count := Ccsds_Sequence_Count_Type (2);
+      T.Ccsds_Space_Packet_T_Send (Packet_8);
+
+      -- Verify no packets were routed to any destination:
+      Self.Check_Routing (0, 0, 0, 0, 0, 0);
+
+      -- Verify no error packets were generated:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Verify no unrecognized APID events (APID 8 IS in the table):
+      Natural_Assert.Eq (T.Unrecognized_Apid_History.Get_Count, 0);
+
+      -- Verify no duplicate drop events:
+      Natural_Assert.Eq (T.Dropped_Duplicate_Packet_History.Get_Count, 0);
+   end Test_Null_Destination_Routing;
+
    overriding procedure Test_Non_Consecutive_Duplicate (Self : in out Instance) is
       T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
    begin
