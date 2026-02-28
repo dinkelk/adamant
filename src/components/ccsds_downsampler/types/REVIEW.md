@@ -31,3 +31,11 @@ No unit tests to review.
 ## 5. Summary
 
 The package is small and largely correct. The one semantic concern worth investigating is the **default value of `Filter_Factor` being `0`** in `Ccsds_Downsample_Packet_Entry` — if this value can reach the runtime filtering logic without being explicitly set, it could cause unexpected behavior (e.g., division by zero or dropping all packets). Consider defaulting to `1` or documenting the semantics of a zero filter factor.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Inconsistent default for `Filter_Factor` (0 vs 1) | Medium | Fixed | 2c5d0fd | Changed default from 0 to 1, consistent with tree entry |
+| 2 | Inconsistent default for `Apid` (`Last` vs `First`) | Low | Fixed | 698d248 | Changed default to `Ccsds_Apid_Type'Last` (sentinel) |
+| 3 | Array indexed by `Data_Product_Id` | Info | N/A | — | Design coupling, noted for awareness only |
