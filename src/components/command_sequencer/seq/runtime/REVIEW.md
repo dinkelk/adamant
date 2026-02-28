@@ -359,3 +359,18 @@ No unit test files were found in the `runtime/` directory. Unit tests for this p
 | 3 | **Critical** | `seq_runtime.adb` — `Change_Relative_Wait_To_Absolute` | Integer overflow possible when adding relative wait time to current time. |
 | 4 | **High** | `seq_runtime.adb` — `Execute_Sequence` | `Error` state is allowed to proceed with execution despite spec stating it must be cleared first. |
 | 5 | **High** | `seq_runtime.adb` — `Check_Wake` / `Wait_On_Helper` | Sub-second time field ignored in all time comparisons, causing premature wake-ups. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Integer overflow on time addition | Critical | Fixed | 278bfa2 | Saturating arithmetic |
+| 2 | No bounds check in Get_Instruction | Critical | Fixed | a7e0cd4 | Added bounds check before overlay |
+| 3 | No bounds check in Get_Opcode_From_Memory | Critical | Fixed | - | Added bounds check |
+| 4 | Error state allows execution | High | Fixed | - | Moved to denied states |
+| 5 | Sub-second precision in time comparisons | High | Fixed | - | Full timestamp comparison |
+| 6 | Cmd_Set_Bit_Pattern uses parsed fields before validation | High | Fixed | - | Moved after assertion |
+| 7 | Cmd_Fetch_Tlm missing Waiton=True branch | High | Fixed | - | Added state transition |
+| 8-10 | Missing preconditions | Medium | Fixed | - | Added to public APIs |
+| 11 | Overly broad exception handler | Medium | Fixed | - | Narrowed to Constraint_Error |
+| 12-15 | Low items | Low | Fixed | - | Preconditions, typos, state reset |
