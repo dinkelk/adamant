@@ -39,7 +39,7 @@ package body Arm_State is
          -- Unarm the system
          State := Command_Protector_Enums.Armed_State.Unarmed;
          -- Set the timeout to zero:
-         Timeout := Arm_Timeout_Type'First;
+         Timeout := 0;
       end Unarm;
 
       -- Decrement the timeout, and transition to the unarmed state if the
