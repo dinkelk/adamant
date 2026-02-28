@@ -25,11 +25,15 @@ package body Apid_Tree is
       for Id of Downsample_List.all loop
          -- Make sure we don't add multiple of the same apid
          Search_Status := Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0)), Ignore_2, Ignore_1);
-         pragma Assert (not Search_Status, "Downsampler tree cannot add multiple nodes of the same APID.");
+         if Search_Status then
+            raise Constraint_Error with "Downsampler tree cannot add multiple nodes of the same APID.";
+         end if;
 
          Add_Status := Self.Downsample_Entry.Add (((Apid => Id.Apid, Filter_Factor => Id.Filter_Factor, Filter_Count => 0)));
          -- Make sure we don't get a failure for some reason
-         pragma Assert (Add_Status, "Downsampler tree too small to hold all APIDs in the input list.");
+         if not Add_Status then
+            raise Constraint_Error with "Downsampler tree too small to hold all APIDs in the input list.";
+         end if;
       end loop;
    end Init;
 
