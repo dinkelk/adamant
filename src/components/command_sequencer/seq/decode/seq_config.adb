@@ -142,9 +142,7 @@ package body Seq_Config is
 
                         -- Insert command definition into our commands data structure.
                         if Self.Commands.Contains (The_Command.Header.Id) then
-                           -- Put_Line (Standard_Error, "Duplicate command found with ID: '" & Command_Types.Command_Id'Image (The_Command.Header.Id) & "'");
-                           -- raise Program_Error;
-                           exit;
+                           Put_Line (Standard_Error, "Duplicate command found with ID: '" & Command_Types.Command_Id'Image (The_Command.Header.Id) & "', skipping.");
                         else
                            Self.Commands.Include (The_Command.Header.Id, (
                               Name => Name,
