@@ -161,10 +161,17 @@ package body Seq_Config is
                   if Seq_Str_Cmp (Parsed_Line (2), "details") then
                      declare
                         Name : constant Seq_String := Parsed_Line (1);
-                        Id_Str : constant String := Parsed_Line (3);
-                        -- Extract ID and offset
-                        Id : constant Data_Product_Types.Data_Product_Id := Data_Product_Types.Data_Product_Id'Value ("16#" & Strip_Nul (Id_Str (Id_Str'First + 3 .. Id_Str'Last)) & "#");
-                        Offset : constant Interfaces.Unsigned_16 := Interfaces.Unsigned_16'Value (Strip_Nul (Parsed_Line (5))); -- Need to slice this.
+                        Id_Str : constant String := Strip_Nul (Parsed_Line (3));
+                     begin
+                        -- Validate hex prefix (expect "0x_" or similar 3-char prefix)
+                        if Id_Str'Length < 4 or else Id_Str (Id_Str'First .. Id_Str'First + 1) /= "0x" then
+                           Put_Line (Standard_Error, "Malformed telemetry ID (expected '0x' prefix): '" & Id_Str & "'");
+                           raise Program_Error;
+                        end if;
+                        declare
+                           -- Extract ID and offset
+                           Id : constant Data_Product_Types.Data_Product_Id := Data_Product_Types.Data_Product_Id'Value ("16#" & Id_Str (Id_Str'First + 3 .. Id_Str'Last) & "#");
+                           Offset : constant Interfaces.Unsigned_16 := Interfaces.Unsigned_16'Value (Strip_Nul (Parsed_Line (5)));
                         Key_To_Store : constant Interfaces.Unsigned_32 := Get_Telemetry_Key (Id, Offset);
                      begin
                         -- Store telemetry definition in telem data structure.
@@ -177,6 +184,7 @@ package body Seq_Config is
                               Id => Id
                            ));
                         end if;
+                        end;
                      end;
                   end if;
                elsif Seq_Str_Cmp (Parsed_Line (0), "sigFile") then
