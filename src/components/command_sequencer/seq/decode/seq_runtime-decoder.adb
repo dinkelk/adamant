@@ -249,11 +249,7 @@ package body Seq_Runtime.Decoder is
       for A_Byte of To_Print loop
          exit when A_Byte = 0;
 
-         declare
-            Char : Character with Import, Convention => Ada, Address => A_Byte'Address;
-         begin
-            Put (Output, Char);
-         end;
+         Put (Output, Character'Val (Natural (A_Byte)));
       end loop;
    end Print_Decode_String;
 
