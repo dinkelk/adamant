@@ -266,3 +266,18 @@
 | 3 | MOD-01 | **High** | No severity levels on events — all 37 events default to Informational, masking errors from ground alerting |
 | 4 | IMP-02 | **High** | Unsigned overflow possible in `Kill_Engines` range check arithmetic on `Unsigned_8` |
 | 5 | IMP-04 | **Medium** | `Get_Load_Command_Id` needlessly constructs full `Command.T` on stack per call — should cache during Init |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Null Send_Dropped handlers | Critical | Fixed | bb264dc | Implemented with error state transitions |
+| 2 | Unit tests disabled in CI | Critical | Not Fixed | 86d8a3a | Requires SEQ compiler |
+| 3 | No severity on error events | High | Fixed | 3f0f64a | Added severity to 28 events |
+| 4 | Unsigned_8 overflow in Kill_Engines | High | Fixed | 97aabd3 | Widened to Natural |
+| 5 | Missing test documentation | Medium | Fixed | - | Added README section |
+| 6 | Commented-out code | Medium | Fixed | - | Removed |
+| 7 | Design observation | Medium | Not Fixed | - | By design |
+| 8 | Per-call stack allocation | Medium | Fixed | - | Cached load command ID |
+| 9 | Loose precondition | Medium | Fixed | - | Tightened state check |
+| 10-20 | Various Low items | Low | Mixed | - | Typo fixes, comment cleanups, empty commits for untestable items |
