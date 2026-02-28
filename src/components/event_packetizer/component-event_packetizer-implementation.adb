@@ -403,14 +403,15 @@ package body Component.Event_Packetizer.Implementation is
 
    -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:
    overriding procedure Invalid_Command (Self : in out Instance; Cmd : in Command.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type) is
-      pragma Unreferenced (Cmd);
       pragma Unreferenced (Errant_Field_Number);
       pragma Unreferenced (Errant_Field);
    begin
-      -- The command was invalid. The only way this can happen is if the length of the command was invalid. In this case,
-      -- there is only a single command, send_packet, so let's just forget this error happened and send the packet
-      -- anyways. This shouldn't hurt anything.
-      Self.Send_Packet_Next_Tick := True;
+      -- Reject invalid commands. Do not trigger any operational behavior.
+      Self.Command_Response_T_Send_If_Connected ((
+         Source_Id => Cmd.Header.Source_Id,
+         Registration_Id => Self.Command_Reg_Id,
+         Command_Id => Cmd.Header.Id,
+         Status => Command_Execution_Status.Failure));
    end Invalid_Command;
 
 end Component.Event_Packetizer.Implementation;
