@@ -230,7 +230,11 @@ package body Component.Event_Limiter.Implementation is
       end if;
       -- If the number of events limited is not 0, then update the total number of events limited for the component lifetime and reset the number since last tick count
       if Num_Events_Limited > 0 then
-         Self.Total_Event_Limited_Count := @ + Unsigned_32 (Num_Events_Limited);
+         if Self.Total_Event_Limited_Count <= Unsigned_32'Last - Unsigned_32 (Num_Events_Limited) then
+            Self.Total_Event_Limited_Count := @ + Unsigned_32 (Num_Events_Limited);
+         else
+            Self.Total_Event_Limited_Count := Unsigned_32'Last; -- Saturate to prevent silent wraparound
+         end if;
          Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Total_Events_Limited (Timestamp, ((Value => Self.Total_Event_Limited_Count))));
 
          Self.Event_Array.Reset_Event_Limited_Count;
