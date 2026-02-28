@@ -297,3 +297,20 @@ The test suite covers 8 test cases:
 | 3 | TEST-2 | **High** | Test suite | No test for oversized `Param_Buffer_Length` — IMPL-4 is undetected |
 | 4 | IMPL-3 | **Medium** | `.adb`, `Fault_T_Recv_Async` | `Fault_Counter` (`Unsigned_16`) wraps silently at 65535 with no event or saturation |
 | 5 | DOC-3 | **Medium** | Commands YAML | `Enable_Fault_Response` description claims failure on already-enabled; implementation always returns Success |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Null Command_T_Send_Dropped | Critical | Fixed | 7f5cef5 | Emits event on drop |
+| 2 | Param buffer Constraint_Error | High | Fixed | 6534847 | Clamped copy length |
+| 3 | No oversized param test | High | Not Fixed | ea51fa1 | Needs build system |
+| 4 | Counter wraparound | Medium | Fixed | d7294be | Saturating increment |
+| 5 | Misleading command description | Medium | Fixed | 0370085 | Corrected |
+| 6 | Postcondition semantics | Medium | Fixed | d7473eb | Made conditional |
+| 7 | Missing latching requirement | Medium | Fixed | 5adc6d2 | Added |
+| 8-9 | Missing tests | Medium | Not Fixed | - | Need build system |
+| 10 | Doc punctuation | Low | Fixed | c6532c5 | Added period |
+| 11 | Empty LaTeX sections | Low | Fixed | 683e0e8 | Removed |
+| 12 | Python float division | Low | Fixed | 6c1e220 | Changed to // |
+| 13 | Fragile test init | Low | Fixed | 30b4b6b | Added comment |
