@@ -77,8 +77,10 @@ package body Component.Command_Rejector.Implementation is
                -- Timestamp:
                The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
             begin
-               -- Increment the reject counter:
-               Self.Command_Reject_Counter := @ + 1;
+               -- Increment the reject counter, saturating at max to avoid silent wrap:
+               if Self.Command_Reject_Counter < Interfaces.Unsigned_16'Last then
+                  Self.Command_Reject_Counter := @ + 1;
+               end if;
                Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Rejected_Command_Count (The_Time, (Value => Self.Command_Reject_Counter)));
 
                -- Send info event:
