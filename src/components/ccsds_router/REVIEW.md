@@ -143,3 +143,18 @@ When a duplicate is detected in `Drop_Dupes` mode, `Warn_Sequence_Count` has alr
 | 3 | TEST-1 | **Medium** | Test coverage for `Drop_Dupes` mode only exercises identical consecutive duplicates. No test for the boundary where a legitimate retransmission occurs after an intervening packet (seq A, seq B, seq A — should this warn but not drop?). Current implementation correctly only drops consecutive duplicates, but this isn't explicitly tested. |
 | 4 | IMPL-2 | **Low** | First packet after initialization always triggers a spurious `Unexpected_Sequence_Count_Received` event for `Warn` and `Drop_Dupes` mode APIDs. This is by design but undocumented in the implementation. Consider adding a comment or initializing `Last_Sequence_Count` to `first_received - 1` on first reception. |
 | 5 | MODEL-1 | **Low** | `Destination_Table_Access` is `access all` (mutable) rather than `access constant`. While the component never writes through this pointer, `access constant` would provide compile-time enforcement of immutability. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Fragile duplicate detection ordering (IMPL-1) | Medium | Fixed | 8139c7c | Reordered to capture flag before update |
+| 2 | No sequence count wraparound test (TEST-2) | Medium | Fixed | ff622d2 | Added wraparound test |
+| 3 | No non-consecutive duplicate test (TEST-1) | Medium | Fixed | 95d578c | Added A,B,A pattern test |
+| 4 | First-packet spurious warning (IMPL-2) | Low | Fixed | 6c98c10 | Added documenting comment |
+| 5 | Idempotent update ordering (IMPL-3) | Low | Fixed | f404462 | Added documenting comment |
+| 6 | Destination_Table_Access mutability (MODEL-1) | Low | Fixed | 71c6128 | Changed to access constant |
+| 7 | Null destination routing test (TEST-3) | Low | Fixed | 84ecbf0 | Added test case |
+| 8 | Concurrent test (TEST-4) | Low | Not Fixed | 41a2666 | Requires tasking infrastructure |
+| 9 | Mutable default argument (MODEL-2) | Info | Fixed | 87886e4 | Fixed Python mutable default |
+| 10-13 | DOC/TEST items | Info | Not Fixed | — | Process coordination / acceptable as-is |
