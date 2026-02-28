@@ -72,8 +72,13 @@ package body Apid_Tree is
                      Count := Self.Num_Filtered_Packets;
                   end if;
             end case;
-            -- If we found the entry in the tree, then make sure we update with the new count for that entry
-            Fetched_Entry.Filter_Count := @ + 1;
+            -- If we found the entry in the tree, then make sure we update with the new count for that entry.
+            -- Use modular arithmetic bounded by Filter_Factor to prevent Unsigned_16 wrap-around issues.
+            if Fetched_Entry.Filter_Factor > 0 then
+               Fetched_Entry.Filter_Count := (@ + 1) mod Fetched_Entry.Filter_Factor;
+            else
+               Fetched_Entry.Filter_Count := @ + 1;
+            end if;
             Self.Downsample_Entry.Set (Tree_Index, Fetched_Entry);
       end case;
 
