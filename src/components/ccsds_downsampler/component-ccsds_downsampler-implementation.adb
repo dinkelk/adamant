@@ -28,6 +28,17 @@ package body Component.Ccsds_Downsampler.Implementation is
          Status := Apid_Tree_Package.Set_Filter_Factor (Apid, New_Filter_Factor, Tree_Index);
       end Set_Filter_Factor;
 
+      -- Atomically set the filter factor and return the updated entry
+      procedure Set_Filter_Factor_And_Get (Apid : in Ccsds_Apid_Type; New_Filter_Factor : in Unsigned_16; Tree_Index : out Positive; Entry_Out : out Ccsds_Downsampler_Tree_Entry; Status : out Apid_Tree.Filter_Factor_Set_Status) is
+      begin
+         Status := Apid_Tree_Package.Set_Filter_Factor (Apid, New_Filter_Factor, Tree_Index);
+         if Status = Apid_Tree.Success then
+            Entry_Out := Apid_Tree_Package.Get_Tree_Entry (Tree_Index);
+         else
+            Entry_Out := (others => <>);
+         end if;
+      end Set_Filter_Factor_And_Get;
+
       function Get_Tree_First_Index return Positive is
       begin
          return Apid_Tree_Package.Get_Tree_First_Index;
@@ -137,15 +148,16 @@ package body Component.Ccsds_Downsampler.Implementation is
       use Apid_Tree;
       Status : Filter_Factor_Set_Status;
       Index : Positive;
+      Updated_Entry : Ccsds_Downsampler_Tree_Entry;
    begin
-      -- Get the entry if it exist
-      Self.Apid_Entries.Set_Filter_Factor (Arg.Apid, Arg.Filter_Factor, Index, Status);
+      -- Atomically set the filter factor and retrieve the updated entry
+      Self.Apid_Entries.Set_Filter_Factor_And_Get (Arg.Apid, Arg.Filter_Factor, Index, Updated_Entry, Status);
 
       case Status is
          when Success =>
             Self.Event_T_Send_If_Connected (Self.Events.Modified_Factor_Filter (Self.Sys_Time_T_Get, Arg));
-            -- If successful, then get the entry back and send the data product to also verify
-            Self.Send_Filter_Data_Product (Self.Apid_Entries.Get_Tree_Entry (Index), Index);
+            -- Send the data product with the atomically-retrieved entry
+            Self.Send_Filter_Data_Product (Updated_Entry, Index);
             return Success;
          when Invalid_Id =>
             Self.Event_T_Send_If_Connected (Self.Events.Factor_Filter_Change_Failed_Invalid_Apid (Self.Sys_Time_T_Get, Arg));
