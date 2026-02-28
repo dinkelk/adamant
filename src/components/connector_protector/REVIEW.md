@@ -207,3 +207,14 @@ The tester (`component-connector_protector-implementation-tester.adb`) correctly
 ---
 
 *End of review.*
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No concurrency test | High | Fixed | 87bfa2e | 10 tasks × 50 calls |
+| 2 | No reentrant call guard | Medium | Fixed | 67469bf | Added In_Call boolean + pragma Assert |
+| 3 | Self naming in protected proc | Medium | Fixed | 6b56db8 | Renamed to Inst |
+| 4 | Silent T_Send_Dropped | Low | Fixed | 44d90ae | pragma Assert(False) |
+| 5 | No return type on recv_sync | Low | Not Fixed | a3139c3 | Acceptable design |
+| 6 | Doc template | Low | Not Fixed | 66e3a39 | Standard practice |
