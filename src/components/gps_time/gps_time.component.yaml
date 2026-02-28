@@ -5,3 +5,6 @@ connectors:
   - description: The system time is provided via this connector.
     return_type: Sys_Time.T
     kind: return
+  - description: Event connector for reporting time conversion status.
+    type: Event.T
+    kind: send
