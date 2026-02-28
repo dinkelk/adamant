@@ -54,7 +54,10 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       Timestamp : constant Sys_Time.T := Self.Sys_Time_T_Get;
       Fetched_Entry : Ccsds_Product_Apid_List;
       Ignore : Positive;
-      -- Search the tree for the apid of the packet that was just received. If found, there are products to extract
+      -- Search the tree for the apid of the packet that was just received. If found, there are products to extract.
+      -- Note: Extract_List is set to null in the search key because Less_Than/Greater_Than only
+      -- compare on Apid. This is safe as long as the comparison operators are not modified to
+      -- access Extract_List.
       Search_Status : constant Boolean := Self.Extracted_Products_Tree.Search (((Apid => Arg.Header.Apid, Extract_List => null)), Fetched_Entry, Ignore);
    begin
       case Search_Status is
