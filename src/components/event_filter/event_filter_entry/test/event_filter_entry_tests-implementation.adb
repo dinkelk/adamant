@@ -11,8 +11,15 @@ with Interfaces; use Interfaces;
 with Event_Types;
 with Event_Filter_Entry.Tester;
 with Event_Filter_Entry_Type;
+with Ada.Unchecked_Deallocation;
 
 package body Event_Filter_Entry_Tests.Implementation is
+
+   -- Deallocator for test helper byte arrays to prevent memory leaks
+   procedure Free_Byte_Array is new Ada.Unchecked_Deallocation (
+      Object => Basic_Types.Byte_Array,
+      Name => Basic_Types.Byte_Array_Access
+   );
 
    use Event_Filter_Entry;
    use Event_Filter_Entry_Enums;
@@ -678,10 +685,14 @@ package body Event_Filter_Entry_Tests.Implementation is
       Entry_State := Event_Filter.Set_Filter_State (10, Event_Filter_State.Filtered);
       Event_Entry_Status_Assert.Eq (Entry_State, Success);
 
+      -- Free prior allocation before reassigning to prevent memory leak
+      Free_Byte_Array (Expected_Array);
       Expected_Array := Event_Id_List_To_Byte_Array (Start_Id, Stop_Id, Event_End_List);
       Event_Array := Event_Filter.Get_Entry_Array;
       Byte_Array_Assert.Eq (Event_Array.all, Expected_Array.all);
 
+      -- Clean up test allocation
+      Free_Byte_Array (Expected_Array);
       Event_Filter.Destroy;
       pragma Unreferenced (Event_Filter);
    end Test_Get_Entry_Array;
