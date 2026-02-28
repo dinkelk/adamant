@@ -228,14 +228,24 @@ package body Seq_Runtime is
    -- Sets the engines wake time. This is only called for relative waits to transform them into absolute waits.
    procedure Change_Relative_Wait_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T) is
    begin
-      Self.Wake_Time.Seconds := @ + Current_Time.Seconds;
+      -- Saturate to prevent overflow on time addition
+      if Self.Wake_Time.Seconds > Interfaces.Unsigned_32'Last - Current_Time.Seconds then
+         Self.Wake_Time.Seconds := Interfaces.Unsigned_32'Last;
+      else
+         Self.Wake_Time.Seconds := @ + Current_Time.Seconds;
+      end if;
       Self.Set_State_Blocking (Wait_Absolute);
    end Change_Relative_Wait_To_Absolute;
 
    -- Telemetry timeouts come in as relative, so must change to absolute.
    procedure Change_Relative_Timeout_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T) is
    begin
-      Self.Telemetry_Timeout.Seconds := @ + Current_Time.Seconds;
+      -- Saturate to prevent overflow on time addition
+      if Self.Telemetry_Timeout.Seconds > Interfaces.Unsigned_32'Last - Current_Time.Seconds then
+         Self.Telemetry_Timeout.Seconds := Interfaces.Unsigned_32'Last;
+      else
+         Self.Telemetry_Timeout.Seconds := @ + Current_Time.Seconds;
+      end if;
       Self.Set_State_Blocking (Wait_Telemetry_Value);
    end Change_Relative_Timeout_To_Absolute;
 
