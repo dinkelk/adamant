@@ -145,16 +145,23 @@ package body Seq_Simulator is
                Put_Line (ASCII.HT & "Waiting until: " & Trim (Self.Seq_Engines (To_Load).Get_Wakeup_Time.Seconds'Image, Ada.Strings.Left));
                Put (ASCII.HT & "Enter current time >>> ");
                declare
-                  New_Time : constant Sys_Time.T := (Interfaces.Unsigned_32'Value (Get_Line), 0);
+                  Line : constant String := Get_Line;
                begin
-                  if Self.Seq_Engines (To_Load).Is_Done_Waiting (New_Time) = Done then
-                     Put_Line (ASCII.HT & "Sequence woke up! Updating system time!");
-                     Time.Seconds := New_Time.Seconds;
-                     New_Line;
-                  else
-                     Put_Line (ASCII.HT & "Sequence didn't wake up!");
-                     New_Line;
-                  end if;
+                  declare
+                     New_Time : constant Sys_Time.T := (Interfaces.Unsigned_32'Value (Line), 0);
+                  begin
+                     if Self.Seq_Engines (To_Load).Is_Done_Waiting (New_Time) = Done then
+                        Put_Line (ASCII.HT & "Sequence woke up! Updating system time!");
+                        Time.Seconds := New_Time.Seconds;
+                        New_Line;
+                     else
+                        Put_Line (ASCII.HT & "Sequence didn't wake up!");
+                        New_Line;
+                     end if;
+                  end;
+               exception
+                  when Constraint_Error =>
+                     Put_Line ("Invalid input: " & Line & ". Please enter a numeric value.");
                end;
             when Wait_Command =>
                Put_Line (Command.Representation.To_Tuple_String (Self.Seq_Engines (To_Load).Get_Command));
@@ -178,7 +185,15 @@ package body Seq_Simulator is
                   Put_Line (ASCII.HT & "Is a new value required?: " & Trim (Tlm.New_Value_Required'Image, Ada.Strings.Left));
 
                   Put (ASCII.HT & "Enter a telemetry value >>> ");
-                  In_Value := Interfaces.Unsigned_32'Value (Get_Line);
+                  declare
+                     Tlm_Line : constant String := Get_Line;
+                  begin
+                     In_Value := Interfaces.Unsigned_32'Value (Tlm_Line);
+                  exception
+                     when Constraint_Error =>
+                        Put_Line ("Invalid input: " & Tlm_Line & ". Please enter a numeric value.");
+                        In_Value := 0;
+                  end;
                   declare
                      Tlm_Record : Packed_U32.T := (Value => In_Value);
                      Tlm_Value : Basic_Types.Poly_32_Type with Import, Convention => Ada, Address => Tlm_Record'Address;
@@ -189,7 +204,14 @@ package body Seq_Simulator is
                   if State = Wait_Telemetry_Value then
                      Put_Line (ASCII.HT & "Timeout at: " & Trim (The_Timeout.Seconds'Image, Ada.Strings.Left));
                      Put (ASCII.HT & "Enter time for this telemetry value >>> ");
-                     Time.Seconds := Interfaces.Unsigned_32'Value (Get_Line);
+                     declare
+                        Time_Line : constant String := Get_Line;
+                     begin
+                        Time.Seconds := Interfaces.Unsigned_32'Value (Time_Line);
+                     exception
+                        when Constraint_Error =>
+                           Put_Line ("Invalid input: " & Time_Line & ". Please enter a numeric value.");
+                     end;
                      New_Line;
                   else
                      Put_Line (ASCII.HT & "No timeout on this action.");
@@ -215,11 +237,18 @@ package body Seq_Simulator is
                      if Self.Seq_Engines (To_Load).Get_Load_Destination = Any_Engine then
                         Put (ASCII.HT & "Any engine load, please enter an engine to load into >>> ");
                         declare
-                           New_Id : constant Sequence_Engine_Id := Sequence_Engine_Id'Value (Get_Line);
+                           Id_Line : constant String := Get_Line;
                         begin
-                           New_Line;
-                           Self.Seq_Engines (New_Id).Set_Arguments (Self.Seq_Engines (To_Load).Get_Arguments);
-                           Self.Simulate (File_Path, New_Id, Time.Seconds);
+                           declare
+                              New_Id : constant Sequence_Engine_Id := Sequence_Engine_Id'Value (Id_Line);
+                           begin
+                              New_Line;
+                              Self.Seq_Engines (New_Id).Set_Arguments (Self.Seq_Engines (To_Load).Get_Arguments);
+                              Self.Simulate (File_Path, New_Id, Time.Seconds);
+                           end;
+                        exception
+                           when Constraint_Error =>
+                              Put_Line ("Invalid input: " & Id_Line & ". Please enter a valid engine ID.");
                         end;
 
                      else
