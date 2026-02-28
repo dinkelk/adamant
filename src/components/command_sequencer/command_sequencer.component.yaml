@@ -34,7 +34,7 @@ init:
       description: When a sequence loads or spans or calls another sequence, the command sequencer will call this function to formulate the correct sequence load command for the assembly. Since the specifics of sequence loading often varies on a mission by mission basis, this function allows the encoding of that mission specific behavior by the user.
     - name: Packet_Period
       type: Interfaces.Unsigned_16
-      description: The initial packet rate for the sequencer summary packet in ticks. A value of 0 disabled the packet.
+      description: The initial packet rate for the sequencer summary packet in ticks. A value of 0 disables the packet.
     - name: Continue_On_Command_Failure
       type: Boolean
       description: If set to True, then the sequence engines will continue to execute even if a sent command fails. If set to False, then the engines will halt with an error status if a sent command fails.
