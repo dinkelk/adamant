@@ -50,6 +50,6 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a T_Send message is dropped due to a full queue.
-   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T) is null;
+   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T);
 
 end Component.Connector_Protector.Implementation;

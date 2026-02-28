@@ -30,4 +30,17 @@ package body Component.Connector_Protector.Implementation is
       Self.P_Connector.Call (Self, Arg);
    end T_Recv_Sync;
 
+   ---------------------------------------
+   -- Invoker connector primitives:
+   ---------------------------------------
+   -- This should never be called for a Connector_Protector. If it is, it
+   -- indicates incorrect assembly wiring (e.g., connected to an async
+   -- receiver with a queue that can overflow).
+   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T) is
+      pragma Unreferenced (Self);
+      pragma Unreferenced (Arg);
+   begin
+      pragma Assert (False, "T_Send_Dropped should never be called for Connector_Protector");
+   end T_Send_Dropped;
+
 end Component.Connector_Protector.Implementation;
