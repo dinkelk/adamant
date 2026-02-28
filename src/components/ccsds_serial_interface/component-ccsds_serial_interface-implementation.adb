@@ -78,6 +78,13 @@ package body Component.Ccsds_Serial_Interface.Implementation is
       end if;
    end Ccsds_Space_Packet_T_Recv_Async;
 
+   -- This procedure is called when a Ccsds_Space_Packet_T_Recv_Async message is dropped due to a full queue.
+   -- Emit an event so the drop is observable.
+   overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Packet_Send_Failed (Self.Sys_Time_T_Get, Arg.Header));
+   end Ccsds_Space_Packet_T_Recv_Async_Dropped;
+
    -------------------------------------------------------
    -- Definition of subtasks functions for task execution:
    -------------------------------------------------------

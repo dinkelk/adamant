@@ -55,7 +55,7 @@ private
    -- On this connector the Serial Interface Component receives data and sends it out of the serial port.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
    -- This procedure is called when a Ccsds_Space_Packet_T_Recv_Async message is dropped due to a full queue.
-   overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is null;
+   overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
 
    ---------------------------------------
    -- Invoker connector primitives:
