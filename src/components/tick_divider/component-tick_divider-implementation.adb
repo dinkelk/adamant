@@ -53,6 +53,11 @@ package body Component.Tick_Divider.Implementation is
                end if;
             end loop;
 
+            -- If all dividers are zero (all connectors disabled), Max_Count remains 1.
+            -- This is a degenerate but safe case: the internal counter cycles as
+            -- (0+1) mod 1 = 0, so it stays at 0 perpetually. No connectors fire
+            -- because all dividers are zero, so this is functionally harmless.
+
             -- Make sure Max_Count doesn't overflow on increment (leave room for +1).
             pragma Assert (Self.Max_Count < Interfaces.Unsigned_32'Last);
          when Tick_Counter =>
