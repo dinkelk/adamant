@@ -37,6 +37,15 @@ package body Seq_Simulator is
          return False;
    end Initialize;
 
+   procedure Free_Engines is new Ada.Unchecked_Deallocation (Seq_Engine_Array, Seq_Engine_Array_Access);
+
+   procedure Destroy (Self : in out Instance) is
+   begin
+      if Self.Seq_Engines /= null then
+         Free_Engines (Self.Seq_Engines);
+      end if;
+   end Destroy;
+
    function Load_Sequence_In_Memory (Path : in String; Buffer : in Basic_Types.Byte_Array_Access; Sequence : out Memory_Region.T) return Boolean is
       package Io is new Ada.Sequential_Io (Basic_Types.Byte);
       use Io;
