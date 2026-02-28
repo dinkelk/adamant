@@ -18,7 +18,7 @@ with Seq_Print;
 with Packed_Poly_32_Type;
 with Var_Record;
 
--- An instanceable sequence runtime. This runtime depends on the byte code produces from the LASP SEQ
+-- An instanceable sequence runtime. This runtime depends on the byte code produced by the LASP SEQ
 -- compiler and the LASEL (LASP Awesome Sequence Execution Language). Most features of the LASEL are
 -- implemented by this runtime. See the LASEL documentation and Adamant Addendum for more details.
 package Seq_Runtime is
