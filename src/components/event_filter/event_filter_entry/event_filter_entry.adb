@@ -61,6 +61,7 @@ package body Event_Filter_Entry is
       Self.End_Id := Event_Id'First;
       Self.Num_Events_Filtered := Interfaces.Unsigned_32'First;
       Self.Num_Events_Unfiltered := Interfaces.Unsigned_32'First;
+      Self.Global_Enable_State := Global_Filter_State.Enabled;
    end Destroy;
 
    -- Set the status for a given event id
