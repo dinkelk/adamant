@@ -173,7 +173,6 @@ package body Component.Ccsds_Downsampler.Implementation is
          Self.Sys_Time_T_Get,
          (Id => Cmd.Header.Id, Errant_Field_Number => Errant_Field_Number, Errant_Field => Errant_Field)
       ));
-      null;
    end Invalid_Command;
 
 end Component.Ccsds_Downsampler.Implementation;
