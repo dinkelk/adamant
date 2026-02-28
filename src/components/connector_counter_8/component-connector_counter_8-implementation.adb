@@ -28,6 +28,13 @@ package body Component.Connector_Counter_8.Implementation is
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Count (Self.Sys_Time_T_Get, (Value => Self.Count.Get_Count)));
    end T_Recv_Sync;
 
+   -- A forwarded connector invocation was dropped:
+   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.T_Send_Dropped (Self.Sys_Time_T_Get));
+   end T_Send_Dropped;
+
    -- The command receive connector.
    overriding procedure Command_T_Recv_Sync (Self : in out Instance; Arg : in Command.T) is
       -- Execute the command:
