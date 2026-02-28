@@ -177,6 +177,7 @@ package body Component.Cpu_Monitor.Implementation is
       if Self.Packet_Counter.Is_Count_At_Period then
          Self.Packet_To_Send.Header.Time := Self.Sys_Time_T_Get;
          Self.Packet_T_Send_If_Connected (Self.Packet_To_Send);
+         -- Sequence_Count is a modular type; wrap-around is intentional.
          Self.Packet_To_Send.Header.Sequence_Count := @ + 1;
       end if;
 
