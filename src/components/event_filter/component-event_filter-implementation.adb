@@ -253,7 +253,9 @@ package body Component.Event_Filter.Implementation is
             Self.Event_Entries.Set_Filter_State (Event_Id_State_Change, Event_Filter_State.Filtered, Status);
             case Status is
                when Invalid_Id =>
-                  pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
+                  -- This branch should be unreachable given the range check above.
+                  -- Use a hard assertion that cannot be suppressed in production builds:
+                  raise Program_Error with "Unexpected Invalid_Id in Event Filter range command after pre-validation";
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -290,7 +292,9 @@ package body Component.Event_Filter.Implementation is
             Self.Event_Entries.Set_Filter_State (Event_Id_State_Change, Event_Filter_State.Unfiltered, Status);
             case Status is
                when Invalid_Id =>
-                  pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
+                  -- This branch should be unreachable given the range check above.
+                  -- Use a hard assertion that cannot be suppressed in production builds:
+                  raise Program_Error with "Unexpected Invalid_Id in Event Filter range command after pre-validation";
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
