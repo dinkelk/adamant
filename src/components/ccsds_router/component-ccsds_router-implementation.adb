@@ -33,6 +33,12 @@ package body Component.Ccsds_Router.Implementation is
          end if;
 
          declare
+            -- Note: Last_Sequence_Count is initialized to Ccsds_Sequence_Count_Type'Last (16383).
+            -- This means the first packet received will almost certainly trigger an
+            -- Unexpected_Sequence_Count_Received event for Warn and Drop_Dupes modes,
+            -- since the expected sequence count will be 0 (Last + 1 with wraparound).
+            -- This is intentional — it ensures no packets are silently accepted without
+            -- sequence count validation, even at startup.
             The_Entry : constant Internal_Router_Table_Entry := (Table_Entry => Table_Entry, Last_Sequence_Count => Ccsds_Primary_Header.Ccsds_Sequence_Count_Type'Last);
             Ignore_1 : Internal_Router_Table_Entry;
             Ignore_2 : Natural;
