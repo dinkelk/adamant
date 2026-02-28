@@ -329,7 +329,7 @@ enums:
       - name: WAIT_TELEMETRY_RELATIVE
         description: The sequence is waiting for a piece of telemetry to be a certain value. Also waiting on a relative timeout value.
       - name: TELEMETRY_SET
-        description: The sequence has received valid telemetry and should check act upon it's value.
+        description: The sequence has received valid telemetry and should act upon its value.
       - name: TIMEOUT
         description: This is a non-blocking state the means the sequence runtime has a wait that timed out.
       - name: KILL_ENGINE
