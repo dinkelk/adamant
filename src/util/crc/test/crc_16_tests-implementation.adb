@@ -57,4 +57,31 @@ package body Crc_16_Tests.Implementation is
       Assert (Result = Expected, "Test CRC failed!");
    end Test_Crc_Seeded;
 
+   procedure Test_Crc_Empty (Self : in out Instance) is
+      use Crc_16;
+      use Basic_Types;
+      Ignore : Instance renames Self;
+      Bytes : constant Basic_Types.Byte_Array (1 .. 0) := [others => 0];
+      Result : constant Crc_16_Type := Compute_Crc_16 (Bytes);
+      Expected : constant Crc_16_Type := [0 => 16#FF#, 1 => 16#FF#];
+   begin
+      Put_Line ("Returned CRC (empty): " & String_Util.Bytes_To_String (Result));
+      Put_Line ("Expected CRC (empty): " & String_Util.Bytes_To_String (Expected));
+      Assert (Result = Expected, "Empty input CRC should equal the default seed!");
+   end Test_Crc_Empty;
+
+   procedure Test_Crc_Ccitt_Vector (Self : in out Instance) is
+      use Crc_16;
+      use Basic_Types;
+      Ignore : Instance renames Self;
+      -- Standard CCITT test vector: ASCII "123456789"
+      Bytes : constant Basic_Types.Byte_Array (0 .. 8) := [16#31#, 16#32#, 16#33#, 16#34#, 16#35#, 16#36#, 16#37#, 16#38#, 16#39#];
+      Result : constant Crc_16_Type := Compute_Crc_16 (Bytes);
+      Expected : constant Crc_16_Type := [0 => 16#29#, 1 => 16#B1#];
+   begin
+      Put_Line ("Returned CRC (CCITT): " & String_Util.Bytes_To_String (Result));
+      Put_Line ("Expected CRC (CCITT): " & String_Util.Bytes_To_String (Expected));
+      Assert (Result = Expected, "CCITT standard test vector failed!");
+   end Test_Crc_Ccitt_Vector;
+
 end Crc_16_Tests.Implementation;
