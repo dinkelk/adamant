@@ -153,8 +153,8 @@ package body Seq_Config is
                      end;
                   end if;
                elsif Seq_Str_Cmp (Parsed_Line (0), "userTlm") then
-                  if Words_Parsed < 4 then
-                     Put_Line (Standard_Error, "Malformed telem: '" & A_Line & "'");
+                  if Words_Parsed < 6 then
+                     Put_Line (Standard_Error, "Malformed telem (need 6 fields): '" & A_Line & "'");
                      raise Program_Error;
                   end if;
 
