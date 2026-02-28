@@ -146,7 +146,6 @@ package body Seq_Config is
                         else
                            Self.Commands.Include (The_Command.Header.Id, (
                               Name => Name,
-                              Parameters => null, -- TODO
                               Command_Def => The_Command
                            ));
                         end if;
