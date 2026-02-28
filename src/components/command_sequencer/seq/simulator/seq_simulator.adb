@@ -61,6 +61,11 @@ package body Seq_Simulator is
    exception
       when Ada.IO_Exceptions.Name_Error =>
          return False;
+      when others =>
+         if Is_Open (File) then
+            Close (File);
+         end if;
+         return False;
    end Load_Sequence_In_Memory;
 
    procedure Simulate (Self : in out Instance; Filepath : in String; To_Load : in Sequence_Engine_Id; Engine_Time_S : in Interfaces.Unsigned_32) is
