@@ -63,6 +63,10 @@ package body Component.Ccsds_Product_Extractor.Implementation is
             null;
          -- When an id is found, loop through all the extracted data products, create the data product, and verify they are in a valid range before sending them on
          when True =>
+            -- Guard against a null Extract_List. The generator always produces non-null
+            -- lists, but defend against corrupted or manually-constructed data at runtime.
+            pragma Assert (Fetched_Entry.Extract_List /= null,
+               "Extract_List is null for APID entry found in tree.");
             for Idx in Fetched_Entry.Extract_List.all'Range loop
                -- Determine which timestamp to use based on the yaml input
                declare
