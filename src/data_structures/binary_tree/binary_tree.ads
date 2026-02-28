@@ -21,14 +21,12 @@
 -- slow as the value of N gets very large.
 --
 -- To instantiate the generic binary tree you must define the type as
--- well as two functions the compare "less than" and "greater than" of
--- the type and return a boolean stating whether the condition is
--- True or False.
+-- well as a "less than" comparison function for the type. Equality is
+-- derived as "not (A < B) and not (B < A)", and greater-than as "B < A".
 --
 generic
    type Element_Type is private;
    with function "<" (Left, Right : Element_Type) return Boolean is <>;
-   with function ">" (Left, Right : Element_Type) return Boolean is <>;
 package Binary_Tree is
    type Instance is tagged limited private;
    type Instance_Access is access all Instance;

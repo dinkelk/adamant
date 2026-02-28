@@ -12,7 +12,7 @@ package body Binary_Tree.Tester is
          for Index in 2 .. Self.Size loop
             Current_Element := Self.Tree (Index);
             Put_Line (Image (Current_Element));
-            if Previous_Element > Current_Element then
+            if Current_Element < Previous_Element then
                return False;
             end if;
             Previous_Element := Current_Element;

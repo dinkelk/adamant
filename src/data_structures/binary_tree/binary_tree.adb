@@ -113,7 +113,7 @@ package body Binary_Tree is
             Mid_Index : constant Positive := Low_Index + ((High_Index - Low_Index) / 2);
             Current_Element : Element_Type renames Self.Tree (Mid_Index);
          begin
-            if Current_Element > Element then
+            if Element < Current_Element then
                High_Index := Mid_Index - 1;
             elsif Current_Element < Element then
                Low_Index := Mid_Index + 1;
@@ -152,10 +152,10 @@ package body Binary_Tree is
 
       -- Check that the new element maintains the sorted invariant:
       -- It must be >= the previous element (if any) and <= the next element (if any).
-      if Element_Index > 1 and then Self.Tree (Element_Index - 1) > Element then
+      if Element_Index > 1 and then Element < Self.Tree (Element_Index - 1) then
          return False;
       end if;
-      if Element_Index < Self.Size and then Element > Self.Tree (Element_Index + 1) then
+      if Element_Index < Self.Size and then Self.Tree (Element_Index + 1) < Element then
          return False;
       end if;
 
