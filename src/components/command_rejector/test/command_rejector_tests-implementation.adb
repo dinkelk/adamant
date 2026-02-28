@@ -9,6 +9,7 @@ with Command_Protector_Enums; use Command_Protector_Enums.Armed_State;
 with Command.Assertion; use Command.Assertion;
 with Command_Header.Assertion; use Command_Header.Assertion;
 with Packet.Assertion; use Packet.Assertion;
+with Interfaces;
 
 package body Command_Rejector_Tests.Implementation is
 
@@ -209,5 +210,30 @@ package body Command_Rejector_Tests.Implementation is
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 3);
       Packet_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (3), T.Packets.Error_Packet_Truncate (T.System_Time, Cmd));
    end Test_Command_Reject;
+
+   overriding procedure Test_Counter_Saturation (Self : in out Instance) is
+      use Interfaces;
+      T : Component.Command_Rejector.Implementation.Tester.Instance_Access renames Self.Tester;
+      Cmd : Command.T := (Header => (Source_Id => 0, Id => 4, Arg_Buffer_Length => 0), Arg_Buffer => [others => 0]);
+   begin
+      -- Set the counter just below max via repeated sends. Instead, directly
+      -- set the internal counter to near-max to avoid sending 65k commands:
+      T.Component_Instance.Command_Reject_Counter := Unsigned_16'Last - 1;
+
+      -- Send a command that will be rejected, counter should go to max:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (1), (Value => Unsigned_16'Last));
+
+      -- Send another rejected command, counter should stay saturated at max:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 2);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (2), (Value => Unsigned_16'Last));
+
+      -- Send one more, still saturated:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 3);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (3), (Value => Unsigned_16'Last));
+   end Test_Counter_Saturation;
 
 end Command_Rejector_Tests.Implementation;
