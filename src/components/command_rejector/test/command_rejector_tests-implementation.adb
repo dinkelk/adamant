@@ -137,6 +137,27 @@ package body Command_Rejector_Tests.Implementation is
       Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 3);
       Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (3), Cmd);
 
+      -- Test boundary command IDs: 0 (minimum) should be forwarded:
+      Cmd.Header.Id := 0;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 4);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (4), Cmd);
+
+      -- Test boundary command IDs: Command_Id'Last (65535, maximum) should be forwarded:
+      Cmd.Header.Id := 65_535;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 5);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (5), Cmd);
+
+      -- Test IDs adjacent to reject list entries (3 and 5 bracket reject ID 4):
+      Cmd.Header.Id := 3;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 6);
+
+      Cmd.Header.Id := 5;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 7);
+
       -- No events or data products:
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
