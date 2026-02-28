@@ -4,7 +4,7 @@ events:
     description: Starting a sequence with the following information.
     param_type: Sequence_Load_Info.T
   - name: Finished_Sequence
-    description: The sequence engine as finished its execution of the parent sequence.
+    description: The sequence engine has finished its execution of the parent sequence.
     param_type: Packed_Sequence_Engine_Id.T
   - name: Summary_Packet_Period_Set
     description: A command was received to change the packet period of the summary packet.
