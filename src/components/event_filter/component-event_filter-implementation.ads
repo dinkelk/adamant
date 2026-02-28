@@ -65,9 +65,14 @@ private
       Event_Entries : Protected_Event_Filter_Entries;
       -- Packet variables for sending the state packet
       Send_Event_State_Packet : Protected_Boolean.Variable;
-      -- Event Filter count for lifetime of component. Tracked in the package, and a copy is stored here so that we don't send the data product if we don't have to
+      -- Event Filter count for lifetime of component. Tracked in the package, and a copy is stored here so that we don't send the data product if we don't have to.
+      -- NOTE: This counter uses modular Unsigned_32 arithmetic and will silently wrap at 2**32-1.
+      -- On wrap, the comparison with the package counter will transiently differ, triggering a
+      -- data product update on the next tick. The telemetry value becomes non-monotonic but the
+      -- component continues to function correctly. This is accepted behavior for long missions.
       Total_Event_Filtered_Count : Unsigned_32 := Unsigned_32'First;
       -- Event unfiltered count for lifetime of component. Tracked in the package, and a copy is stored here so that we don't send the data product if we don't have to. Does not include invalid id counts.
+      -- NOTE: Same wrap-around behavior as Total_Event_Filtered_Count (see above).
       Total_Event_Unfiltered_Count : Unsigned_32 := Unsigned_32'First;
    end record;
 
