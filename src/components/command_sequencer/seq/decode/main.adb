@@ -18,6 +18,11 @@ begin
       -- Get the filename from the command line:
       Seq_Filename : constant String := Get_Argument;
    begin
+      if Seq_Filename = "" then
+         Put_Line (Standard_Error, "Usage: decode [-c config_file] <sequence_file>");
+         return;
+      end if;
+
       if Config_Filename_Access = null then
          Seq_Runtime.Decoder.Decode (Self => Runtime, Path => Seq_Filename, Config_Path => "", Output => Standard_Output);
       else
