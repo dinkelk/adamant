@@ -5,6 +5,7 @@ package body Checksum_16 is
    -- This function computes the 16-bit checksum in terms of an unsigned 16 which is easier. It uses
    -- multiplies in order to be endian agnostic.
    function Compute_Checksum_16 (Bytes : in Basic_Types.Byte_Array; Seed : in Unsigned_16 := 16#0000#) return Unsigned_16 is
+      -- Note: Unsigned_16 is modular; addition wraps by design (standard checksum behavior).
       To_Return : Unsigned_16 := Seed;
    begin
       -- Go through each byte. We need to add each set of two bytes as if it were a
