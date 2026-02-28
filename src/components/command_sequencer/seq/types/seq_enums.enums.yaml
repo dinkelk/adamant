@@ -16,9 +16,9 @@ enums:
         description: This occurs when a sequence attempts to deserialize a command, but reads off the end of the sequence.
       - name: COMMAND_FAIL
         description: Something upstream failed to send or resolve a command. Will not receive a command.
-      - name: Update_Bit_Pattern
+      - name: UPDATE_BIT_PATTERN
         description: Something went wrong while parsing an update bit pattern.
-      - name: Command_Argument
+      - name: COMMAND_ARGUMENT
         description: Something went wrong while updating a command bit pattern argument.
       - name: TELEMETRY_FAIL
         description: Something about the requested telemetry failed upstream. Will not receive telemetry.
@@ -50,15 +50,15 @@ enums:
         description: The sequence attempted to perform an operation on a type that does not have that operation defined.
       - name: KILL
         description: The sequence tried to execute a kill opcode with invalid parameters.
-      - name: Recursion
+      - name: RECURSION
         description: The sequence has exceeded its in-component recursion limit and is not executable.
-      - name: Command_Timeout
+      - name: COMMAND_TIMEOUT
         description: A command response was not received within the timeout limit.
-      - name: Load_Timeout
+      - name: LOAD_TIMEOUT
         description: A sequence load was not received within the timeout limit.
-      - name: Telemetry_Timeout
+      - name: TELEMETRY_TIMEOUT
         description: A telemetry value was not received within the timeout limit.
-      - name: Unimplemented
+      - name: UNIMPLEMENTED
         description: The opcode found has not been implemented in this runtime.
   - name: Seq_Operation
     description: An arithmetic operation.
