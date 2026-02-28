@@ -243,83 +243,88 @@ package body Seq is
    end Load;
 
    function Execute (Self : in out Engine; Instruction_Limit : in Positive; Timestamp : in Sys_Time.T) return Seq_Execute_State.E is
-      Runtime_State : constant Seq_Runtime_State.E := Self.Stack.all (Self.Current).Execute_Sequence (Instruction_Limit, Timestamp);
+      Runtime_State : Seq_Runtime_State.E;
    begin
-      case Runtime_State is
-         -- If we ever see these states following an engine execution then there is a software bug.
-         when Seq_Runtime_State.Ready | Seq_Runtime_State.Telemetry_Set | Seq_Runtime_State.Timeout | Seq_Runtime_State.Unloaded =>
-            pragma Assert (False);
-            return Self.Last_Execute_State;
-         -- If the sequence is done running then we pop it off the stack and start executing the parent sequence. If this is already
-         -- the parent sequence, then we set the engine to inactive.
-         when Seq_Runtime_State.Done =>
-            -- Take return internal from finished sequence and pass it to the calling sequence
-            if Self.Current > Self.Stack.all'First then
-               -- Copy the return variable from the callee to the caller sequence.
-               Self.Stack.all (Self.Current - 1).Set_Return (Self.Stack.all (Self.Current).Get_Return);
-               -- Unload the current runtime stack entry
-               Self.Stack.all (Self.Current).Unload;
-               -- Pop the finished sequence off the stack
-               Self.Current := @ - 1;
-               -- Continue executing the caller sequence.
-               return Self.Execute (Instruction_Limit, Timestamp);
-            else
-               -- If we are here then the engine has finished executing the entire stack, and can transition to an inactive state
-               Self.Reset;
-               return Self.Last_Execute_State;
-            end if;
-         -- If we need to load a new sequence, we collapse all the states into one state
-         when Seq_Runtime_State.Wait_Load_New_Seq_Overwrite | Seq_Runtime_State.Wait_Load_New_Sub_Seq | Seq_Runtime_State.Wait_Load_New_Seq_Elsewhere =>
-            -- Load the runtime arguments into the engine arguments
-            Self.Arguments := Self.Stack.all (Self.Current).Get_And_Reset_Arguments;
-            -- If we need to load elsewhere, get the destination
-            if Runtime_State = Seq_Runtime_State.Wait_Load_New_Seq_Elsewhere then
-               Self.Engine_To_Load := Self.Stack.all (Self.Current).Get_Spawn_Destination;
+      -- Use an iterative loop instead of recursion to avoid Ada runtime stack exhaustion
+      -- when child sequences complete and execution returns to parent sequences.
+      loop
+         Runtime_State := Self.Stack.all (Self.Current).Execute_Sequence (Instruction_Limit, Timestamp);
 
-               -- Makes sure we are not spawning into the same engine, please use start for that
-               if Self.Engine_To_Load = Self.Engine_Id then
-                  Self.Set_Engine_Error (Spawn);
+         case Runtime_State is
+            -- If we ever see these states following an engine execution then there is a software bug.
+            when Seq_Runtime_State.Ready | Seq_Runtime_State.Telemetry_Set | Seq_Runtime_State.Timeout | Seq_Runtime_State.Unloaded =>
+               pragma Assert (False);
+               return Self.Last_Execute_State;
+            -- If the sequence is done running then we pop it off the stack and start executing the parent sequence. If this is already
+            -- the parent sequence, then we set the engine to inactive.
+            when Seq_Runtime_State.Done =>
+               -- Take return internal from finished sequence and pass it to the calling sequence
+               if Self.Current > Self.Stack.all'First then
+                  -- Copy the return variable from the callee to the caller sequence.
+                  Self.Stack.all (Self.Current - 1).Set_Return (Self.Stack.all (Self.Current).Get_Return);
+                  -- Unload the current runtime stack entry
+                  Self.Stack.all (Self.Current).Unload;
+                  -- Pop the finished sequence off the stack
+                  Self.Current := @ - 1;
+                  -- Continue loop to execute the caller sequence iteratively.
+               else
+                  -- If we are here then the engine has finished executing the entire stack, and can transition to an inactive state
+                  Self.Reset;
                   return Self.Last_Execute_State;
                end if;
-            else
-               Self.Engine_To_Load := Self.Engine_Id; -- Otherwise we are loading to this engine
-            end if;
-            Self.Last_Execute_State := Seq_Execute_State.Wait_Load_Seq;
-            return Self.Last_Execute_State;
-         -- These two states switch the engine into a waiting state. This allows us to hide Seq_Runtime_State upstream
-         when Seq_Runtime_State.Wait_Relative =>
-            Self.State := Waiting;
-            Self.Last_Execute_State := Seq_Execute_State.Wait_Relative;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Wait_Absolute =>
-            Self.State := Waiting;
-            Self.Last_Execute_State := Seq_Execute_State.Wait_Absolute;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Wait_Command =>
-            Self.Last_Command_Id := Self.Stack.all (Self.Current).Get_Command_Id;
-            Self.Commands_Sent := @ + 1;
-            Self.Last_Execute_State := Seq_Execute_State.Wait_Command;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Wait_Telemetry_Set =>
-            Self.Last_Execute_State := Seq_Execute_State.Set_Telemetry;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Wait_Telemetry_Value =>
-            Self.Last_Execute_State := Seq_Execute_State.Wait_Telemetry;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Kill_Engine =>
-            Self.Last_Execute_State := Seq_Execute_State.Kill_Engines;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Wait_Telemetry_Relative =>
-            Self.Last_Execute_State := Seq_Execute_State.Wait_Telemetry_Relative;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Error =>
-            Self.State := Engine_Error;
-            Self.Last_Execute_State := Seq_Execute_State.Error;
-            return Self.Last_Execute_State;
-         when Seq_Runtime_State.Print =>
-            Self.Last_Execute_State := Seq_Execute_State.Print;
-            return Self.Last_Execute_State;
-      end case;
+            -- If we need to load a new sequence, we collapse all the states into one state
+            when Seq_Runtime_State.Wait_Load_New_Seq_Overwrite | Seq_Runtime_State.Wait_Load_New_Sub_Seq | Seq_Runtime_State.Wait_Load_New_Seq_Elsewhere =>
+               -- Load the runtime arguments into the engine arguments
+               Self.Arguments := Self.Stack.all (Self.Current).Get_And_Reset_Arguments;
+               -- If we need to load elsewhere, get the destination
+               if Runtime_State = Seq_Runtime_State.Wait_Load_New_Seq_Elsewhere then
+                  Self.Engine_To_Load := Self.Stack.all (Self.Current).Get_Spawn_Destination;
+
+                  -- Makes sure we are not spawning into the same engine, please use start for that
+                  if Self.Engine_To_Load = Self.Engine_Id then
+                     Self.Set_Engine_Error (Spawn);
+                     return Self.Last_Execute_State;
+                  end if;
+               else
+                  Self.Engine_To_Load := Self.Engine_Id; -- Otherwise we are loading to this engine
+               end if;
+               Self.Last_Execute_State := Seq_Execute_State.Wait_Load_Seq;
+               return Self.Last_Execute_State;
+            -- These two states switch the engine into a waiting state. This allows us to hide Seq_Runtime_State upstream
+            when Seq_Runtime_State.Wait_Relative =>
+               Self.State := Waiting;
+               Self.Last_Execute_State := Seq_Execute_State.Wait_Relative;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Wait_Absolute =>
+               Self.State := Waiting;
+               Self.Last_Execute_State := Seq_Execute_State.Wait_Absolute;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Wait_Command =>
+               Self.Last_Command_Id := Self.Stack.all (Self.Current).Get_Command_Id;
+               Self.Commands_Sent := @ + 1;
+               Self.Last_Execute_State := Seq_Execute_State.Wait_Command;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Wait_Telemetry_Set =>
+               Self.Last_Execute_State := Seq_Execute_State.Set_Telemetry;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Wait_Telemetry_Value =>
+               Self.Last_Execute_State := Seq_Execute_State.Wait_Telemetry;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Kill_Engine =>
+               Self.Last_Execute_State := Seq_Execute_State.Kill_Engines;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Wait_Telemetry_Relative =>
+               Self.Last_Execute_State := Seq_Execute_State.Wait_Telemetry_Relative;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Error =>
+               Self.State := Engine_Error;
+               Self.Last_Execute_State := Seq_Execute_State.Error;
+               return Self.Last_Execute_State;
+            when Seq_Runtime_State.Print =>
+               Self.Last_Execute_State := Seq_Execute_State.Print;
+               return Self.Last_Execute_State;
+         end case;
+      end loop;
    end Execute;
 
    function Get_Source_Id (Self : in Engine) return Command_Source_Id is
