@@ -114,6 +114,7 @@ package body Binary_Tree is
 
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type is
    begin
+      pragma Assert (Element_Index >= Self.Get_First_Index and then Element_Index <= Self.Size);
       return Self.Tree (Element_Index);
    end Get;
 
