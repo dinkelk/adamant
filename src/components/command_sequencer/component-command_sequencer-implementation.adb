@@ -633,7 +633,7 @@ package body Component.Command_Sequencer.Implementation is
       end case;
    end Execute_Engine;
 
-   -- Procedure which build and sends the summary packet:
+   -- Procedure which builds and sends the summary packet:
    procedure Send_Summary_Packet (Self : in out Instance) is
       -- Get an empty packet:
       Pkt : Packet.T := Self.Packets.Summary_Packet_Empty (Self.Sys_Time_T_Get);
@@ -666,7 +666,7 @@ package body Component.Command_Sequencer.Implementation is
       Self.Packet_T_Send (Pkt);
    end Send_Summary_Packet;
 
-   -- Procedure which build and sends the summary packet:
+   -- Procedure which builds and sends the details packet:
    procedure Send_Details_Packet (Self : in out Instance; Engine_Id : in Seq_Types.Sequence_Engine_Id) is
       use Seq;
       -- Get reference to engine:
