@@ -25,8 +25,10 @@ package body Two_Counter_Entry is
       -- Then disable the event based on our disable list
       for Event_Id_To_Disable of Event_Disable_List loop
          Status := Set_Enable_State (Self, Event_Id_To_Disable, Event_State_Type.Disabled);
-         -- Assert here on status
-         pragma Assert (Status /= Invalid_Id, "Event ID in the disable list is out of range");
+         -- Validate status with an explicit check that executes even when assertions are suppressed
+         if Status = Invalid_Id then
+            pragma Assert (False, "Event ID in the disable list is out of range");
+         end if;
       end loop;
 
    end Init;
