@@ -125,6 +125,9 @@ package body Component.Cpu_Monitor.Implementation is
       Prev_Cpu_Time : CPU_Time;
       Curr_Cpu_Time : CPU_Time;
    begin
+      -- Buffer indexing below assumes 0-based array:
+      pragma Assert (Self.Packet_To_Send.Buffer'First = 0);
+
       -- If any of the three time periods have elapsed then take a new measurement for the CPU times
       -- for each task/interrupt during that time period.
       for Idx in Self.Execution_Periods'Range loop
