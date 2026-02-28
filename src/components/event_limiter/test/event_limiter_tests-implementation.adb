@@ -261,6 +261,15 @@ package body Event_Limiter_Tests.Implementation is
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
       Packed_U16_Assert.Eq (T.Limited_Events_Since_Tick_History.Get (3), (Value => 0));
 
+      -- Test out-of-range event IDs pass through without limiting (Requirement 6)
+      T.Event_Forward_T_Recv_Sync_History.Clear;
+      Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, 0);
+      Incoming_Event.Header.Id := 50; -- well outside configured range 0..10
+      for I in 1 .. 10 loop
+         T.Event_T_Send (Incoming_Event);
+         Natural_Assert.Eq (T.Event_Forward_T_Recv_Sync_History.Get_Count, I);
+      end loop;
+
    end Test_Received_Event;
 
    overriding procedure Test_Decrement_Event_Count (Self : in out Instance) is
