@@ -125,6 +125,41 @@ package body Forwarder_Tests.Implementation is
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (4), ((4, 5), 6));
    end Test_Enable_Disable_Forwarding;
 
+   overriding procedure Test_Init_Disabled (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+   begin
+      -- Re-initialize the component with forwarding disabled:
+      Self.Tester.Component_Instance.Init (Startup_Forwarding_State => Disabled);
+
+      -- Nothing sent at init:
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Call the component set up method that the assembly would normally call.
+      Self.Tester.Component_Instance.Set_Up;
+
+      -- Make sure data product sent with Disabled state:
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Forwarding_State_History.Get_Count, 1);
+      Packed_Enable_Disable_Type_Assert.Eq (T.Forwarding_State_History.Get (1), (State => Disabled));
+
+      -- Send data and verify it is dropped:
+      T.T_Send (((1, 2), 3));
+      T.T_Send (((4, 5), 6));
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 0);
+
+      -- Now enable via command and verify data flows:
+      T.Command_T_Send (T.Commands.Enable_Forwarding);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Enable_Forwarding_Id, Status => Success));
+
+      -- Send data and verify it is forwarded:
+      T.T_Send (((7, 8), 9));
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((7, 8), 9));
+   end Test_Init_Disabled;
+
    overriding procedure Test_Invalid_Command (Self : in out Instance) is
       T : Component_Tester_Package.Instance_Access renames Self.Tester;
       Cmd : Command.T := T.Commands.Enable_Forwarding;
