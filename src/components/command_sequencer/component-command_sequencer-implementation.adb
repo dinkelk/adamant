@@ -1306,7 +1306,6 @@ package body Component.Command_Sequencer.Implementation is
          -- Only do this if the packet connector is connected, otherwise, treat this command as a noop.
          if Self.Is_Packet_T_Send_Connected then
             -- Send the packet:
-            -- What is packet_t_send is disconnected?
             Self.Send_Details_Packet (Arg.Engine_Id);
 
             -- Send info event:
