@@ -113,3 +113,20 @@
 | 3 | **MEDIUM** | `gen/models/extracted_products.py` | Duplicate name detection uses `in` (substring match) instead of `==` (equality), causing false positives for names that are substrings of other names. |
 | 4 | **MEDIUM** | Unit tests | No test varying `System_Time` to non-zero to verify `current_time` products actually use the connector-provided time (as opposed to always getting `(0,0)` which matches default). |
 | 5 | **MEDIUM** | Unit tests | Boundary-exact packet length (`Offset + Length - 1 == Packet_Length`) not explicitly tested as a success case, leaving the off-by-one boundary partially unverified. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Off-by-one boundary check (§3.1) | High | Fixed | 0a17646 | Added CCSDS Packet_Length semantics comment |
+| 2 | Null Extract_List dereference (§3.2) | Medium | Fixed | 6d9cc09 | Added null check before dereference |
+| 3 | Python duplicate name check (§3.3) | Medium | Fixed | 9996e0b | Changed `in` to `==` for equality |
+| 4 | Buffer remainder undocumented (§3.4) | Medium | Fixed | 227c678 | Added documentation comment |
+| 5 | Boundary-exact packet test (§4.1) | Medium | Fixed | b11f364 | Added boundary-exact test case |
+| 6 | System_Time never non-zero (§4.2) | Medium | Fixed | 2dd782e | Added non-zero timestamp test |
+| 7 | Null Extract_List in search key (§3.5) | Low | Fixed | bf196a5 | Added documentation |
+| 8 | Integer overflow in Offset+Length (§3.6) | Low | Fixed | 969e430 | Documented overflow safety rationale |
+| 9 | Dropped handlers are null (§3.7) | Low | Not Fixed | fdcc4d5 | Requires model architecture changes |
+| 10 | Single-product APID failure test (§4.3) | Low | Fixed | 0710ef2 | Added test case |
+| 11 | Duplicate APID init test (§4.4) | Low | Not Fixed | d02b5d8 | Framework limitation |
+| 12 | Tester Dummy dispatch (§4.5) | Low | Fixed | 7415ed2 | Added documentation |
