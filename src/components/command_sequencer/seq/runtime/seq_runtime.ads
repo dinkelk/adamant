@@ -122,7 +122,10 @@ package Seq_Runtime is
 
    -- Get the ID of the sequence to load. This should be called after encountering a call/spawn/start
    -- instruction, i.e. in a Wait_Load_New_* state.
-   function Get_Seq_Id_To_Load (Self : in Instance) return Sequence_Types.Sequence_Id;
+   function Get_Seq_Id_To_Load (Self : in Instance) return Sequence_Types.Sequence_Id
+      with Pre => Self.Get_State = Wait_Load_New_Seq_Overwrite or else
+                  Self.Get_State = Wait_Load_New_Sub_Seq or else
+                  Self.Get_State = Wait_Load_New_Seq_Elsewhere;
 
    -- Get the last time that the runtime was executed.
    function Get_Most_Recent_Exec_Time (Self : in Instance) return Sys_Time.T;
