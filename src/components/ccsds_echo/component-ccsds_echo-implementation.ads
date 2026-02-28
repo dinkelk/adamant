@@ -28,6 +28,6 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
-   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T);
 
 end Component.Ccsds_Echo.Implementation;

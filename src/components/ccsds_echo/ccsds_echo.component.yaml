@@ -8,6 +8,9 @@ connectors:
   - description: The packet send connector.
     type: Packet.T
     kind: send
+  - description: Events are sent out of this connector.
+    type: Event.T
+    kind: send
   - description: The system time is retrieved via this connector.
     return_type: Sys_Time.T
     kind: get
