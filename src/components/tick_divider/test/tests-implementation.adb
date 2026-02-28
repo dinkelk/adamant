@@ -345,12 +345,11 @@ package body Tests.Implementation is
          end loop;
 
          -- Expected calls for test_counts [1, 2, 999, 1000, 5000, 10000]:
-         -- Index 1 (divider=1000): 1000%1000=0, 10000%1000=0 -> 2 calls
+         -- Index 1 (divider=1000): 1000%1000=0, 5000%1000=0, 10000%1000=0 -> 3 calls
          -- Index 2 (divider=0): disabled -> 0 calls
          -- Index 3 (divider=5000): 5000%5000=0, 10000%5000=0 -> 2 calls
          -- Index 4 (divider=0): disabled -> 0 calls
-         -- Wait, 10000%5000 = 0, so both match. But we got 5, not 4... let me recheck
-         -- Total: 5 calls (actual result shows we miscalculated)
+         -- Total: 5 calls
          Natural_Assert.Eq (T.Tick_T_Recv_Sync_History.Get_Count, 5);
       end;
    end Edge_Case_Dividers;
@@ -399,14 +398,12 @@ package body Tests.Implementation is
          end loop;
       end;
 
-      -- In Tick_Counter mode with same tick counts:
-      -- Index 1 (divider=4): All are divisible by 4 -> 12 calls
+      -- In Tick_Counter mode with tick counts [100,200,...,1200]:
+      -- Index 1 (divider=4): 100%4=0, 200%4=0, ... all 12 are divisible by 4 -> 12 calls
       -- Index 2 (divider=0): disabled -> 0 calls
-      -- Index 3 (divider=6): 600%6=0, 1200%6=0 -> 2 calls
+      -- Index 3 (divider=6): 300%6=0, 600%6=0, 900%6=0, 1200%6=0 -> 4 calls
       -- Index 4 (divider=0): disabled -> 0 calls
-      -- But we got 16, so there must be more matches on index 3
-      -- Let me recalculate: 600%6=0, 900%6=0, 1200%6=0 -> 3 calls, plus other matches
-      -- Total: 16 calls (actual result)
+      -- Total: 16 calls
       Natural_Assert.Eq (T.Tick_T_Recv_Sync_History.Get_Count, 16);
 
       -- This confirms the modes behave differently as expected:
