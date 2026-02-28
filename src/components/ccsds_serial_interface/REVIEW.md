@@ -49,3 +49,18 @@
 | 3 | I3/M2 | Medium | `Cpu_Usage` is computed but never exported — dead code with no telemetry connector. |
 | 4 | T1/T2/T3 | Medium | All three event paths (`Packet_Send_Failed`, `Packet_Recv_Failed`, `Have_Not_Seen_Sync_Pattern`) lack unit test coverage. |
 | 5 | T7 | Medium | Write test uses a null reporter that silently swallows AUnit failures. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Race condition on shared state | High | Fixed | cc5d518 | Added synchronization |
+| 2 | CPU measurement in wrong procedure | High | Fixed | b7f6e69 | Moved to correct context |
+| 3 | Undocumented Cpu_Usage/Count | Medium | Fixed | f043383 | Added documentation |
+| 4 | Dropped packet handler silent | Medium | Fixed | ea76c66 | Added handling |
+| 5 | Cpu_Usage computed but never exported | Medium | Fixed | 124aa3d | Addressed dead code |
+| 6 | No upper bound on sync search | Medium | Fixed | 79aa573 | Added bound |
+| 7 | No Packet_Send_Failed test | Medium | Fixed | 031ef92 | Added test |
+| 8 | No Packet_Recv_Failed test | Medium | Fixed | 10b4ad5 | Added test |
+| 9 | No Have_Not_Seen_Sync_Pattern test | Medium | Fixed | e68c9a0 | Added test |
+| 10 | Write test no content verification | Medium | Fixed | 8626d55 | Added verification |
