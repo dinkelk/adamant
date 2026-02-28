@@ -1,3 +1,6 @@
+-- Note: This test uses pragma Assert in a standalone procedure rather than AUnit.
+-- This is intentional for simplicity; the checksum logic is straightforward and
+-- does not require the structured reporting of a full test framework.
 with Checksum_16; use Checksum_16;
 with Basic_Types.Representation; use Basic_Types;
 
