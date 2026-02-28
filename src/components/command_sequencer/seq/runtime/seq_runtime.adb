@@ -1005,7 +1005,7 @@ package body Seq_Runtime is
 
       return Self.Next_Position;
    exception
-      when others =>
+      when Constraint_Error =>
          return Self.Process_Error (Eval);
    end Cmd_Eval;
 
@@ -1310,7 +1310,7 @@ package body Seq_Runtime is
 
       return Self.Next_Position;
    exception
-      when others =>
+      when Constraint_Error =>
          return Self.Process_Error (Eval);
    end Cmd_Eval_Flt;
 
@@ -1434,7 +1434,7 @@ package body Seq_Runtime is
 
       return Self.Next_Position;
    exception
-      when others =>
+      when Constraint_Error =>
          return Self.Process_Error (Eval);
    end Cmd_Eval_S;
 
