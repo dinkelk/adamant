@@ -45,7 +45,7 @@ package body Seq_Config is
       while I in S'First .. End_Idx loop
          -- Parse the next token
          Find_Token (
-            Source   => S,
+            Source   => S (S'First .. End_Idx),
             Set       => Whitespace,
             From      => I,
             Test      => Outside,
