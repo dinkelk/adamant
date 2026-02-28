@@ -61,38 +61,40 @@ package body Component.Ccsds_Command_Depacketizer.Implementation is
 
       -- Create a buffer and command type:
       The_Command : Command.T;
-
-      -- Deserialize the secondary header
-      Secondary_Header : constant Ccsds_Command_Secondary_Header.T :=
-         Ccsds_Command_Secondary_Header.Serialization.From_Byte_Array (Arg.Data (Next_Index .. Next_Index + Ccsds_Command_Secondary_Header_Length - 1));
    begin
       -- First make sure the CCSDS packet length is less than the size of the buffer. We need to do this
       -- before we can calculate a checksum without running off the end of the packet.
       if Data_Length > Arg.Data'Length then
          Self.Drop_Packet (Arg, Self.Events.Packet_Too_Large (Self.Sys_Time_T_Get, (Arg.Header, Length => Data_Length, Length_Bound => Arg.Data'Length)));
       else
-         -- First check the checksum. If the checksum is not zero, then it is invalid, since the checksum within
-         -- the packet itself should zero out the rest of the computed checksum.
-         Checksum := Xor_8.Compute_Xor_8 (Ccsds_Primary_Header.Serialization.To_Byte_Array (Arg.Header)); -- checksum header
-         Checksum := Xor_8.Compute_Xor_8 (Arg.Data (Arg.Data'First .. Arg.Data'First + Data_Length - 1), @); -- checksum data
-         if Checksum /= 0 then
-            Self.Drop_Packet (Arg, Self.Events.Invalid_Packet_Checksum (Self.Sys_Time_T_Get, (
-                  Ccsds_Header => (
-                     Primary_Header => Arg.Header,
-                     Secondary_Header => Secondary_Header
-                  ),
-                  Computed_Checksum => Checksum,
-                  Expected_Checksum => Secondary_Header.Checksum
-            )));
+         -- Check packet type and make sure it is set for CCSDS_Packet_Type.Telecommand:
+         if Arg.Header.Packet_Type /= Ccsds_Packet_Type.Telecommand then
+            Self.Drop_Packet (Arg, Self.Events.Invalid_Packet_Type (Self.Sys_Time_T_Get, Arg.Header));
          else
-            -- Check packet type and make sure it is set for CCSDS_Packet_Type.Telecommand:
-            if Arg.Header.Packet_Type /= Ccsds_Packet_Type.Telecommand then
-               Self.Drop_Packet (Arg, Self.Events.Invalid_Packet_Type (Self.Sys_Time_T_Get, Arg.Header));
+            -- Make sure that there is a secondary header:
+            if Arg.Header.Secondary_Header /= Ccsds_Secondary_Header_Indicator.Secondary_Header_Present then
+               Self.Drop_Packet (Arg, Self.Events.No_Secondary_Header (Self.Sys_Time_T_Get, Arg.Header));
             else
-               -- Make sure that there is a secondary header:
-               if Arg.Header.Secondary_Header /= Ccsds_Secondary_Header_Indicator.Secondary_Header_Present then
-                  Self.Drop_Packet (Arg, Self.Events.No_Secondary_Header (Self.Sys_Time_T_Get, Arg.Header));
-               else
+               -- Secondary header is present and packet is large enough, so now deserialize it
+               -- and validate the checksum.
+               declare
+                  Secondary_Header : constant Ccsds_Command_Secondary_Header.T :=
+                     Ccsds_Command_Secondary_Header.Serialization.From_Byte_Array (Arg.Data (Next_Index .. Next_Index + Ccsds_Command_Secondary_Header_Length - 1));
+               begin
+                  -- Check the checksum. If the checksum is not zero, then it is invalid, since the checksum within
+                  -- the packet itself should zero out the rest of the computed checksum.
+                  Checksum := Xor_8.Compute_Xor_8 (Ccsds_Primary_Header.Serialization.To_Byte_Array (Arg.Header)); -- checksum header
+                  Checksum := Xor_8.Compute_Xor_8 (Arg.Data (Arg.Data'First .. Arg.Data'First + Data_Length - 1), @); -- checksum data
+                  if Checksum /= 0 then
+                     Self.Drop_Packet (Arg, Self.Events.Invalid_Packet_Checksum (Self.Sys_Time_T_Get, (
+                           Ccsds_Header => (
+                              Primary_Header => Arg.Header,
+                              Secondary_Header => Secondary_Header
+                           ),
+                           Computed_Checksum => Checksum,
+                           Expected_Checksum => Secondary_Header.Checksum
+                     )));
+                  else
                   declare
                      Num_Pad_Bytes : constant Natural := Natural (Secondary_Header.Function_Code);
                      Command_Id_Length : constant Natural := Command_Id.Serialization.Serialized_Length;
@@ -134,7 +136,8 @@ package body Component.Ccsds_Command_Depacketizer.Implementation is
                         end if;
                      end if;
                   end;
-               end if;
+                  end if;
+               end;
             end if;
          end if;
       end if;
