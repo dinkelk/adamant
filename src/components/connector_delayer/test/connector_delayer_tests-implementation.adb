@@ -117,6 +117,36 @@ package body Connector_Delayer_Tests.Implementation is
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (6), ((15, 15), 15));
    end Test_Queued_Call;
 
+   -- This unit test verifies that with Delay_Us=0, the component behaves like
+   -- a Connector Queuer with negligible dispatch latency.
+   overriding procedure Test_Zero_Delay (Self : in out Instance) is
+      use Ada.Real_Time;
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+      The_Time_1, The_Time_2 : Ada.Real_Time.Time;
+      Dur : Ada.Real_Time.Time_Span;
+      -- Maximum acceptable latency for zero-delay dispatch (100ms):
+      Max_Zero_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Microseconds (100_000);
+   begin
+      -- Reinitialize with zero delay:
+      T.Component_Instance.Init (Delay_Us => 0);
+
+      -- Send data and dispatch:
+      T.T_Send (((1, 2), 3));
+      The_Time_1 := Clock;
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      The_Time_2 := Clock;
+      Dur := The_Time_2 - The_Time_1;
+      Put_Line ("Zero delay took: " & Dur'Image);
+
+      -- Assert near-zero latency:
+      pragma Assert (Dur < Max_Zero_Delay,
+         "Zero-delay dispatch took too long; expected near-instant pass-through");
+
+      -- Verify data passed through correctly:
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((1, 2), 3));
+   end Test_Zero_Delay;
+
    -- This unit test fills the queue and makes sure that dropped messages are
    -- reported.
    overriding procedure Test_Full_Queue (Self : in out Instance) is
