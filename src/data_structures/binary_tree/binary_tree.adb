@@ -21,7 +21,7 @@ package body Binary_Tree is
    function Add (Self : in out Instance; Element : in Element_Type) return Boolean is
    begin
       -- Make sure tree is not full:
-      if Self.Size >= Self.Tree'Last then
+      if Self.Size >= Self.Tree'Length then
          return False;
       end if;
 
