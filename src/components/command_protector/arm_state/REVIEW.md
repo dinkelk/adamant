@@ -140,3 +140,13 @@ No YAML models are present within the `arm_state/` directory itself. The depende
 | 3 | **Medium** | `Arm(0)` creates a stuck Armed state that never times out | `arm_state.adb:17–22` |
 | 4 | **Medium** | `Decrement_Timeout` silently ignores Armed state with zero timeout | `arm_state.adb:46–55` |
 | 5 | **Low** | `Unarm` assumes `Arm_Timeout_Type'First = 0` — fragile if type range changes | `arm_state.adb:31` |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Protected function with out parameter | High | Fixed | 4919d50 | Split into Get_State + Get_Timeout |
+| 2 | No unit tests | High | Fixed | 7844939 | Added 9 test cases |
+| 3 | Arm(0) creates stuck state | Medium | Fixed | 09accd3 | Guard rejects zero timeout |
+| 4 | Decrement_Timeout no-ops at zero | Medium | Fixed | 649d2ad | Forces Unarmed on zero timeout |
+| 5 | Fragile 'First usage | Low | Fixed | a0dac68 | Replaced with explicit 0 |
