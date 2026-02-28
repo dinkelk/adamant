@@ -249,3 +249,14 @@ No issues found.
 ### Overall Assessment
 
 The Forwarder is a simple, well-structured component. The implementation is correct and follows Adamant conventions consistently. The main gaps are in **test coverage** (disabled startup path) and **documentation quality** (requirements traceability, typos). The idempotency concern (IMPL-2) is a design decision that should be explicitly documented or addressed. No critical issues were found.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Disabled startup untested | High | Fixed | 0d8ba2c | Added Test_Init_Disabled |
+| 2 | No idempotency guards | Medium | Fixed | 8637463 | Guards + eliminated redundant Get_Var |
+| 3 | No idempotent command test | Medium | Fixed | 6603470 | Added test |
+| 4 | No requirement IDs | Medium | Fixed | 5726319 | Added REQ-FWD-001–005 |
+| 5 | Typo "to forwarder" | Low | Fixed | 98019fd | Corrected |
+| 6-11 | Other Low items | Low | Mixed | - | Doc cleanup, descriptions, empty commits |
