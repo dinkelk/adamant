@@ -244,26 +244,49 @@ package body Two_Counter_Entry is
    end Get_Enable_State;
 
    procedure Set_Persistence (Self : in out Instance; New_Persistence : in Persistence_Type) is
+      Event_Info : Two_Counter_Entry_Type.T;
+      Status : Event_Location;
+      Modified : Boolean;
+      Current_Id : Event_Id;
    begin
       -- If the new persistence decreases, then we need to loop through all the events and make sure the counts are less than or equal to the new persistence
       if New_Persistence < Self.Persistence then
-         -- No need to check the id since we assume it should be in range from our init values
-         for Idx in Self.Bytes'Range loop
-            declare
-               Event_Info : Two_Counter_Entry_Type.T with
-                  Import,
-                  Convention => Ada,
-                  Address => Self.Bytes (Idx)'Address;
-            begin
-               -- If the top half to the byte has a count greater than the persistence, then set it to the new persistence value
-               if Event_Info.Top_Event_Count > New_Persistence then
-                  Event_Info.Top_Event_Count := New_Persistence;
-               end if;
-               -- If the bottom half to the byte has a count greater than the persistence, then set it to the new persistence value
-               if Event_Info.Bottom_Event_Count > New_Persistence then
-                  Event_Info.Bottom_Event_Count := New_Persistence;
-               end if;
-            end;
+         -- Iterate over valid event IDs using Get_Entry/Set_Entry to maintain abstraction
+         -- and avoid modifying phantom slots on odd-count ranges
+         Current_Id := Self.Start_Id;
+         while Current_Id <= Self.End_Id loop
+            Status := Get_Entry (Self, Current_Id, Event_Info);
+            Modified := False;
+            case Status is
+               when Top =>
+                  if Event_Info.Top_Event_Count > New_Persistence then
+                     Event_Info.Top_Event_Count := New_Persistence;
+                     Modified := True;
+                  end if;
+                  -- Also clamp the bottom half if the next ID is valid
+                  if Current_Id < Self.End_Id then
+                     if Event_Info.Bottom_Event_Count > New_Persistence then
+                        Event_Info.Bottom_Event_Count := New_Persistence;
+                        Modified := True;
+                     end if;
+                  end if;
+               when Bottom =>
+                  if Event_Info.Bottom_Event_Count > New_Persistence then
+                     Event_Info.Bottom_Event_Count := New_Persistence;
+                     Modified := True;
+                  end if;
+               when Invalid_Id =>
+                  null;
+            end case;
+            if Modified then
+               Set_Entry (Self, Current_Id, Event_Info);
+            end if;
+            -- Skip by 2 when we handled Top (we processed both halves), otherwise by 1
+            if Status = Top and then Current_Id < Self.End_Id then
+               Current_Id := Current_Id + 2;
+            else
+               Current_Id := Current_Id + 1;
+            end if;
          end loop;
       end if;
       -- At the end capture the new persistence
