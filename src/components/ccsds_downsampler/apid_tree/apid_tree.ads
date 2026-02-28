@@ -8,6 +8,7 @@ package Apid_Tree is
    use Interfaces;
    use Ccsds_Primary_Header;
    use Ccsds_Downsampler_Types;
+   -- Not task-safe. Caller must serialize access.
    type Instance is tagged limited private;
 
    -- Defined return type
