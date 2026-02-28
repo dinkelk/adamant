@@ -37,7 +37,7 @@ private
       -- Counters for data products, protected where needed.
       Command_Receive_Count : Protected_U16_Counter.Counter;
       Command_Failure_Count : Protected_U16_Counter.Counter;
-      Command_Success_Count : Interfaces.Unsigned_16 := 0;
+      Command_Success_Count : Protected_U16_Counter.Counter;
       -- An instance of the command router command sending object. This is used for
       -- self testing the command response forwarding feature of the command router.
       Commands : Command_Router_Commands.Instance;

@@ -19,6 +19,7 @@ package body Component.Command_Router.Implementation is
       -- Initialize counters:
       Self.Command_Receive_Count.Set_Count (0);
       Self.Command_Failure_Count.Set_Count (0);
+      Self.Command_Success_Count.Set_Count (0);
    end Init;
 
    ---------------------------------------
@@ -197,8 +198,8 @@ package body Component.Command_Router.Implementation is
             if Self.Is_Data_Product_T_Send_Connected and then
                 Arg.Command_Id /= Self.Commands.Get_Reset_Data_Products_Id
             then
-               Self.Command_Success_Count := @ + 1;
-               Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count)));
+               Self.Command_Success_Count.Increment_Count;
+               Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Successful_Command (The_Time, (Id => Arg.Command_Id)));
             end if;
          -- Failed command action.
@@ -274,7 +275,7 @@ package body Component.Command_Router.Implementation is
       -- Reset the values that need to be reset:
       Self.Command_Receive_Count.Set_Count (0);
       Self.Command_Failure_Count.Set_Count (0);
-      Self.Command_Success_Count := 0;
+      Self.Command_Success_Count.Set_Count (0);
 
       -- Update data products:
       if Self.Is_Data_Product_T_Send_Connected then
@@ -283,7 +284,7 @@ package body Component.Command_Router.Implementation is
          Self.Data_Product_T_Send (Self.Data_Products.Last_Received_Command (The_Time, (Id => Command_Types.Command_Id'First)));
          Self.Data_Product_T_Send (Self.Data_Products.Last_Failed_Command (The_Time, (Id => Command_Types.Command_Id'First, Status => Command_Response_Status.Success)));
          Self.Data_Product_T_Send (Self.Data_Products.Last_Successful_Command (The_Time, (Id => Command_Types.Command_Id'First)));
-         Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count)));
+         Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count.Get_Count)));
          Self.Data_Product_T_Send (Self.Data_Products.Noop_Arg_Last_Value (The_Time, (Value => 0)));
       end if;
 
