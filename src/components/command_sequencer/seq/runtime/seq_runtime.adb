@@ -98,9 +98,9 @@ package body Seq_Runtime is
 
       -- Deny execution for certain states
       case Self.State is
-         when Ready | Wait_Command | Wait_Telemetry_Value | Telemetry_Set | Timeout | Wait_Load_New_Seq_Overwrite | Wait_Load_New_Sub_Seq | Wait_Load_New_Seq_Elsewhere | Kill_Engine | Print | Error =>
+         when Ready | Wait_Command | Wait_Telemetry_Value | Telemetry_Set | Timeout | Wait_Load_New_Seq_Overwrite | Wait_Load_New_Sub_Seq | Wait_Load_New_Seq_Elsewhere | Kill_Engine | Print =>
             null;
-         when Unloaded | Wait_Relative | Wait_Absolute | Wait_Telemetry_Set | Wait_Telemetry_Relative | Done =>
+         when Unloaded | Wait_Relative | Wait_Absolute | Wait_Telemetry_Set | Wait_Telemetry_Relative | Done | Error =>
             return Self.State;
       end case;
 
@@ -171,6 +171,7 @@ package body Seq_Runtime is
       Self.Telemetry_Wait_Start_Time := (0, 0);
       Self.Seq_Id_To_Load := Sequence_Types.Sequence_Id'First;
       Self.Spawn_Destination := Sequence_Engine_Id'First;
+      Self.String_To_Print := (Print_Type => Seq_Print_Type.Debug, Encoded_String => [others => 0]);
 
       -- Note: We do NOT reset the following, as these can be used after the sequence has been unloaded to provide
       -- information to another running sequence.
@@ -228,21 +229,34 @@ package body Seq_Runtime is
    -- Sets the engines wake time. This is only called for relative waits to transform them into absolute waits.
    procedure Change_Relative_Wait_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T) is
    begin
-      Self.Wake_Time.Seconds := @ + Current_Time.Seconds;
+      -- Saturate to prevent overflow on time addition
+      if Self.Wake_Time.Seconds > Interfaces.Unsigned_32'Last - Current_Time.Seconds then
+         Self.Wake_Time.Seconds := Interfaces.Unsigned_32'Last;
+      else
+         Self.Wake_Time.Seconds := @ + Current_Time.Seconds;
+      end if;
       Self.Set_State_Blocking (Wait_Absolute);
    end Change_Relative_Wait_To_Absolute;
 
    -- Telemetry timeouts come in as relative, so must change to absolute.
    procedure Change_Relative_Timeout_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T) is
    begin
-      Self.Telemetry_Timeout.Seconds := @ + Current_Time.Seconds;
+      -- Saturate to prevent overflow on time addition
+      if Self.Telemetry_Timeout.Seconds > Interfaces.Unsigned_32'Last - Current_Time.Seconds then
+         Self.Telemetry_Timeout.Seconds := Interfaces.Unsigned_32'Last;
+      else
+         Self.Telemetry_Timeout.Seconds := @ + Current_Time.Seconds;
+      end if;
       Self.Set_State_Blocking (Wait_Telemetry_Value);
    end Change_Relative_Timeout_To_Absolute;
 
    -- Check if the engine should wake up.
    function Check_Wake (Self : in out Instance; Current_Time : in Sys_Time.T) return Check_Wake_Type is
    begin
-      if Current_Time.Seconds >= Self.Wake_Time.Seconds then
+      if Current_Time.Seconds > Self.Wake_Time.Seconds
+         or else (Current_Time.Seconds = Self.Wake_Time.Seconds
+                  and then Current_Time.Subseconds >= Self.Wake_Time.Subseconds)
+      then
          Self.Set_State_Blocking (Ready);
          return Woken;
       end if;
@@ -393,15 +407,24 @@ package body Seq_Runtime is
    -- Gets a byte from the buffer assuming it is a valid opcode. If it is not a valid opcode it returns Invalid.
    function Get_Opcode_From_Memory (Self : in Instance) return Seq_Opcode.E is
       use System.Storage_Elements;
+      Opcode_Size : constant Natural := Packed_Seq_Opcode.T'Object_Size / Basic_Types.Byte'Object_Size;
       Offset : constant Storage_Offset := Storage_Offset (Self.Position);
-      This_Opcode : Packed_Seq_Opcode.T with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Offset;
    begin
-      -- Validate the opcode before returning it.
-      if This_Opcode.Opcode'Valid then
-         return This_Opcode.Opcode;
-      else
+      -- Bounds check: ensure opcode fits within sequence region
+      if Natural (Self.Position) + Opcode_Size > Self.Sequence_Region.Length then
          return Invalid;
       end if;
+
+      declare
+         This_Opcode : Packed_Seq_Opcode.T with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Offset;
+      begin
+         -- Validate the opcode before returning it.
+         if This_Opcode.Opcode'Valid then
+            return This_Opcode.Opcode;
+         else
+            return Invalid;
+         end if;
+      end;
    end Get_Opcode_From_Memory;
 
    -- Performs bitwise or/and/xor on two signed packed records, returns signed packed record.
@@ -439,20 +462,30 @@ package body Seq_Runtime is
    -- Returns an instruction as a byte array, this is a generic that requires an instruction type
    function Get_Instruction (Inst : in out Instance; Instruction : out T) return Seq_Status is
       use System.Storage_Elements;
+      Inst_Size : constant Natural := T'Object_Size / Basic_Types.Byte'Object_Size;
       Offset : constant Storage_Offset := Storage_Offset (Inst.Position);
-      To_Return : T with Import, Convention => Ada, Address => Inst.Sequence_Region.Address + Offset;
-      Errant : Interfaces.Unsigned_32 := 0;
    begin
-      Instruction := To_Return;
-
-      -- Can fail if one of the fields is constrained (i.e. enum, range smaller than 0-255)
-      if Valid (Instruction, Errant) then
-         Inst.Next_Position := Seq_Position (T'Object_Size / Basic_Types.Byte'Object_Size) + Inst.Position;
-         return Success;
-      else
-         Inst.Errant_Field := Errant;
+      -- Bounds check: ensure instruction fits within sequence region
+      if Natural (Inst.Position) + Inst_Size > Inst.Sequence_Region.Length then
+         Inst.Errant_Field := 0;
          return Failure;
       end if;
+
+      declare
+         To_Return : T with Import, Convention => Ada, Address => Inst.Sequence_Region.Address + Offset;
+         Errant : Interfaces.Unsigned_32 := 0;
+      begin
+         Instruction := To_Return;
+
+         -- Can fail if one of the fields is constrained (i.e. enum, range smaller than 0-255)
+         if Valid (Instruction, Errant) then
+            Inst.Next_Position := Seq_Position (Inst_Size) + Inst.Position;
+            return Success;
+         else
+            Inst.Errant_Field := Errant;
+            return Failure;
+         end if;
+      end;
    end Get_Instruction;
 
    function Get_Internal (Inst : in out Instance; Src : in Seq_Internal.E; Dest : out T) return Seq_Status is
@@ -701,7 +734,10 @@ package body Seq_Runtime is
          Self.Timeout_Set := True;
          return Seq_Position (Jump_Position);
       else
-         if Self.Most_Recent_Execution_Time.Seconds >= Self.Telemetry_Timeout.Seconds then
+         if Self.Most_Recent_Execution_Time.Seconds > Self.Telemetry_Timeout.Seconds
+            or else (Self.Most_Recent_Execution_Time.Seconds = Self.Telemetry_Timeout.Seconds
+                     and then Self.Most_Recent_Execution_Time.Subseconds >= Self.Telemetry_Timeout.Subseconds)
+         then
             -- Timeout should occur
             Self.Set_Timeout; -- Set internal timeout flag
             Self.Timeout_Set := False;
@@ -782,28 +818,30 @@ package body Seq_Runtime is
    function Cmd_Set_Bit_Pattern (Self : in out Instance) return Seq_Position is
       Instruction : Set_Bit_Record.T;
       Status : constant Seq_Status := Get_Set_Bit_Pattern (Self, Instruction);
-
       use System.Storage_Elements;
-      Bytes : Basic_Types.Byte_Array (0 .. Natural (Instruction.Length) - 1)
-         with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Storage_Offset (Self.Next_Position);
-      Bytes_Serialized : Natural;
-      Command_Serialization_Status : constant Serialization_Status := Command.Serialization.From_Byte_Array (Self.Bit_Pattern, Bytes, Bytes_Serialized);
    begin
       pragma Assert (Status = Success);
 
-      -- Command Serialization Failure
-      if Command_Serialization_Status /= Success or else Bytes_Serialized /= Natural (Instruction.Length) then
-         return Self.Process_Error (Command_Parse);
-      end if;
+      declare
+         Bytes : Basic_Types.Byte_Array (0 .. Natural (Instruction.Length) - 1)
+            with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Storage_Offset (Self.Next_Position);
+         Bytes_Serialized : Natural;
+         Command_Serialization_Status : constant Serialization_Status := Command.Serialization.From_Byte_Array (Self.Bit_Pattern, Bytes, Bytes_Serialized);
+      begin
+         -- Command Serialization Failure
+         if Command_Serialization_Status /= Success or else Bytes_Serialized /= Natural (Instruction.Length) then
+            return Self.Process_Error (Command_Parse);
+         end if;
 
-      Self.Next_Position := @ + Seq_Position (Bytes_Serialized);
+         Self.Next_Position := @ + Seq_Position (Bytes_Serialized);
 
-      -- Read off the end of the sequence
-      if Self.Next_Position > Seq_Position (Self.Seq_Header.Length) then
-         return Self.Process_Error (Command_Length);
-      end if;
+         -- Read off the end of the sequence
+         if Self.Next_Position > Seq_Position (Self.Seq_Header.Length) then
+            return Self.Process_Error (Command_Length);
+         end if;
 
-      return Self.Next_Position;
+         return Self.Next_Position;
+      end;
    end Cmd_Set_Bit_Pattern;
 
    -- opcode 1 | Send Bit Pattern | U8 - U8 - U8 - U8 | Opcode - Pad - Pad - Pad
@@ -968,7 +1006,7 @@ package body Seq_Runtime is
 
       return Self.Next_Position;
    exception
-      when others =>
+      when Constraint_Error =>
          return Self.Process_Error (Eval);
    end Cmd_Eval;
 
@@ -1048,6 +1086,8 @@ package body Seq_Runtime is
       if Instruction.Waiton = False then
          -- This should already be false, but just in case it isn't, override it and set it to false (else component could loop infinitely)
          Self.Telemetry_Request.New_Value_Required := False;
+         Self.Set_State_Blocking (Wait_Telemetry_Set);
+      else
          Self.Set_State_Blocking (Wait_Telemetry_Set);
       end if;
 
@@ -1271,7 +1311,7 @@ package body Seq_Runtime is
 
       return Self.Next_Position;
    exception
-      when others =>
+      when Constraint_Error =>
          return Self.Process_Error (Eval);
    end Cmd_Eval_Flt;
 
@@ -1395,7 +1435,7 @@ package body Seq_Runtime is
 
       return Self.Next_Position;
    exception
-      when others =>
+      when Constraint_Error =>
          return Self.Process_Error (Eval);
    end Cmd_Eval_S;
 

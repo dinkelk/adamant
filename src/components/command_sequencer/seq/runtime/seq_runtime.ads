@@ -18,7 +18,7 @@ with Seq_Print;
 with Packed_Poly_32_Type;
 with Var_Record;
 
--- An instanceable sequence runtime. This runtime depends on the byte code produces from the LASP SEQ
+-- An instanceable sequence runtime. This runtime depends on the byte code produced by the LASP SEQ
 -- compiler and the LASEL (LASP Awesome Sequence Execution Language). Most features of the LASEL are
 -- implemented by this runtime. See the LASEL documentation and Adamant Addendum for more details.
 package Seq_Runtime is
@@ -46,7 +46,14 @@ package Seq_Runtime is
    -- are encountered before a blocking state is reached than an error will be returned. This prevents an infinitely executing
    -- sequence from taking over the CPU.
    -- If the runtime is an error state, then it must be cleared before calling this function.
-   function Execute_Sequence (Self : in out Instance; Instruction_Limit : in Positive; Timestamp : in Sys_Time.T) return Seq_Runtime_State.E;
+   function Execute_Sequence (Self : in out Instance; Instruction_Limit : in Positive; Timestamp : in Sys_Time.T) return Seq_Runtime_State.E
+      with Pre => Self.Get_State /= Unloaded and then
+                  Self.Get_State /= Wait_Relative and then
+                  Self.Get_State /= Wait_Absolute and then
+                  Self.Get_State /= Wait_Telemetry_Set and then
+                  Self.Get_State /= Wait_Telemetry_Relative and then
+                  Self.Get_State /= Done and then
+                  Self.Get_State /= Error;
 
    -- If the sequence is in the Wait_Command state, this will fetch the next command to execute.
    function Get_Command (Self : in Instance) return Command.T with
@@ -73,7 +80,7 @@ package Seq_Runtime is
    procedure Set_Return (Self : in out Instance; Value : in Packed_Poly_32_Type.T);
 
    -- The sequence runtime functions in terms of absolute time. If a relative time is found the runtime will transition
-   -- to the Wait_Relative or Wait_Telemetry_Relative state, which requires one of the next two subpograms to be called
+   -- to the Wait_Relative or Wait_Telemetry_Relative state, which requires one of the next two subprograms to be called
    -- to translate that relative wait into an absolute wakeup time based on the current time passed in.
    procedure Change_Relative_Wait_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T);
    procedure Change_Relative_Timeout_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T);
@@ -103,14 +110,22 @@ package Seq_Runtime is
 
    -- If the runtime is in a wait on telemetry type state, this will fetch the telemetry record which holds
    -- the necessary information for fetching telemetry in the system and parsing is out appropriately.
-   function Get_Telemetry_Request (Self : in Instance) return Telemetry_Record.T;
+   function Get_Telemetry_Request (Self : in Instance) return Telemetry_Record.T
+      with Pre => Self.Get_State = Wait_Telemetry_Set or else
+                  Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Relative;
 
    -- Telemetry can be provided to the runtime via this subprogram.
-   procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type);
+   procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type)
+      with Pre => Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Set;
 
    -- Get the ID of the sequence to load. This should be called after encountering a call/spawn/start
    -- instruction, i.e. in a Wait_Load_New_* state.
-   function Get_Seq_Id_To_Load (Self : in Instance) return Sequence_Types.Sequence_Id;
+   function Get_Seq_Id_To_Load (Self : in Instance) return Sequence_Types.Sequence_Id
+      with Pre => Self.Get_State = Wait_Load_New_Seq_Overwrite or else
+                  Self.Get_State = Wait_Load_New_Sub_Seq or else
+                  Self.Get_State = Wait_Load_New_Seq_Elsewhere;
 
    -- Get the last time that the runtime was executed.
    function Get_Most_Recent_Exec_Time (Self : in Instance) return Sys_Time.T;
@@ -119,13 +134,19 @@ package Seq_Runtime is
    function Get_Start_Time (Self : in Instance) return Sys_Time.T;
 
    -- Get the time at which telemetry fetching times out.
-   function Get_Telemetry_Timeout (Self : in Instance) return Sys_Time.T;
+   function Get_Telemetry_Timeout (Self : in Instance) return Sys_Time.T
+      with Pre => Self.Get_State = Wait_Telemetry_Set or else
+                  Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Relative;
 
    -- Unload this sequence, so that it can no longer be run, and we can accept a new sequence into this runtime.
    procedure Unload (Self : in out Instance);
 
    -- Fetch the time at which the last wait on telemetry commenced.
-   function Get_Telemetry_Wait_Start_Time (Self : in Instance) return Sys_Time.T;
+   function Get_Telemetry_Wait_Start_Time (Self : in Instance) return Sys_Time.T
+      with Pre => Self.Get_State = Wait_Telemetry_Set or else
+                  Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Relative;
 
    -- Get the error code for the last encountered error.
    function Get_Error_Code (Self : in Instance) return Seq_Error.E;
