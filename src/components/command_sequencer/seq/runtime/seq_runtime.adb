@@ -449,20 +449,30 @@ package body Seq_Runtime is
    -- Returns an instruction as a byte array, this is a generic that requires an instruction type
    function Get_Instruction (Inst : in out Instance; Instruction : out T) return Seq_Status is
       use System.Storage_Elements;
+      Inst_Size : constant Natural := T'Object_Size / Basic_Types.Byte'Object_Size;
       Offset : constant Storage_Offset := Storage_Offset (Inst.Position);
-      To_Return : T with Import, Convention => Ada, Address => Inst.Sequence_Region.Address + Offset;
-      Errant : Interfaces.Unsigned_32 := 0;
    begin
-      Instruction := To_Return;
-
-      -- Can fail if one of the fields is constrained (i.e. enum, range smaller than 0-255)
-      if Valid (Instruction, Errant) then
-         Inst.Next_Position := Seq_Position (T'Object_Size / Basic_Types.Byte'Object_Size) + Inst.Position;
-         return Success;
-      else
-         Inst.Errant_Field := Errant;
+      -- Bounds check: ensure instruction fits within sequence region
+      if Natural (Inst.Position) + Inst_Size > Inst.Sequence_Region.Length then
+         Inst.Errant_Field := 0;
          return Failure;
       end if;
+
+      declare
+         To_Return : T with Import, Convention => Ada, Address => Inst.Sequence_Region.Address + Offset;
+         Errant : Interfaces.Unsigned_32 := 0;
+      begin
+         Instruction := To_Return;
+
+         -- Can fail if one of the fields is constrained (i.e. enum, range smaller than 0-255)
+         if Valid (Instruction, Errant) then
+            Inst.Next_Position := Seq_Position (Inst_Size) + Inst.Position;
+            return Success;
+         else
+            Inst.Errant_Field := Errant;
+            return Failure;
+         end if;
+      end;
    end Get_Instruction;
 
    function Get_Internal (Inst : in out Instance; Src : in Seq_Internal.E; Dest : out T) return Seq_Status is
