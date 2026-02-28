@@ -124,8 +124,8 @@ package Seq is
    type Load_Status is (Success, Failure);
    function Load (Self : in out Engine; Sequence_Region : in Memory_Region.T) return Load_Status with
       Pre => (Self.Get_Engine_State /= Uninitialized and then
-                  Self.Get_Stack_Level <= Self.Get_Stack_Depth),
-      Post => (Self.Get_Stack_Level <= Self.Get_Stack_Depth and then
+                  Self.Get_Stack_Level < Self.Get_Stack_Depth),
+      Post => (Self.Get_Stack_Level < Self.Get_Stack_Depth and then
                    Self.Get_Engine_State /= Uninitialized);
 
    -- Execute the sequence until it reaches a blocking state. The state the sequence reaches upon block is returned. If more than "Instruction_Limit"
@@ -135,8 +135,8 @@ package Seq is
       Pre => (Self.Get_Engine_State /= Uninitialized and then
                   Self.Get_Engine_State /= Inactive and then
                   Self.Get_Engine_State /= Reserved and then
-                  Self.Get_Stack_Level <= Self.Get_Stack_Depth),
-      Post => (Self.Get_Stack_Level <= Self.Get_Stack_Depth and then
+                  Self.Get_Stack_Level < Self.Get_Stack_Depth),
+      Post => (Self.Get_Stack_Level < Self.Get_Stack_Depth and then
                    Self.Get_Engine_State /= Uninitialized);
 
    -- Get the next command to send from the sequence. This should be called after the engine enters the Wait_Command state.
