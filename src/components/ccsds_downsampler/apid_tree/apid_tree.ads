@@ -21,9 +21,9 @@ package Apid_Tree is
    --
    procedure Init (Self : in out Instance; Downsample_List : in Ccsds_Downsample_Packet_List_Access);
 
-   -- Function to fetch the event range. This helps keep the component in sync with the package
+   -- Determine whether to pass or filter a packet with the given APID, incrementing internal counters.
    function Filter_Packet (Self : in out Instance; Apid : in Ccsds_Apid_Type; Count : out Unsigned_16) return Filter_Action_Status;
-   -- Function to get the pointer for the array. This is so that we can quickly copy the whole thing into the state packet
+   -- Update the filter factor for a given APID in the tree, resetting its filter count.
    function Set_Filter_Factor (Self : in out Instance; Apid : in Ccsds_Apid_Type; New_Filter_Factor : in Unsigned_16; Tree_Index : out Positive) return Filter_Factor_Set_Status;
    -- Functions to get the first and last index of the tree
    function Get_Tree_First_Index (Self : in Instance) return Positive;
