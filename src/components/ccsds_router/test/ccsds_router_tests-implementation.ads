@@ -25,6 +25,8 @@ private
    overriding procedure Test_Duplicate_Packet_Drop (Self : in out Instance);
    -- This unit test verifies that sequence count wraparound from 16383 to 0 is treated as the expected next value and does not trigger a warning.
    overriding procedure Test_Sequence_Count_Wraparound (Self : in out Instance);
+   -- This unit test verifies that in Drop_Dupes mode a retransmission after an intervening packet (seq A, B, A) warns but does not drop.
+   overriding procedure Test_Non_Consecutive_Duplicate (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Ccsds_Router_Tests.Base_Instance with record

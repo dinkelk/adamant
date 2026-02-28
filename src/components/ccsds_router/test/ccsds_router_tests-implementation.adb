@@ -772,6 +772,38 @@ package body Ccsds_Router_Tests.Implementation is
       Ccsds_Space_Packet_Assert.Eq (T.Error_Packet_History.Get (3), Packet_6);
    end Test_Duplicate_Packet_Drop;
 
+   overriding procedure Test_Non_Consecutive_Duplicate (Self : in out Instance) is
+      T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Use APID 5 which is in Drop_Dupes mode.
+      -- Pattern: seq 10, seq 11, seq 10 (retransmission after intervening packet).
+      -- The retransmission should warn (unexpected sequence count) but NOT be dropped,
+      -- since only consecutive identical sequence counts trigger a drop.
+
+      -- Send first packet (seq 10) — initial warning expected (IMPL-2):
+      Packet_5.Header.Sequence_Count := Ccsds_Sequence_Count_Type (10);
+      T.Ccsds_Space_Packet_T_Send (Packet_5);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+      Self.Check_Routing (0, 1, 0, 0, 0, 0);
+
+      -- Send sequential packet (seq 11) — no warning:
+      Packet_5.Header.Sequence_Count := Ccsds_Sequence_Count_Type (11);
+      T.Ccsds_Space_Packet_T_Send (Packet_5);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+      Self.Check_Routing (0, 2, 0, 0, 0, 0);
+
+      -- Send retransmission (seq 10 again) — should warn but NOT drop:
+      Packet_5.Header.Sequence_Count := Ccsds_Sequence_Count_Type (10);
+      T.Ccsds_Space_Packet_T_Send (Packet_5);
+      -- Warning expected (10 != 12):
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 2);
+      -- Packet should still be routed (not dropped), since 10 != 11 (last seq count):
+      Self.Check_Routing (0, 3, 0, 0, 0, 0);
+      -- No duplicates dropped:
+      Natural_Assert.Eq (T.Dropped_Duplicate_Packet_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Non_Consecutive_Duplicate;
+
    overriding procedure Test_Sequence_Count_Wraparound (Self : in out Instance) is
       T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
    begin

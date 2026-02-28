@@ -15,3 +15,5 @@ tests:
     description: This unit test tests that CCSDS packets of identical subsequent sequence counts get dropped.
   - name: Test_Sequence_Count_Wraparound
     description: This unit test verifies that sequence count wraparound from 16383 to 0 is treated as the expected next value and does not trigger a warning.
+  - name: Test_Non_Consecutive_Duplicate
+    description: This unit test verifies that in Drop_Dupes mode a retransmission after an intervening packet (seq A, B, A) warns but does not drop, since only consecutive identical sequence counts are dropped.
