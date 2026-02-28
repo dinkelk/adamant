@@ -80,7 +80,7 @@ package Seq_Runtime is
    procedure Set_Return (Self : in out Instance; Value : in Packed_Poly_32_Type.T);
 
    -- The sequence runtime functions in terms of absolute time. If a relative time is found the runtime will transition
-   -- to the Wait_Relative or Wait_Telemetry_Relative state, which requires one of the next two subpograms to be called
+   -- to the Wait_Relative or Wait_Telemetry_Relative state, which requires one of the next two subprograms to be called
    -- to translate that relative wait into an absolute wakeup time based on the current time passed in.
    procedure Change_Relative_Wait_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T);
    procedure Change_Relative_Timeout_To_Absolute (Self : in out Instance; Current_Time : in Sys_Time.T);
