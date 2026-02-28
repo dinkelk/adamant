@@ -4,7 +4,9 @@ package body Extract_Data_Product is
    -- General function to extract a data product from a ccsds space packet given the location in the packet of the extracted product
    function Extract_Data_Product (Pkt : in Ccsds_Space_Packet.T; Offset : in Natural; Length : in Natural; Id : in Data_Product_Types.Data_Product_Id; Timestamp : in Sys_Time.T; Dp : out Data_Product.T) return Extract_Status is
    begin
-      -- Initialize out parameters:
+      -- Initialize out parameters. Buffer is zero-filled; only the first
+      -- Buffer_Length bytes (set to Length) contain valid extracted data.
+      -- Consumers must use Header.Buffer_Length to determine the valid region.
       Dp := (
          Header => (
             Time => Timestamp,
