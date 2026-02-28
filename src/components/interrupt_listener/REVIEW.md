@@ -181,3 +181,16 @@ procedure Sleep_A_Bit is
 | 3 | 1.3 | `component.yaml` interrupt description claims the component counts interrupts; counting is the user handler's job | **Medium** |
 | 4 | 4.1 | Test handler comment says "Increment the time" but code resets it to `(0, 0)`; `Time` field never meaningfully tested | **Medium** |
 | 5 | 4.2 | No concurrent-access test despite documentation claiming thread-safe multi-reader support | **Low** |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Spec comment wrong behavior | High | Fixed | - | Rewrote to match actual impl |
+| 2 | Task_Signal design mismatch | Medium | Not Fixed | - | Design-level change |
+| 3 | YAML interrupt description | Medium | Fixed | - | Corrected |
+| 4 | Test comment mismatch | Medium | Fixed | - | Corrected |
+| 5 | Tester spec comment stale | Low | Fixed | - | Aligned |
+| 6 | No concurrent test | Low | Not Fixed | - | Needs infra |
+| 7 | Count overflow untested | Low | Not Fixed | - | User handler responsibility |
+| 8 | Sleep-based sync | Low | Not Fixed | - | Acceptable pattern |
