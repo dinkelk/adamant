@@ -1,7 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
 package body Binary_Tree.Tester is
-   function Issorted (Self : in out Binary_Tree.Instance) return Boolean is
+   function Issorted (Self : in Binary_Tree.Instance) return Boolean is
       Current_Element : Element_Type;
       Previous_Element : Element_Type;
    begin
