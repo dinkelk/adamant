@@ -19,7 +19,9 @@ package body Component.Command_Rejector.Implementation is
    begin
       -- The binary tree package needs to be allocated with a positive. This component is completely
       -- useless without a list of at least one command to reject.
-      pragma Assert (Command_Id_Reject_List'Length > 0, "Empty protected command list is not allowed.");
+      if Command_Id_Reject_List'Length = 0 then
+         raise Constraint_Error with "Empty protected command list is not allowed.";
+      end if;
 
       -- Allocate space for protected command list:
       Self.Command_Reject_List.Init (Command_Id_Reject_List'Length);
@@ -33,10 +35,14 @@ package body Component.Command_Rejector.Implementation is
          begin
             -- Make sure the Command ID is not already stored in our list.
             Ret := Self.Command_Reject_List.Search (Command_Identifier, Ignore_1, Ignore_2);
-            pragma Assert (not Ret, "Duplicate command ID '" & Command_Id'Image (Command_Identifier) & "' not allowed command reject list!");
+            if Ret then
+               raise Constraint_Error with "Duplicate command ID '" & Command_Id'Image (Command_Identifier) & "' not allowed command reject list!";
+            end if;
             -- Add ID to the list:
             Ret := Self.Command_Reject_List.Add (Command_Identifier);
-            pragma Assert (Ret, "Binary tree too small to hold ID. This should never happen unless there is a bug.");
+            if not Ret then
+               raise Constraint_Error with "Binary tree too small to hold ID. This should never happen unless there is a bug.";
+            end if;
          end;
       end loop;
    end Init;
