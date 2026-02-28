@@ -57,26 +57,6 @@ package body Component.Ccsds_Serial_Interface.Implementation is
       Num_Bytes_Serialized : Natural;
       Stat : Serialization_Status;
    begin
-      Self.Count := @ + 1;
-
-      if Self.Count > 200 then
-         -- Measure execution time of listener task. This is important because the execution percentage of this task,
-         -- if set to lowest priority, represents the amount execution margin available on the system.
-         if Self.Listener_Id_Store.Is_Set then
-            declare
-               use Ada.Real_Time;
-               use Ada.Execution_Time;
-               Execution_Span, Up_Span : Duration;
-               Listener_Id : constant Ada.Task_Identification.Task_Id := Self.Listener_Id_Store.Get;
-            begin
-               Execution_Span := To_Duration (Ada.Execution_Time.Clock (Listener_Id) - CPU_Time_First);
-               Up_Span := To_Duration (Ada.Real_Time.Clock - Time_First);
-               Self.Cpu_Usage := Float (Execution_Span) / Float (Up_Span) * 100.0;
-            end;
-         end if;
-         Self.Count := 0;
-      end if;
-
       -- Get the length of the packet:
       Stat := Ccsds_Space_Packet.Serialized_Length (Arg, Num_Bytes_Serialized);
       if Stat /= Success then
@@ -153,6 +133,23 @@ package body Component.Ccsds_Serial_Interface.Implementation is
 
             -- OK awesome, we got a packet, send it out of the connector:
             Self.Ccsds_Space_Packet_T_Send_If_Connected (Packet);
+
+            -- Measure execution time of listener task periodically. This is important because
+            -- the execution percentage of this task, if set to lowest priority, represents the
+            -- amount of execution margin available on the system.
+            Self.Count := @ + 1;
+            if Self.Count > 200 then
+               declare
+                  use Ada.Real_Time;
+                  use Ada.Execution_Time;
+                  Execution_Span, Up_Span : Duration;
+               begin
+                  Execution_Span := To_Duration (Ada.Execution_Time.Clock (Ada.Task_Identification.Current_Task) - CPU_Time_First);
+                  Up_Span := To_Duration (Ada.Real_Time.Clock - Time_First);
+                  Self.Cpu_Usage := Float (Execution_Span) / Float (Up_Span) * 100.0;
+               end;
+               Self.Count := 0;
+            end if;
          end if;
       end;
    end Listener;
