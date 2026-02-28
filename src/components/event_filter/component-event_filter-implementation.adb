@@ -200,15 +200,19 @@ package body Component.Event_Filter.Implementation is
             Self.Event_T_Send_If_Connected (Self.Events.Filtered_Event (Self.Sys_Time_T_Get, Arg));
       end case;
 
-      -- Now check if ground wants to dump the state packet
+      -- Now check if ground wants to dump the state packet.
+      -- NOTE: The dump result is intentionally not propagated to the command response.
+      -- The command status reflects only the filter operation itself. Dump status is
+      -- reported separately via the Dump_Event_States_Received event.
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Unreferenced (Ret);
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
 
-      return Ret;
+      return Success;
    end Filter_Event;
 
    -- Disable the event filter for a specific event ID.
@@ -227,15 +231,18 @@ package body Component.Event_Filter.Implementation is
             Self.Event_T_Send_If_Connected (Self.Events.Unfiltered_Event (Self.Sys_Time_T_Get, Arg));
       end case;
 
-      -- Now check if ground wants to dump the state packet
+      -- Now check if ground wants to dump the state packet.
+      -- NOTE: The dump result is intentionally not propagated to the command response.
+      -- The command status reflects only the unfilter operation itself.
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Unreferenced (Ret);
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
 
-      return Ret;
+      return Success;
    end Unfilter_Event;
 
    -- Enable the event filter for a specific range of event IDs.
@@ -266,15 +273,18 @@ package body Component.Event_Filter.Implementation is
       end if;
       Self.Event_T_Send_If_Connected (Self.Events.Filtered_Event_Range (Self.Sys_Time_T_Get, Arg));
 
-      -- Now check if ground wants to dump the state packet
+      -- Now check if ground wants to dump the state packet.
+      -- NOTE: The dump result is intentionally not propagated to the command response.
+      -- The command status reflects only the filter range operation itself.
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Unreferenced (Ret);
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
 
-      return Ret;
+      return Success;
    end Filter_Event_Range;
 
    -- Disable the event filter for a specific range of event IDs.
@@ -305,15 +315,18 @@ package body Component.Event_Filter.Implementation is
       end if;
       Self.Event_T_Send_If_Connected (Self.Events.Unfiltered_Event_Range (Self.Sys_Time_T_Get, Arg));
 
-      -- Now check if ground wants to dump the state packet
+      -- Now check if ground wants to dump the state packet.
+      -- NOTE: The dump result is intentionally not propagated to the command response.
+      -- The command status reflects only the unfilter range operation itself.
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Unreferenced (Ret);
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
 
-      return Ret;
+      return Success;
    end Unfilter_Event_Range;
 
    -- Enable the component to filter events that have been set to be filtered.
