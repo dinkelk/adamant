@@ -41,9 +41,12 @@ package body Router_Table_Tests.Implementation is
       -- Add to table, make sure duplicates are rejected:
       Natural_Assert.Eq (Self.Table.Get_Size, 0);
       Natural_Assert.Eq (Self.Table.Get_Capacity, 3);
-      Status_Assert.Eq (Self.Table.Add ((Registration_Id => 19, Command_Id => 0)), Router_Table.Success);
+      -- Note: Command_Id values > 0 are used to reflect production usage, where
+      -- Command_Id = 0 is reserved for the internal register command and is filtered
+      -- out by the command router before reaching the router table.
+      Status_Assert.Eq (Self.Table.Add ((Registration_Id => 19, Command_Id => 5)), Router_Table.Success);
       Natural_Assert.Eq (Self.Table.Get_Size, 1);
-      Status_Assert.Eq (Self.Table.Add ((Registration_Id => 15, Command_Id => 0)), Router_Table.Id_Conflict);
+      Status_Assert.Eq (Self.Table.Add ((Registration_Id => 15, Command_Id => 5)), Router_Table.Id_Conflict);
       Natural_Assert.Eq (Self.Table.Get_Size, 1);
       Status_Assert.Eq (Self.Table.Add ((Registration_Id => 36, Command_Id => 1)), Router_Table.Success);
       Natural_Assert.Eq (Self.Table.Get_Size, 2);
@@ -57,7 +60,7 @@ package body Router_Table_Tests.Implementation is
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
       -- Search table for existing registrations:
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (0, Registration_Id), Router_Table.Success);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (5, Registration_Id), Router_Table.Success);
       Registration_Assert.Eq (Registration_Id, 19);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 

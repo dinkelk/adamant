@@ -19,6 +19,7 @@ package body Component.Command_Router.Implementation is
       -- Initialize counters:
       Self.Command_Receive_Count.Set_Count (0);
       Self.Command_Failure_Count.Set_Count (0);
+      Self.Command_Success_Count.Set_Count (0);
    end Init;
 
    ---------------------------------------
@@ -57,15 +58,20 @@ package body Component.Command_Router.Implementation is
 
       -- Now provide the source IDs to all connected command source components:
       for Index in Self.Connector_Command_Response_T_To_Forward_Send'Range loop
-         -- Send special command response that has the Register status set. This should indicate to the
-         -- component that it should assign the source id provided as its source id when sending commands.
-         Self.Command_Response_T_To_Forward_Send (Command_Response_T_To_Forward_Send_Index (Index), (
-            Source_Id => Command_Source_Id (Index),
-            Registration_Id => 0,
-            Command_Id => 0,
-            Status => Register_Source
-         ));
+         if Self.Is_Command_Response_T_To_Forward_Send_Connected (Command_Response_T_To_Forward_Send_Index (Index)) then
+            -- Send special command response that has the Register status set. This should indicate to the
+            -- component that it should assign the source id provided as its source id when sending commands.
+            Self.Command_Response_T_To_Forward_Send (Command_Response_T_To_Forward_Send_Index (Index), (
+               Source_Id => Command_Source_Id (Index),
+               Registration_Id => 0,
+               Command_Id => 0,
+               Status => Register_Source
+            ));
+         end if;
       end loop;
+
+      -- Mark registration as complete to enable runtime guard on sync connector.
+      Self.Registration_Complete := True;
    end Set_Up;
 
    ---------------------------------------
@@ -85,12 +91,18 @@ package body Component.Command_Router.Implementation is
       Status : Router_Table.Lookup_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
+      -- Runtime guard: ensure registration has completed before routing commands.
+      pragma Assert (Self.Registration_Complete,
+         "Command_T_To_Route_Recv_Sync called before registration completed");
+
       -- Send event out that command was received:
       Self.Event_T_Send_If_Connected (Self.Events.Command_Received (The_Time, Arg.Header));
 
       -- Send out data products:
       if Self.Is_Data_Product_T_Send_Connected then
-         Self.Command_Receive_Count.Increment_Count;
+         if Self.Command_Receive_Count.Get_Count < Interfaces.Unsigned_16'Last then
+            Self.Command_Receive_Count.Increment_Count;
+         end if;
          Self.Data_Product_T_Send (Self.Data_Products.Command_Receive_Count (The_Time, (Value => Self.Command_Receive_Count.Get_Count)));
          Self.Data_Product_T_Send (Self.Data_Products.Last_Received_Command (The_Time, (Id => Arg.Header.Id)));
       end if;
@@ -108,7 +120,9 @@ package body Component.Command_Router.Implementation is
 
             -- Send out data products:
             if Self.Is_Data_Product_T_Send_Connected then
-               Self.Command_Failure_Count.Increment_Count;
+               if Self.Command_Failure_Count.Get_Count < Interfaces.Unsigned_16'Last then
+                  Self.Command_Failure_Count.Increment_Count;
+               end if;
                Self.Data_Product_T_Send (Self.Data_Products.Command_Failure_Count (The_Time, (Value => Self.Command_Failure_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Failed_Command (The_Time, (Id => Arg.Header.Id, Status => Command_Response_Status.Id_Error)));
             end if;
@@ -197,8 +211,10 @@ package body Component.Command_Router.Implementation is
             if Self.Is_Data_Product_T_Send_Connected and then
                 Arg.Command_Id /= Self.Commands.Get_Reset_Data_Products_Id
             then
-               Self.Command_Success_Count := @ + 1;
-               Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count)));
+               if Self.Command_Success_Count.Get_Count < Interfaces.Unsigned_16'Last then
+                  Self.Command_Success_Count.Increment_Count;
+               end if;
+               Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Successful_Command (The_Time, (Id => Arg.Command_Id)));
             end if;
          -- Failed command action.
@@ -209,7 +225,9 @@ package body Component.Command_Router.Implementation is
             if Self.Is_Data_Product_T_Send_Connected and then
                 Arg.Command_Id /= Self.Commands.Get_Reset_Data_Products_Id
             then
-               Self.Command_Failure_Count.Increment_Count;
+               if Self.Command_Failure_Count.Get_Count < Interfaces.Unsigned_16'Last then
+                  Self.Command_Failure_Count.Increment_Count;
+               end if;
                Self.Data_Product_T_Send (Self.Data_Products.Command_Failure_Count (The_Time, (Value => Self.Command_Failure_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Failed_Command (The_Time, (Id => Arg.Command_Id, Status => Arg.Status)));
             end if;
@@ -274,7 +292,7 @@ package body Component.Command_Router.Implementation is
       -- Reset the values that need to be reset:
       Self.Command_Receive_Count.Set_Count (0);
       Self.Command_Failure_Count.Set_Count (0);
-      Self.Command_Success_Count := 0;
+      Self.Command_Success_Count.Set_Count (0);
 
       -- Update data products:
       if Self.Is_Data_Product_T_Send_Connected then
@@ -283,7 +301,7 @@ package body Component.Command_Router.Implementation is
          Self.Data_Product_T_Send (Self.Data_Products.Last_Received_Command (The_Time, (Id => Command_Types.Command_Id'First)));
          Self.Data_Product_T_Send (Self.Data_Products.Last_Failed_Command (The_Time, (Id => Command_Types.Command_Id'First, Status => Command_Response_Status.Success)));
          Self.Data_Product_T_Send (Self.Data_Products.Last_Successful_Command (The_Time, (Id => Command_Types.Command_Id'First)));
-         Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count)));
+         Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count.Get_Count)));
          Self.Data_Product_T_Send (Self.Data_Products.Noop_Arg_Last_Value (The_Time, (Value => 0)));
       end if;
 
