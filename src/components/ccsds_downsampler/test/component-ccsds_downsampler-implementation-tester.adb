@@ -149,7 +149,12 @@ package body Component.Ccsds_Downsampler.Implementation.Tester is
    -- Custom functions
    -----------------------------------------------
    overriding procedure Dispatch_Data_Product (Self : in out Instance; Dp : in Data_Product.T) is
-      -- Dispatch to dummy no matter what.
+      -- Note: All data products (including dynamically-generated per-APID filter factor DPs)
+      -- are dispatched to the handler for the first static data product ID. This means the
+      -- per-APID data products are not individually validated through typed history packages.
+      -- Dynamic DPs are validated via raw Data_Product_T_Recv_Sync_History byte comparison
+      -- in the test body instead. This is a known limitation of the tester framework for
+      -- components with dynamic data products.
       Dispatch_To : constant Dispatch_Data_Product_Procedure := Data_Product_Id_Table (Ccsds_Downsampler_Data_Products.Local_Data_Product_Id_Type'First);
    begin
       Dispatch_To (Component.Ccsds_Downsampler_Reciprocal.Base_Instance (Self), Dp);
