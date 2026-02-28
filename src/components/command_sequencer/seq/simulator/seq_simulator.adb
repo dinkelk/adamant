@@ -11,6 +11,7 @@ with Packed_U32;
 with Seq_Print.Representation;
 with Sys_Time;
 with Ada.Unchecked_Deallocation;
+with Ada.Exceptions;
 
 package body Seq_Simulator is
    use Seq_Error;
@@ -19,6 +20,9 @@ package body Seq_Simulator is
 
    -- We can handle up to 512 KB sized sequence.
    Max_Sequence_Size : constant Natural := 524_288;
+
+   -- Sentinel value meaning "load into any available engine."
+   Any_Engine : constant Sequence_Engine_Id := Sequence_Engine_Id'Last;
 
    function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Boolean is
       The_Source_Id : Command_Source_Id := Start_Source_Id;
@@ -33,7 +37,9 @@ package body Seq_Simulator is
       end loop;
       return True;
    exception
-      when others =>
+      when E : others =>
+         Put_Line ("Initialize failed: "
+                    & Ada.Exceptions.Exception_Information (E));
          return False;
    end Initialize;
 
