@@ -12,6 +12,10 @@ package Ccsds_Downsampler_Types is
       Filter_Factor : Unsigned_16 := 1;
       -- Filter count for each entry
       Filter_Count : Unsigned_16 := Unsigned_16'First;
+      -- Data product index offset for this entry (set during init from the
+      -- init list order). This decouples data product identity from the
+      -- binary tree's internal storage index.
+      Dp_Index : Data_Product_Types.Data_Product_Id := Data_Product_Types.Data_Product_Id'First;
    end record;
 
    -- Product entry definition.
@@ -23,7 +27,7 @@ package Ccsds_Downsampler_Types is
    end record;
 
    -- List of product entries of each apid:
-   type Ccsds_Downsample_Packet_List is array (Data_Product_Types.Data_Product_Id range <>) of Ccsds_Downsample_Packet_Entry;
+   type Ccsds_Downsample_Packet_List is array (Natural range <>) of Ccsds_Downsample_Packet_Entry;
    type Ccsds_Downsample_Packet_List_Access is access all Ccsds_Downsample_Packet_List;
 
 end Ccsds_Downsampler_Types;
