@@ -116,3 +116,14 @@ Even for trivial components, unit tests serve as regression protection and execu
 | 3 | **Medium** | No event/data_product connector to report anomalies (drops, truncation) | `ccsds_echo.component.yaml` |
 | 4 | **Medium** | `Echo_Packet_Truncate` silently truncates oversized packets with no warning | `implementation.adb:12` |
 | 5 | **Low** | No enable/disable command; echo is always active when connected | `ccsds_echo.component.yaml` |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Silent Drop of Packets (§3.1) | High | Fixed | acc10c1 | Added event connector and Packet_Dropped event |
+| 2 | No Unit Tests (§4.1) | High | Fixed | 898eaf3 | Created test/ with 5 test cases |
+| 3 | No Event Connector (§2.1) | Medium | Fixed | a5ab25b | Addressed by §3.1 fix |
+| 4 | Silent Truncation (§3.2) | Medium | Fixed | 23c33aa | Added length check and Packet_Truncated event |
+| 5 | No Command Interface (§2.2) | Low | Fixed | b2f4e80 | Documented as intentional by design |
+| 6 | Sync Receive Concern (§3.3) | Low | Fixed | 4726c19 | Added integration warning comment |
