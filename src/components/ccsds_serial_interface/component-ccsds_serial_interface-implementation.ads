@@ -4,7 +4,6 @@
 
 -- Includes:
 with Ccsds_Space_Packet;
-with Ada.Task_Identification;
 
 -- This component is meant to be a backdoor serial component which uses Ada.Text_IO to send and receive data over a serial port. On Linux, this will send/recv data to/from the terminal, but Ada.Text_IO is attached to a diagnostic uart on most embedded systems. This means that this component can be used as a quick and dirty serial interface without implementing hardware specific uart drivers.
 --
@@ -30,22 +29,8 @@ package Component.Ccsds_Serial_Interface.Implementation is
 
 private
 
-   -- Protected object to safely share Listener_Task_Id between the listener
-   -- subtask (writer) and the queue-dispatch task (reader).
-   protected type Listener_Task_Id_Store is
-      procedure Set (Id : in Ada.Task_Identification.Task_Id);
-      function Get return Ada.Task_Identification.Task_Id;
-      function Is_Set return Boolean;
-   private
-      Task_Id : Ada.Task_Identification.Task_Id;
-      Id_Set : Boolean := False;
-   end Listener_Task_Id_Store;
-
    -- The component class instance record:
    type Instance is new Ccsds_Serial_Interface.Base_Instance with record
-      Listener_Id_Store : Listener_Task_Id_Store;
-      Cpu_Usage : Float;
-      Count : Natural := 0;
       Interpacket_Gap_Ms : Natural := 0;
    end record;
 

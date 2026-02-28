@@ -9,8 +9,5 @@ this component can be used as a quick and dirty serial interface without impleme
 
 #### Internal State
 
-The component instance record contains the following internal fields:
-
-- **`Count`** — A packet counter used to trigger periodic CPU-usage measurement of the listener task. Every 200 received packets, the listener's CPU time is sampled.
-- **`Cpu_Usage`** — Stores the computed CPU-usage percentage of the listener task. This represents the execution margin available on the system when the listener is set to lowest priority. *Note:* This value is currently computed internally but is not exported via any data-product connector.
+The `Cpu_Usage` and `Count` fields that previously existed in the instance record have been removed. The CPU-usage measurement was dead code — computed but never exported via any data-product connector. If CPU-usage monitoring of the listener task is needed, a data-product connector should be added to the component model.
 
