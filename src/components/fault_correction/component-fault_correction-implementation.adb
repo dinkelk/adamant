@@ -89,7 +89,9 @@ package body Component.Fault_Correction.Implementation is
    ---------------------------------------
    function Get_Fault_Response_Table_Index (Self : in out Instance; Id : in Fault_Types.Fault_Id; Index : out Fault_Response_Table_Index) return Boolean with
       -- The output Index should always be in range of the fault response table.
-      Post => (Index >= Self.Fault_Response_Table.all'First and then Index <= Self.Fault_Response_Table.all'Last)
+      Post => (if Get_Fault_Response_Table_Index'Result then
+                  (Index >= Self.Fault_Response_Table.all'First and then Index <= Self.Fault_Response_Table.all'Last)
+               else True)
    is
       -- Form lookup entry:
       Lookup_Entry : Fault_Response_Lookup_Entry;
