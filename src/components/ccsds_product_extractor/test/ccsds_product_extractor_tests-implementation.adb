@@ -242,6 +242,22 @@ package body Ccsds_Product_Extractor_Tests.Implementation is
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 15);
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (15), Test_Dp_Received_U16 (0, 25, (50, 100)));
 
+      -- Test that current_time products use the system time connector value.
+      -- Set a non-zero system time and verify current_time products receive it
+      -- (previously system time was always default (0,0)).
+      T.System_Time := (Seconds => 99, Subseconds => 42);
+      Incoming_Packet_Apid_100.Header.Packet_Length := 50;
+      Incoming_Packet_Apid_100.Data (0 .. Sys_Time.Size_In_Bytes - 1) := Sys_Time.Serialization.To_Byte_Array ((75, 150));
+      Incoming_Packet_Apid_100.Data (11) := 33;
+      Incoming_Packet_Apid_100.Data (16) := 44;
+      T.Ccsds_Space_Packet_T_Send (Incoming_Packet_Apid_100);
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 6);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 17);
+      -- Product 1 uses packet_time, so timestamp comes from packet data
+      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (16), Test_Dp_Received_U16 (0, 33, (75, 150)));
+      -- Product 2 uses current_time, so timestamp comes from Sys_Time_T_Get connector
+      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (17), Test_Dp_Received_U8 (1, 44, (99, 42)));
+
    end Test_Received_Data_Product_Packet;
 
 end Ccsds_Product_Extractor_Tests.Implementation;
