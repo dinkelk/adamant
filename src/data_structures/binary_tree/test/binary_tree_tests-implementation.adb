@@ -186,6 +186,9 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 0);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Check index boundaries after removal to empty:
+      Natural_Assert.Eq (Self.Tree.Get_First_Index, 1);
+      Natural_Assert.Eq (Self.Tree.Get_Last_Index, 0);
 
       -- Add two Tree_Elements
       Boolean_Assert.Eq (Self.Tree.Add (16), True);
@@ -199,6 +202,9 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 1);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Check index boundaries after partial removal:
+      Natural_Assert.Eq (Self.Tree.Get_First_Index, 1);
+      Natural_Assert.Eq (Self.Tree.Get_Last_Index, 1);
 
       -- Add two Tree_Elements
       Boolean_Assert.Eq (Self.Tree.Add (4), True);
