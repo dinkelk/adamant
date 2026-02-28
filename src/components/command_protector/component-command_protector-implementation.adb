@@ -98,28 +98,31 @@ package body Component.Command_Protector.Implementation is
    -- Commands received on this connector will be checked against the protected command list and rejected if the system is 'unarmed'. Commands not found in the protected command list they will be forwarded.
    overriding procedure Command_T_To_Forward_Recv_Sync (Self : in out Instance; Arg : in Command.T) is
       use Command_Protector_Enums.Armed_State;
-      -- Get the armed state:
+      -- Atomically read and unarm the state, eliminating the TOCTOU race
+      -- between Get_State and Unarm (see review item I2):
+      Previous_State : Command_Protector_Enums.Armed_State.E;
       Ignore_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-      State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Ignore_Timeout);
       -- Look up to see if this command is in the protected list:
       Id_To_Find : Command_Id renames Arg.Header.Id;
       Ignore_Found_Id : Command_Id;
       Ignore_Found_Index : Natural;
       Is_Protected_Command : constant Boolean := Self.Protected_Command_List.Search (Id_To_Find, Ignore_Found_Id, Ignore_Found_Index);
    begin
+      -- Atomically get state and transition to unarmed. If we were already
+      -- unarmed this is idempotent. This ensures the armed-state decision
+      -- and the state transition happen under a single lock acquisition.
+      Self.Command_Arm_State.Try_Unarm (Previous_State, Ignore_Timeout);
+
       -- Based on the arm/unarmed state we do things differently.
-      case State is
-         -- In an armed state, we forward on the command no matter what, and transition to the armed state.
+      case Previous_State is
+         -- In an armed state, we forward on the command no matter what, and transition to the unarmed state.
          -- We send some extra data products and events if this command was found in the protected command list.
          when Armed =>
             -- We are armed, so regardless if this is a protected command or not, we send it along.
             Self.Command_T_Send_If_Connected (Arg);
 
-            -- We now transition to the unarmed state since we received a command.
-            Self.Command_Arm_State.Unarm;
-
             declare
-               -- Get the new state:
+               -- After Try_Unarm the state is now Unarmed with timeout 0:
                New_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
                New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (New_Timeout);
                -- Timestamp:

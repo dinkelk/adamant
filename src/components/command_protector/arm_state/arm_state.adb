@@ -33,6 +33,17 @@ package body Arm_State is
          Timeout := Arm_Timeout_Type'First;
       end Unarm;
 
+      -- Atomically check if armed and unarm:
+      procedure Try_Unarm (Previous_State : out Command_Protector_Enums.Armed_State.E; Previous_Timeout : out Packed_Arm_Timeout.Arm_Timeout_Type) is
+         use Packed_Arm_Timeout;
+      begin
+         Previous_State := State;
+         Previous_Timeout := Timeout;
+         -- Transition to unarmed regardless of current state (idempotent):
+         State := Command_Protector_Enums.Armed_State.Unarmed;
+         Timeout := Arm_Timeout_Type'First;
+      end Try_Unarm;
+
       -- Decrement the timeout, and transition to the unarmed state if the
       -- timeout has expired.
       procedure Decrement_Timeout (Timeout_Val : out Packed_Arm_Timeout.Arm_Timeout_Type; New_State : out Command_Protector_Enums.Armed_State.E; Timed_Out : out Boolean) is

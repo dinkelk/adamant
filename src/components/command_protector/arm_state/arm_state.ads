@@ -19,6 +19,10 @@ package Arm_State is
       procedure Arm (New_Timeout : in Packed_Arm_Timeout.Arm_Timeout_Type);
       -- Unarm the system and cancel the timeout:
       procedure Unarm;
+      -- Atomically check if armed and unarm. Returns the state that was
+      -- active before the call, allowing callers to make forwarding
+      -- decisions without a TOCTOU race between Get_State and Unarm.
+      procedure Try_Unarm (Previous_State : out Command_Protector_Enums.Armed_State.E; Previous_Timeout : out Packed_Arm_Timeout.Arm_Timeout_Type);
       -- Decrement the timeout, and transition to the unarmed state if the
       -- timeout has expired.
       procedure Decrement_Timeout (Timeout_Val : out Packed_Arm_Timeout.Arm_Timeout_Type; New_State : out Command_Protector_Enums.Armed_State.E; Timed_Out : out Boolean);
