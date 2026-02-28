@@ -516,6 +516,35 @@ package body Command_Protector_Tests.Implementation is
       Packed_U16_Assert.Eq (T.Protected_Command_Forward_Count_History.Get (2), (Value => 2));
    end Test_Protected_Command_Reject_Timeout;
 
+   overriding procedure Test_Arm_Command_On_Forward_Connector (Self : in out Instance) is
+      T : Component.Command_Protector.Implementation.Tester.Instance_Access renames Self.Tester;
+      -- Create a command with the Arm command's ID on the forwarding connector.
+      -- The Arm command ID is not in the protected list [4, 19, 77, 78], so it
+      -- should be treated as an unprotected command and forwarded regardless of state.
+      Arm_Cmd_Id : constant Command_Types.Command_Id := T.Commands.Get_Arm_Id;
+      Cmd : Command.T := (Header => (Source_Id => 0, Id => Arm_Cmd_Id, Arg_Buffer_Length => 19), Arg_Buffer => [others => 88]);
+   begin
+      -- While unarmed, send a command with the Arm ID on the forwarding connector.
+      -- Since this ID is not in the protected list, it should be forwarded:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 1);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (1), Cmd);
+
+      -- Verify no rejection events:
+      Natural_Assert.Eq (T.Rejected_Protected_Command_History.Get_Count, 0);
+
+      -- Now arm the component and send the same command on the forwarding connector:
+      T.Command_T_Send (T.Commands.Arm ((Timeout => 10)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 2);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (2), Cmd);
+
+      -- Verify transitioned to unarmed (any command on forward connector disarms):
+      Packed_Arm_State_Assert.Eq (T.Armed_State_History.Get (T.Armed_State_History.Get_Count), (State => Unarmed));
+   end Test_Arm_Command_On_Forward_Connector;
+
    overriding procedure Test_Rearm_While_Armed (Self : in out Instance) is
       T : Component.Command_Protector.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T := (Header => (Source_Id => 0, Id => 4, Arg_Buffer_Length => 19), Arg_Buffer => [others => 88]);

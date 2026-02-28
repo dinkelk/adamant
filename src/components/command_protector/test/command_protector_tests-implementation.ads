@@ -24,6 +24,8 @@ private
    overriding procedure Test_Protected_Command_Reject_Timeout (Self : in out Instance);
    -- This unit test verifies that sending a second Arm command while already armed correctly resets the timeout.
    overriding procedure Test_Rearm_While_Armed (Self : in out Instance);
+   -- This unit test verifies behavior when a command matching the Arm command ID arrives on the forwarding connector.
+   overriding procedure Test_Arm_Command_On_Forward_Connector (Self : in out Instance);
    -- This unit test makes sure that an invalid command is handled gracefully.
    overriding procedure Test_Invalid_Command (Self : in out Instance);
 

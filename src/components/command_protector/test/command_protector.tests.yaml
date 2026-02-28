@@ -13,5 +13,7 @@ tests:
     description: This unit test tests that a protected command is rejected if the component is unarmed due to timeout.
   - name: Test_Rearm_While_Armed
     description: This unit test verifies that sending a second Arm command while already armed correctly resets the timeout.
+  - name: Test_Arm_Command_On_Forward_Connector
+    description: This unit test verifies behavior when a command matching the Arm command ID arrives on the forwarding connector.
   - name: Test_Invalid_Command
     description: This unit test makes sure that an invalid command is handled gracefully.
