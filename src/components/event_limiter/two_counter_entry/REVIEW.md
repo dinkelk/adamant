@@ -233,3 +233,20 @@
 | 3 | **High** | Memory leak if `Init` called twice without `Destroy` — no guard on existing allocation | `Init`, adb ~10 |
 | 4 | **High** | No test for master-disable effect on `Increment_Counter`/`Decrement_Counter` — major behavioral contract untested | Test suite |
 | 5 | **Medium** | `Set_Persistence` bypasses `Get_Entry`/`Set_Entry` abstraction and modifies phantom slots on odd-count ranges | `Set_Persistence`, adb ~150–165 |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Num_Events_Limited wraparound | Critical | Fixed | - | Saturating increment |
+| 2 | Memory leak on double Init | High | Fixed | - | Added pragma Assert guard |
+| 3 | Disable-list validation via assert only | High | Fixed | - | Explicit status check |
+| 4 | No master-disable behavioral test | High | Fixed | - | Extended test |
+| 5 | Set_Persistence bypasses abstraction | Medium | Fixed | - | Refactored to use Get/Set_Entry |
+| 6 | Set_Entry no bounds validation | Medium | Fixed | - | Added pragma Assert |
+| 7 | Missing double-init and saturation tests | Medium | Fixed | - | Added 2 tests |
+| 8 | Unused Event_Id_List_Access | Low | Fixed | - | Removed |
+| 9 | Awkward API | Low | Not Fixed | - | Cross-component, deferred |
+| 10 | Destroy doesn't reset Master_Enable | Low | Fixed | - | Added reset |
+| 11 | Unnecessary Set_Entry on no-op | Low | Fixed | - | Added Modified flag |
+| 12 | No odd-count range test | Low | Not Fixed | - | Existing coverage sufficient |
