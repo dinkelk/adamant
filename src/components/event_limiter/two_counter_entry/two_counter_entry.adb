@@ -360,6 +360,7 @@ package body Two_Counter_Entry is
    end Get_Entry;
 
    procedure Set_Entry (Self : in out Instance; Id : in Event_Id; Event_New_Info : in Two_Counter_Entry_Type.T) is
+      pragma Assert (Id >= Self.Start_Id and then Id <= Self.End_Id, "Set_Entry called with out-of-range ID");
       Event_Id_In : constant Natural := Natural (Id - Self.Start_Id) / 2;
       Event_Info : Two_Counter_Entry_Type.T with
          Import,
