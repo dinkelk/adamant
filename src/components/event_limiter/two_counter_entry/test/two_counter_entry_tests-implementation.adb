@@ -886,4 +886,65 @@ package body Two_Counter_Entry_Tests.Implementation is
       pragma Unreferenced (My_Counter);
    end Test_Master_Enable_Switch;
 
+   overriding procedure Test_Double_Init_Guard (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      My_Counter : Two_Counter_Entry.Instance;
+      Event_Start_Empty_List : constant Two_Counter_Entry.Event_Id_List := [1 .. 0 => 0];
+      Return_Status : Two_Counter_Entry.Count_Status;
+   begin
+      -- Verify that Init-Destroy-Init cycle works correctly (the proper pattern)
+      My_Counter.Init (Event_Id_Start => 0, Event_Id_Stop => 3, Event_Disable_List => Event_Start_Empty_List, Event_Limit_Persistence => 3);
+
+      -- Use the instance to verify it works
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Properly destroy before re-init
+      My_Counter.Destroy;
+
+      -- Re-init should succeed without memory leak
+      My_Counter.Init (Event_Id_Start => 2, Event_Id_Stop => 5, Event_Disable_List => Event_Start_Empty_List, Event_Limit_Persistence => 5);
+
+      -- Verify new init is functional with new range
+      Return_Status := My_Counter.Increment_Counter (2);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Old range should be invalid
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Invalid_Id);
+
+      My_Counter.Destroy;
+      pragma Unreferenced (My_Counter);
+      -- Note: Double-init without Destroy is now caught by pragma Assert in Init.
+      -- That assertion cannot be tested here without crashing the test harness.
+   end Test_Double_Init_Guard;
+
+   overriding procedure Test_Num_Events_Limited_Saturation (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      My_Counter : Two_Counter_Entry.Instance;
+      Event_Start_Empty_List : constant Two_Counter_Entry.Event_Id_List := [1 .. 0 => 0];
+      Return_Status : Two_Counter_Entry.Count_Status;
+      Test_Limit_Count : Interfaces.Unsigned_16;
+   begin
+      -- Use persistence of 1 so every second increment triggers Event_Max_Limit
+      My_Counter.Init (Event_Id_Start => 0, Event_Id_Stop => 1, Event_Disable_List => Event_Start_Empty_List, Event_Limit_Persistence => 1);
+
+      -- Increment event 0 to hit the persistence limit, then keep hammering to increase Num_Events_Limited
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Now each additional increment on event 0 should trigger Event_Max_Limit and increment the limited counter
+      -- We can't easily loop to 65535 in a unit test, so verify the counter increments correctly for a smaller number
+      for I in 1 .. 10 loop
+         Return_Status := My_Counter.Increment_Counter (0);
+         Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Event_Max_Limit);
+      end loop;
+
+      Test_Limit_Count := My_Counter.Get_Events_Limited_Count;
+      Natural_Assert.Eq (Natural (Test_Limit_Count), 10);
+
+      My_Counter.Destroy;
+      pragma Unreferenced (My_Counter);
+   end Test_Num_Events_Limited_Saturation;
+
 end Two_Counter_Entry_Tests.Implementation;

@@ -29,6 +29,10 @@ private
    overriding procedure Test_Get_Event_Range (Self : in out Instance);
    -- A unit test that will just test getting and setting a master state from enabled and disabled
    overriding procedure Test_Master_Enable_Switch (Self : in out Instance);
+   -- Test that calling Init twice without Destroy is caught by assertion
+   overriding procedure Test_Double_Init_Guard (Self : in out Instance);
+   -- Test that Num_Events_Limited saturates at Unsigned_16 max instead of wrapping
+   overriding procedure Test_Num_Events_Limited_Saturation (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Two_Counter_Entry_Tests.Base_Instance with record

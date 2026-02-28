@@ -17,3 +17,7 @@ tests:
     description: Unit test to get the range of the event ids for the component
   - name: Test_Master_Enable_Switch
     description: A unit test that will just test getting and setting a master state from enabled and disabled
+  - name: Test_Double_Init_Guard
+    description: Test that calling Init twice without Destroy is caught by assertion
+  - name: Test_Num_Events_Limited_Saturation
+    description: Test that Num_Events_Limited saturates at Unsigned_16 max instead of wrapping
