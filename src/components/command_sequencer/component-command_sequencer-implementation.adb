@@ -874,17 +874,10 @@ package body Component.Command_Sequencer.Implementation is
          -- Check the command ID and make sure it matches the command just sent from this engine.
          if Expected_Command_Id /= Response.Command_Id then
             -- This command response does not match the command that was last sent out of this
-            -- engine. In this case, let's just silently ignore. This is likely a command response from
-            -- a subsequence load command, but we have already loaded and started running the subsequence.
+            -- engine. In this case, silently ignore. This is expected when a command response
+            -- arrives from a subsequence load command after the subsequence has already been
+            -- loaded and started running (i.e. spawn or call instructions).
             null;
-
-            -- Let's report this with an event, but do not continue:
-            -- Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Command_Response_Id (Self.Sys_Time_T_Get, (
-            --    Response => Response,
-            --    Last_Sent_Command_Id => Expected_Command_Id
-            -- )));
-            -- ^ This event will be produced whenever we have a spawn or call instruction, which will be confusing.
-            --    Is it better to just remove?
          else
             -- Command ID looks good!
             -- Check the return status of the command, if it is anything but Success, then the command
