@@ -38,6 +38,9 @@ private
       Command_Receive_Count : Protected_U16_Counter.Counter;
       Command_Failure_Count : Protected_U16_Counter.Counter;
       Command_Success_Count : Protected_U16_Counter.Counter;
+      -- Flag indicating that Set_Up (command registration) has completed.
+      -- Used as a runtime guard for the sync connector.
+      Registration_Complete : Boolean := False;
       -- An instance of the command router command sending object. This is used for
       -- self testing the command response forwarding feature of the command router.
       Commands : Command_Router_Commands.Instance;

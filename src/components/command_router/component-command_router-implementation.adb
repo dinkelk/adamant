@@ -69,6 +69,9 @@ package body Component.Command_Router.Implementation is
             ));
          end if;
       end loop;
+
+      -- Mark registration as complete to enable runtime guard on sync connector.
+      Self.Registration_Complete := True;
    end Set_Up;
 
    ---------------------------------------
@@ -88,6 +91,10 @@ package body Component.Command_Router.Implementation is
       Status : Router_Table.Lookup_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
+      -- Runtime guard: ensure registration has completed before routing commands.
+      pragma Assert (Self.Registration_Complete,
+         "Command_T_To_Route_Recv_Sync called before registration completed");
+
       -- Send event out that command was received:
       Self.Event_T_Send_If_Connected (Self.Events.Command_Received (The_Time, Arg.Header));
 
