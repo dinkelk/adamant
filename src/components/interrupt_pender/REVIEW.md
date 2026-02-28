@@ -195,3 +195,16 @@ The proper fix would be to fetch time inside the protected `Handler` procedure (
 | 3 | **Medium** | 1.3 | Timestamp-insertion behavior has no corresponding requirement — untraceable in a safety-critical context. |
 | 4 | **Medium** | 4.2 | Test interrupt handler comment says "Increment the time" but code zeroes it; misleading for maintainers. |
 | 5 | **Medium** | 4.3 | Only one test case; no coverage of timestamp path, rapid-interrupt drop semantics, or disconnected `Sys_Time_T_Get`. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Timestamp timing misleading | High | Fixed | - | Updated comments + description |
+| 2 | Timestamp path untested | High | Fixed | - | Wired handler in test |
+| 3 | Missing timestamp requirement | Medium | Fixed | - | Added to requirements.yaml |
+| 4 | Wrong test handler comment | Medium | Fixed | - | Corrected |
+| 5 | Insufficient test coverage | Medium | Not Fixed | - | Needs follow-up |
+| 6-7 | Stale "Tick" references | Low | Fixed | - | Updated |
+| 8 | Context diagram | Low | Not Fixed | - | Outside component scope |
+| 9 | Hardcoded sleeps | Low | Not Fixed | - | Acceptable pattern |
