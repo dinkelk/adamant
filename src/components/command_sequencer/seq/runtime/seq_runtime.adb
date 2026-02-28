@@ -817,28 +817,30 @@ package body Seq_Runtime is
    function Cmd_Set_Bit_Pattern (Self : in out Instance) return Seq_Position is
       Instruction : Set_Bit_Record.T;
       Status : constant Seq_Status := Get_Set_Bit_Pattern (Self, Instruction);
-
       use System.Storage_Elements;
-      Bytes : Basic_Types.Byte_Array (0 .. Natural (Instruction.Length) - 1)
-         with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Storage_Offset (Self.Next_Position);
-      Bytes_Serialized : Natural;
-      Command_Serialization_Status : constant Serialization_Status := Command.Serialization.From_Byte_Array (Self.Bit_Pattern, Bytes, Bytes_Serialized);
    begin
       pragma Assert (Status = Success);
 
-      -- Command Serialization Failure
-      if Command_Serialization_Status /= Success or else Bytes_Serialized /= Natural (Instruction.Length) then
-         return Self.Process_Error (Command_Parse);
-      end if;
+      declare
+         Bytes : Basic_Types.Byte_Array (0 .. Natural (Instruction.Length) - 1)
+            with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Storage_Offset (Self.Next_Position);
+         Bytes_Serialized : Natural;
+         Command_Serialization_Status : constant Serialization_Status := Command.Serialization.From_Byte_Array (Self.Bit_Pattern, Bytes, Bytes_Serialized);
+      begin
+         -- Command Serialization Failure
+         if Command_Serialization_Status /= Success or else Bytes_Serialized /= Natural (Instruction.Length) then
+            return Self.Process_Error (Command_Parse);
+         end if;
 
-      Self.Next_Position := @ + Seq_Position (Bytes_Serialized);
+         Self.Next_Position := @ + Seq_Position (Bytes_Serialized);
 
-      -- Read off the end of the sequence
-      if Self.Next_Position > Seq_Position (Self.Seq_Header.Length) then
-         return Self.Process_Error (Command_Length);
-      end if;
+         -- Read off the end of the sequence
+         if Self.Next_Position > Seq_Position (Self.Seq_Header.Length) then
+            return Self.Process_Error (Command_Length);
+         end if;
 
-      return Self.Next_Position;
+         return Self.Next_Position;
+      end;
    end Cmd_Set_Bit_Pattern;
 
    -- opcode 1 | Send Bit Pattern | U8 - U8 - U8 - U8 | Opcode - Pad - Pad - Pad
