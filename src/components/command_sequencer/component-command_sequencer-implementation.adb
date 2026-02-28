@@ -71,8 +71,11 @@ package body Component.Command_Sequencer.Implementation is
       -- Set packet period:
       Self.Packet_Period := Packet_Period;
 
-      -- Set the create sequence load function:
+      -- Set the create sequence load function and cache the load command ID:
       Self.Create_Sequence_Load_Command_Function := Create_Sequence_Load_Command_Function;
+      Self.Cached_Load_Command_Id := Create_Sequence_Load_Command_Function.all (
+         Id => 0, Engine_Number => 0, Engine_Request => Command_Sequencer_Enums.Sequence_Load_Engine_Request_Type.Specific_Engine
+      ).Header.Id;
 
       -- Packet size assertions - make sure that we can fit all the data for the engines/sequence stack slots into
       -- the packets.
@@ -913,19 +916,8 @@ package body Component.Command_Sequencer.Implementation is
          end if;
       end Handle_Command_Response;
 
-      -- Get the ID for the sequence load command.
-      function Get_Load_Command_Id return Command_Types.Command_Id is
-         use Command_Sequencer_Enums.Sequence_Load_Engine_Request_Type;
-         -- Create a temporary load command so that we can get the ID for the load command.
-         Load_Command : constant Command.T := Self.Create_Sequence_Load_Command_Function.all (
-            Id => 0, -- Doesn't matter
-            Engine_Number => 0, -- Doesn't matter
-            Engine_Request => Specific_Engine -- Doesn't matter
-         );
-      begin
-         return Load_Command.Header.Id;
-      end Get_Load_Command_Id;
-
+      -- Use the cached load command ID instead of constructing a full Command.T on the stack.
+      Load_Command_Id : constant Command_Types.Command_Id := Self.Cached_Load_Command_Id;
    begin
       -- Check if this is a Register_Source command response first.
       if Arg.Status = Register_Source then
@@ -979,7 +971,7 @@ package body Component.Command_Sequencer.Implementation is
                            when Wait_Load_New_Seq_Elsewhere =>
                               -- We have received the expected command response for the last command we sent. Let's handle it.
                               -- The expected command ID is the load command in this case.
-                              Handle_Command_Response (Response => Arg, Engine_Id => Engine_Id, Expected_Command_Id => Get_Load_Command_Id);
+                              Handle_Command_Response (Response => Arg, Engine_Id => Engine_Id, Expected_Command_Id => Load_Command_Id);
                            when others =>
                               -- Just ignore the command response. We don't want to error here because its plausible
                               -- that this is a command response from a subsequence load, etc. In that case, the state
@@ -993,7 +985,7 @@ package body Component.Command_Sequencer.Implementation is
                         -- This can happen for the load a new sequence command and that is totally fine. We are waiting on the
                         -- sequence load to come in, not the command response for that load command. So we only throw
                         -- this warning event if it is a command response from a command that is not a load new sequence command.
-                        if Arg.Command_Id /= Get_Load_Command_Id then
+                        if Arg.Command_Id /= Load_Command_Id then
                            Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Command_Response (Self.Sys_Time_T_Get, Arg));
                         end if;
                   end case;

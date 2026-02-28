@@ -6,6 +6,7 @@
 with Tick;
 with Command_Response;
 with Command;
+with Command_Types;
 with Sequence_Load;
 with Seq;
 with Seq_Types;
@@ -75,6 +76,9 @@ private
       -- Function access to the mission specific function which returns the sequence load command
       -- for the assembly.
       Create_Sequence_Load_Command_Function : Create_Sequence_Load_Command_Access := null;
+      -- Cached load command ID, computed once during Init to avoid constructing a full
+      -- Command.T on the stack every time a command response is processed.
+      Cached_Load_Command_Id : Command_Types.Command_Id := Command_Types.Command_Id'First;
    end record;
 
    ---------------------------------------
