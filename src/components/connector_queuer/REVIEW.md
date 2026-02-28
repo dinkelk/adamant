@@ -142,3 +142,17 @@ The core implementation (`T_Recv_Async` forwarding via `Self.T_Send`) is correct
 | 5 | TEST-01 | **Low** | `Test_Full_Queue` never asserts on `T_Send_Dropped_Count` after a drop. |
 
 **Overall Assessment:** The component is clean, minimal, and correct for its purpose. The implementation has no logic errors. The issues identified are primarily around observability (lack of drop counting / diagnostics) and test completeness (no multi-drop or partial-dispatch tests). For a simple passthrough queuer, these are reasonable design trade-offs, but in a safety-critical context the observability gaps (MOD-01, IMPL-02) warrant consideration.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No multi-drop test | Medium | Fixed | e1a2262 | 3 consecutive drops |
+| 2 | Event needs diagnostic param | Medium | Not Fixed | 4f2470e | Needs framework changes |
+| 3 | No cumulative drop counter | Medium | Not Fixed | 82d1c73 | Needs model YAML + codegen |
+| 4 | Drop handler has no logging | Medium | Not Fixed | f4fd948 | Depends on items 2-3 |
+| 5 | "front of the a" typo | Low | Fixed | 3bc1243 | Fixed in 2 spec files |
+| 6 | Boilerplate LaTeX sections | Low | Fixed | 5aec6f3 | Removed 5 sections |
+| 7 | Drop count not asserted | Low | Fixed | e39dddf | Added assertion |
+| 8 | No Dispatch_N test | Low | Fixed | d189ab7 | Added FIFO verification |
+| 9 | Handler parameterless | Low | Not Fixed | 93da80e | By design |
