@@ -291,3 +291,19 @@ No issues to report.
 | 3 | CI-3 | **High** | `seq_config.adb:114` | Telemetry parsing accesses `Parsed_Line(5)` but only validates `Words_Parsed >= 4` — crashes on 4- or 5-word lines |
 | 4 | DI-6 | **High** | `seq_runtime-decoder.adb` (`Load_Sequence_In_Memory`) | No bounds check when reading file into fixed 512 KB buffer — oversized file causes unhandled `Constraint_Error` |
 | 5 | UT-1 | **High** | Package-wide | Zero automated test coverage for a ground tool used in flight operations sequence decoding |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Duplicate command exit aborts parsing | Critical | Fixed | ff1b52e | Log & skip, continue parsing |
+| 2 | Comment truncation bug | High | Fixed | a92357c | Truncated string before Find_Token |
+| 3 | Telemetry bounds check | High | Fixed | eb7a491 | Changed < 4 to < 6 |
+| 4 | Buffer bounds check | High | Fixed | dd71c27 | Added bounds check |
+| 5 | No unit tests | High | Not Fixed | - | Needs test framework setup |
+| 6 | Hex prefix validation | Medium | Fixed | - | Added validation |
+| 7 | Memory leak in Decode | Medium | Fixed | - | Added Unchecked_Deallocation |
+| 8 | New_Line output param | Medium | Fixed | - | Uses Put_Line(Output) |
+| 9 | Str_Set dispatch | Medium | Fixed | - | Uncommented |
+| 10 | Magic numbers | Medium | Not Fixed | - | Needs instruction record defs |
+| 11-18 | Low items | Low | Mixed | - | Various fixes, 2 deferred |
