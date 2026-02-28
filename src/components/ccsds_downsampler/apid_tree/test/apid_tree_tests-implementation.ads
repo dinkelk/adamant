@@ -18,6 +18,8 @@ private
    overriding procedure Test_Set_Filter_Factor (Self : in out Instance);
    -- This unit test makes sure the counters for the number of packets that should be passed or filtered are correct.
    overriding procedure Test_Get_Counters (Self : in out Instance);
+   -- This test verifies counter saturation and Filter_Count modular arithmetic.
+   overriding procedure Test_Counter_Saturation (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Apid_Tree_Tests.Base_Instance with record

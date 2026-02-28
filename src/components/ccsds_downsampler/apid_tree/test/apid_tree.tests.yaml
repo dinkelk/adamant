@@ -7,3 +7,5 @@ tests:
     description: This unit test tests changing the value of the filter factor for a given apid.
   - name: Test_Get_Counters
     description: This unit test makes sure the counters for the number of packets that should be passed or filtered are correct.
+  - name: Test_Counter_Saturation
+    description: This test verifies that Num_Passed_Packets and Num_Filtered_Packets saturate at Unsigned_16'Last instead of wrapping around to 0, and that Filter_Count uses modular arithmetic correctly.
