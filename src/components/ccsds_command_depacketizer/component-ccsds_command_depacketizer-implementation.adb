@@ -60,6 +60,7 @@ package body Component.Ccsds_Command_Depacketizer.Implementation is
       Checksum : Xor_8.Xor_8_Type;
 
       -- Create a buffer and command type:
+      -- Note: Source_Id defaults to 0 for ground-originated commands.
       The_Command : Command.T;
    begin
       -- First make sure the CCSDS packet length is less than the size of the buffer. We need to do this
