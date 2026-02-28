@@ -112,7 +112,7 @@ enums:
         value: 124
         description: Bitwise OR's two numbers.
   - name: Seq_Internal
-    description: Represents one of the two seq registers.
+    description: Represents one of the four seq internal registers.
     literals:
       - name: Timeout
         value: 0
@@ -362,7 +362,7 @@ enums:
         description: Found in the runtime variable map.
       - name: Internal
         value: 2
-        description: Found in one of the two internal variables.
+        description: Found in one of the four internal variables.
       - name: Global
         value: 3
         description: Found in the seq global variables (currently not supported in Adamant)

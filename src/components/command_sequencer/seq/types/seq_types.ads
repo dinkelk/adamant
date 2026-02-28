@@ -80,7 +80,7 @@ package Seq_Types is
    -- A status enum for anytime something could fail
    type Seq_Status is (Success, Failure);
 
-   -- Seq has two internal variables
+   -- Seq has four internal variables (Timeout, Seq_Return, A, B):
    type Seq_Num_Internals is range 0 .. 3;
    type Internal_Array is array (Seq_Num_Internals) of Packed_Poly_32_Type.T;
 
