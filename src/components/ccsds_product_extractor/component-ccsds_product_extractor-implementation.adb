@@ -54,7 +54,10 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       Timestamp : constant Sys_Time.T := Self.Sys_Time_T_Get;
       Fetched_Entry : Ccsds_Product_Apid_List;
       Ignore : Positive;
-      -- Search the tree for the apid of the packet that was just received. If found, there are products to extract
+      -- Search the tree for the apid of the packet that was just received. If found, there are products to extract.
+      -- Note: Extract_List is set to null in the search key because Less_Than/Greater_Than only
+      -- compare on Apid. This is safe as long as the comparison operators are not modified to
+      -- access Extract_List.
       Search_Status : constant Boolean := Self.Extracted_Products_Tree.Search (((Apid => Arg.Header.Apid, Extract_List => null)), Fetched_Entry, Ignore);
    begin
       case Search_Status is
@@ -63,6 +66,10 @@ package body Component.Ccsds_Product_Extractor.Implementation is
             null;
          -- When an id is found, loop through all the extracted data products, create the data product, and verify they are in a valid range before sending them on
          when True =>
+            -- Guard against a null Extract_List. The generator always produces non-null
+            -- lists, but defend against corrupted or manually-constructed data at runtime.
+            pragma Assert (Fetched_Entry.Extract_List /= null,
+               "Extract_List is null for APID entry found in tree.");
             for Idx in Fetched_Entry.Extract_List.all'Range loop
                -- Determine which timestamp to use based on the yaml input
                declare
