@@ -119,3 +119,16 @@ pragma Assert (Checksum = [16#00#, 16#00#], "Empty array should return default s
 | 3 | **Medium** | CRC-16 tests lack edge cases and input diversity | `test/crc_16_tests-implementation.adb` | Single test vector insufficient to validate lookup table correctness |
 | 4 | **Low** | Checksum wrapping arithmetic undocumented | `checksum_16.adb:9-10` | In safety-critical code, intentional wrapping should be explicitly noted |
 | 5 | **Low** | Checksum tests missing empty array case | `test_checksum/test.adb` | Edge case boundary not validated |
+
+---
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No Unit Tests for Xor_8 Package | High | Fixed | 76d71eb | Added test directory and tests for Xor_8 package |
+| 2 | Unsafe Address Overlay With Zero-Length Pointer | Medium | Fixed | ba02baf | Added early return guard clause when length is zero |
+| 3 | CRC-16 Tests Lack Edge Cases and Diversity | Medium | Fixed | e935e62 | Added edge case and diverse input test vectors |
+| 4 | Checksum_16 Wrapping Arithmetic Undocumented | Low | Fixed | 7c4488f | Added comment documenting intentional modular wrapping |
+| 5 | Checksum_16 Tests Lack Empty Array Case | Low | Fixed | 80787dc | Added empty array test case |
+| 6 | Checksum Test Uses pragma Assert Instead of Test Framework | Low | Fixed | aad356b | Migrated checksum tests to use AUnit framework |
