@@ -166,3 +166,17 @@ No other model issues found. The preamble type `Command_Id_List` is appropriate.
 | 3 | I-2 | **Medium** | `pragma Assert` used for init-time validation can be compiled out in flight builds, silently accepting invalid configurations. |
 | 4 | T-3 | **Medium** | No test exercises the reject counter near its maximum value; counter overflow (I-1) would go undetected. |
 | 5 | D-1 | **Medium** | Three implemented behaviors (forwarding, error packets, events) have no corresponding requirements — gaps in traceability. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Counter overflow | High | Fixed | b5b2ed5 | Saturating increment |
+| 2 | Unsafe Final in test | Medium | Fixed | 790d23f | Removed unsafe calls |
+| 3 | pragma Assert for validation | Medium | Fixed | 5f3a861 | Replaced with if/raise |
+| 4 | No counter overflow test | Medium | Fixed | 0915096 | Added test + yaml + spec |
+| 5 | Incomplete requirements | Medium | Fixed | a3ff146 | Added 3 requirements |
+| 6 | Event severity field | Low | Not Fixed | c54a0b1 | No severity field in framework schema |
+| 7 | Unused import in test | Low | Fixed | 15fb36b | Removed |
+| 8 | Command ID 19 untested | Low | Fixed | e3febb2 | Added test |
+| 9 | Boundary ID tests | Low | Fixed | 7b4a258 | Added boundary tests |
