@@ -246,3 +246,16 @@ The `component.yaml` connectors, init parameters, and `with` declarations are co
 | 3 | **Medium** | `implementation.adb`, Init comment | Comment says `Event_Disable_List` contains IDs "enabled by default" — should say "disabled" |
 | 4 | **Medium** | `implementation.ads` / `.adb`, Tick comment | Says "every 10 ticks" but implementation fires every tick; stale comment from prior design |
 | 5 | **Medium** | `implementation.adb`, `Total_Event_Limited_Count` | Unsigned_32 lifetime counter silently wraps on overflow with no saturation or notification |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Off-by-one buffer overrun | Critical | Fixed | - | <= changed to < |
+| 2 | Assert after Init call | High | Fixed | - | Moved before Init |
+| 3 | "enabled" means "disabled" comment | Medium | Fixed | - | Corrected |
+| 4 | Stale "every 10 ticks" comment | Medium | Fixed | - | Corrected |
+| 5 | Counter wraps silently | Medium | Fixed | - | Added saturation |
+| 6 | Copy-paste YAML descriptions | Medium | Fixed | - | Corrected |
+| 7 | No out-of-range event test | Medium | Fixed | - | Added test |
+| 8-15 | Low items | Low | Mixed | - | Comment fixes, empty commits for design observations |
