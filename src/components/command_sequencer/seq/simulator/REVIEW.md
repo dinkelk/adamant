@@ -242,3 +242,19 @@ While this is a development/ground tool (not flight code), the core logic — pa
 | 3 | **Memory leak of `Buffer` allocations** | `seq_simulator.adb:53,130` | **High** | Heap-allocated 512 KB buffers never freed on any exit path; unbounded leak in recursive calls. |
 | 4 | **Insufficient exception handling in file I/O** | `seq_simulator.adb:46-47` | **High** | Only `Name_Error` caught; other I/O exceptions leave file handle open and crash simulator. |
 | 5 | **Magic number 255 for any-engine sentinel** | `seq_simulator.adb:107` | **Medium** | Undocumented magic literal; fragile if `Sequence_Engine_Id` range changes. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Buffer overflow in Load_Sequence_In_Memory | Critical | Fixed | 96a9b6d | Added bounds check |
+| 2 | Insufficient exception handling | High | Fixed | - | Broadened catch |
+| 3 | Memory leak of Buffer allocations | High | Fixed | - | Added Unchecked_Deallocation |
+| 4 | Load_State not checked | High | Fixed | - | Added check after Load |
+| 5 | Missing Destroy procedure | Medium | Fixed | - | Added to spec/body |
+| 6 | Magic number 255 sentinel | Medium | Fixed | - | Named constant |
+| 7 | No bounds check on To_Load | Medium | Fixed | - | Added guard |
+| 8 | Unhandled Constraint_Error from Get_Line | Medium | Fixed | - | Added handler |
+| 9 | Blanket when others in Initialize | Medium | Fixed | - | Narrowed |
+| 10 | Boolean return type | Low | Not Fixed | - | API change deferred |
+| 11 | No unit tests | Low | Not Fixed | - | Out of scope |
