@@ -382,7 +382,7 @@ enums:
         value: 3
         description: An error print statement.
   - name: Seq_Data_Type
-    description: This enum names the data types from Seq. This was implemented for printing variables. In C Seq these were represented with chars, so the values my seem random, they are not.
+    description: This enum names the data types from Seq. This was implemented for printing variables. In C Seq these were represented with chars, so the values may seem random, they are not.
     literals:
       - name: Discrete
         value: 68
