@@ -83,6 +83,17 @@ package body Router_Table_Tests.Implementation is
       Self.Table.Clear;
       Natural_Assert.Eq (Self.Table.Get_Size, 0);
       Natural_Assert.Eq (Self.Table.Get_Capacity, 3);
+
+      -- Verify lookup fails after clear for previously-added entries:
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (0, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (1, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (19, Ignore), Router_Table.Id_Not_Found);
+
+      -- Verify re-add works after clear:
+      Status_Assert.Eq (Self.Table.Add ((Registration_Id => 5, Command_Id => 42)), Router_Table.Success);
+      Natural_Assert.Eq (Self.Table.Get_Size, 1);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (42, Registration_Id), Router_Table.Success);
+      Registration_Assert.Eq (Registration_Id, 5);
    end Add_To_Table;
 
 end Router_Table_Tests.Implementation;
