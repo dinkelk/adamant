@@ -235,3 +235,21 @@ Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (1),
 | 3 | TEST-01 | **High** | `Set_Up` is called on uninitialized component (before `Init`) in test fixture — relies on benign default state. |
 | 4 | IMP-03 | **Medium** | `Unsigned_32` lifetime counters will silently wrap on long missions with no documented mitigation. |
 | 5 | IMP-04 | **Medium** | Combining filter-change and packet-dump into one command return status creates ambiguous failure reporting. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Raw pointer leak from protected object | High | Fixed | - | Added safety rationale documenting single-task invariant |
+| 2 | pragma Assert(False) in error branches | High | Fixed | - | Replaced with raise Program_Error |
+| 3 | Test calls Set_Up before Init | High | Fixed | - | Added default Init call |
+| 4 | Empty init description | Medium | Fixed | - | Co-fixed with IMP-01 |
+| 5 | No requirement IDs | Medium | Fixed | - | Added EF-001 through EF-005 |
+| 6 | Unsigned_32 counter wrap | Medium | Fixed | - | Documented as accepted |
+| 7 | Piggybacked dump status | Medium | Fixed | - | Decoupled from filter response |
+| 8 | Init description missing | Low | Fixed | - | Added to YAML |
+| 9 | "decrement cycle" copy-paste | Low | Fixed | - | Corrected description |
+| 10 | No event severities | Low | Fixed | - | Added to all 12 events |
+| 11 | No wrap-around test | Low | Not Fixed | - | Needs counter injection |
+| 12 | No dropped-message test | Low | Not Fixed | - | Needs tester framework |
+| 13 | Magic packet bytes | Low | Fixed | - | Added bit-layout comments |
