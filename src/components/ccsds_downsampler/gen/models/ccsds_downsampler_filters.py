@@ -10,14 +10,14 @@ class filter_entry(object):
         self.apid = packet["apid"]
         if self.apid > 2047:
             raise ModelException(
-                "Downsampler List Apid larger than 11 bits: '" + self.apid + "'."
+                "Downsampler List Apid larger than 11 bits: '" + str(self.apid) + "'."
             )
 
         self.filter_factor = packet["filter_factor"]
         if self.filter_factor > 65535:
             raise ModelException(
                 "Downsampler filter factor set to invalid value: '"
-                + self.filter_factor
+                + str(self.filter_factor)
                 + "'."
             )
 
