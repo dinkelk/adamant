@@ -1,3 +1,4 @@
+with Interfaces;
 with Basic_Types;
 with Packed_Poly_32_Type;
 
@@ -17,7 +18,7 @@ package Seq_Types is
    -- Defined in sequence store initialization, or similar component that
    -- stores sequences. The command sequencer itself can handle sequences up to
    -- 65535 bytes in length.
-   Max_Seq_Size : constant Natural := 2**16;
+   Max_Seq_Size : constant Natural := Natural (Interfaces.Unsigned_16'Last) + 1;
    --
    -- SEQ_MAX_CMD_SIZE 1024
    -- Defined in Adamant mission configuration file, see User Guide.
