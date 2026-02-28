@@ -91,7 +91,9 @@ package body Component.Command_Router.Implementation is
 
       -- Send out data products:
       if Self.Is_Data_Product_T_Send_Connected then
-         Self.Command_Receive_Count.Increment_Count;
+         if Self.Command_Receive_Count.Get_Count < Interfaces.Unsigned_16'Last then
+            Self.Command_Receive_Count.Increment_Count;
+         end if;
          Self.Data_Product_T_Send (Self.Data_Products.Command_Receive_Count (The_Time, (Value => Self.Command_Receive_Count.Get_Count)));
          Self.Data_Product_T_Send (Self.Data_Products.Last_Received_Command (The_Time, (Id => Arg.Header.Id)));
       end if;
@@ -109,7 +111,9 @@ package body Component.Command_Router.Implementation is
 
             -- Send out data products:
             if Self.Is_Data_Product_T_Send_Connected then
-               Self.Command_Failure_Count.Increment_Count;
+               if Self.Command_Failure_Count.Get_Count < Interfaces.Unsigned_16'Last then
+                  Self.Command_Failure_Count.Increment_Count;
+               end if;
                Self.Data_Product_T_Send (Self.Data_Products.Command_Failure_Count (The_Time, (Value => Self.Command_Failure_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Failed_Command (The_Time, (Id => Arg.Header.Id, Status => Command_Response_Status.Id_Error)));
             end if;
@@ -198,7 +202,9 @@ package body Component.Command_Router.Implementation is
             if Self.Is_Data_Product_T_Send_Connected and then
                 Arg.Command_Id /= Self.Commands.Get_Reset_Data_Products_Id
             then
-               Self.Command_Success_Count.Increment_Count;
+               if Self.Command_Success_Count.Get_Count < Interfaces.Unsigned_16'Last then
+                  Self.Command_Success_Count.Increment_Count;
+               end if;
                Self.Data_Product_T_Send (Self.Data_Products.Command_Success_Count (The_Time, (Value => Self.Command_Success_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Successful_Command (The_Time, (Id => Arg.Command_Id)));
             end if;
@@ -210,7 +216,9 @@ package body Component.Command_Router.Implementation is
             if Self.Is_Data_Product_T_Send_Connected and then
                 Arg.Command_Id /= Self.Commands.Get_Reset_Data_Products_Id
             then
-               Self.Command_Failure_Count.Increment_Count;
+               if Self.Command_Failure_Count.Get_Count < Interfaces.Unsigned_16'Last then
+                  Self.Command_Failure_Count.Increment_Count;
+               end if;
                Self.Data_Product_T_Send (Self.Data_Products.Command_Failure_Count (The_Time, (Value => Self.Command_Failure_Count.Get_Count)));
                Self.Data_Product_T_Send (Self.Data_Products.Last_Failed_Command (The_Time, (Id => Arg.Command_Id, Status => Arg.Status)));
             end if;
