@@ -49,7 +49,11 @@ private
       function Get_Event_Unfiltered_Count return Unsigned_32;
       -- Getter for maintaining the known range of IDs for the component to filter
       function Get_Event_Start_Stop_Range (Event_Stop_Id : out Event_Types.Event_Id) return Event_Types.Event_Id;
-      -- Function to get the entry state array for packetizing
+      -- Function to get the entry state array for packetizing.
+      -- WARNING: Returns a pointer to internal protected state. The caller must ensure
+      -- no concurrent protected procedure calls occur while the returned access is in use.
+      -- This is guaranteed by the passive (recv_sync) single-task execution model.
+      -- See SAFETY RATIONALE in the body (Tick_T_Recv_Sync) for full details.
       function Get_Entry_Array return Basic_Types.Byte_Array_Access;
 
    private

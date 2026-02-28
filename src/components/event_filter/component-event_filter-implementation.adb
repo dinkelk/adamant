@@ -134,7 +134,13 @@ package body Component.Event_Filter.Implementation is
             State_Packet_Status : Serialization_Status;
             State_Packet : Packet.T;
          begin
-            -- Grab the bytes from the package. As a note, this is not thread safe, but is done for speed. It is assumed that we will not be changing states while the packet is being sent.
+            -- SAFETY RATIONALE: Get_Entry_Array returns a Byte_Array_Access (pointer) to internal
+            -- protected state. After the protected function call returns, the lock is released and
+            -- the pointer is used without synchronization. This is safe ONLY because the component
+            -- uses a passive (recv_sync) execution model where all connectors (tick, event, command)
+            -- are invoked from the same caller task, guaranteeing serial execution. If this component
+            -- is ever assembled with connectors served by different tasks, a data race will occur.
+            -- ASSUMPTION: Single-task invocation of all recv_sync connectors (assembly-level invariant).
             Packet_Bytes := Self.Event_Entries.Get_Entry_Array;
             -- Send out the packet:
             State_Packet_Status := Self.Packets.Event_Filter_State_Packet (Timestamp, Packet_Bytes.all, State_Packet);
