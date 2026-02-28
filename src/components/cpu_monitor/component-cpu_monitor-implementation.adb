@@ -6,11 +6,16 @@ with Interrupt_Cpu_Usage;
 with Basic_Types;
 with Packet_Types;
 with Ada.Task_Identification;
+with Ada.Unchecked_Deallocation;
 
 package body Component.Cpu_Monitor.Implementation is
 
    use Ada.Real_Time;
    use Ada.Execution_Time;
+
+   -- Deallocation procedures for heap-allocated arrays:
+   procedure Free is new Ada.Unchecked_Deallocation (Last_Cpu_Time_Array, Last_Cpu_Time_Array_Access);
+   procedure Free is new Ada.Unchecked_Deallocation (Last_Time_Array, Last_Time_Array_Access);
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -35,6 +40,12 @@ package body Component.Cpu_Monitor.Implementation is
       Self.Interrupts := Interrupt_List;
       Self.Execution_Periods := Execution_Periods;
       Self.Packet_Counter.Set_Period_And_Reset_Count (Packet_Period);
+
+      -- Free any previous allocations to guard against double-init memory leaks:
+      Free (Self.Task_Cpu_Time_List);
+      Free (Self.Task_Up_Time_List);
+      Free (Self.Interrupt_Cpu_Time_List);
+      Free (Self.Interrupt_Up_Time_List);
 
       -- Allocate space on the heap to store the last measured CPU time for all of
       -- the tasks and interrupts.
@@ -66,9 +77,10 @@ package body Component.Cpu_Monitor.Implementation is
       -- to simply multiply all the periods together.
       Self.Max_Count := 1;
       for Index in Self.Execution_Periods'Range loop
-         -- Ignore zero entries, since this special value means that the connector index
-         -- is disabled, thus it should not be included in the calculation.
+         -- Period is Positive, so no zero-check needed.
          Period := Self.Execution_Periods (Index);
+         pragma Assert (Period <= Natural'Last / Self.Max_Count,
+            "Execution_Periods product overflows Natural");
          Self.Max_Count := @ * Period;
       end loop;
    end Init;
@@ -95,9 +107,8 @@ package body Component.Cpu_Monitor.Implementation is
          return Byte (Usage);
       end if;
    exception
-      -- Handle divide by zero error, which may happen on start up.
-      -- A constraint error could occur too if the times are wonky.
-      when others =>
+      -- Handle divide by zero or time arithmetic anomalies at start up.
+      when Constraint_Error =>
          return 0;
    end Cpu_Percentage;
 
@@ -114,6 +125,9 @@ package body Component.Cpu_Monitor.Implementation is
       Prev_Cpu_Time : CPU_Time;
       Curr_Cpu_Time : CPU_Time;
    begin
+      -- Buffer indexing below assumes 0-based array:
+      pragma Assert (Self.Packet_To_Send.Buffer'First = 0);
+
       -- If any of the three time periods have elapsed then take a new measurement for the CPU times
       -- for each task/interrupt during that time period.
       for Idx in Self.Execution_Periods'Range loop
@@ -163,6 +177,7 @@ package body Component.Cpu_Monitor.Implementation is
       if Self.Packet_Counter.Is_Count_At_Period then
          Self.Packet_To_Send.Header.Time := Self.Sys_Time_T_Get;
          Self.Packet_T_Send_If_Connected (Self.Packet_To_Send);
+         -- Sequence_Count is a modular type; wrap-around is intentional.
          Self.Packet_To_Send.Header.Sequence_Count := @ + 1;
       end if;
 
