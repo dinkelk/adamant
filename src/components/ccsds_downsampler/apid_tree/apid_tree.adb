@@ -42,8 +42,10 @@ package body Apid_Tree is
       case Search_Status is
          -- If we couldn't find the packet, then increment the pass count and move on
          when False =>
-            -- Update the counter and return the status
-            Self.Num_Passed_Packets := @ + 1;
+            -- Update the counter and return the status (saturate at max to avoid wraparound)
+            if Self.Num_Passed_Packets < Unsigned_16'Last then
+               Self.Num_Passed_Packets := @ + 1;
+            end if;
             Count := Self.Num_Passed_Packets;
             Return_Status := Invalid_Id;
          when True =>
@@ -51,19 +53,25 @@ package body Apid_Tree is
             case Fetched_Entry.Filter_Factor is
                -- When the factor is set to 0, we don't pass anything along.
                when 0 =>
-                  -- Update counter
-                  Self.Num_Filtered_Packets := @ + 1;
+                  -- Update counter (saturate at max to avoid wraparound)
+                  if Self.Num_Filtered_Packets < Unsigned_16'Last then
+                     Self.Num_Filtered_Packets := @ + 1;
+                  end if;
                   Return_Status := Filter;
                   Count := Self.Num_Filtered_Packets;
                -- Use the filter factor value for all other values to determine if it needs to be filtered or not
                when others =>
                   if (Fetched_Entry.Filter_Count mod Fetched_Entry.Filter_Factor) = 0 then
-                     Self.Num_Passed_Packets := @ + 1;
+                     if Self.Num_Passed_Packets < Unsigned_16'Last then
+                        Self.Num_Passed_Packets := @ + 1;
+                     end if;
                      Return_Status := Pass;
                      Count := Self.Num_Passed_Packets;
                   else
                      -- Filtered here
-                     Self.Num_Filtered_Packets := @ + 1;
+                     if Self.Num_Filtered_Packets < Unsigned_16'Last then
+                        Self.Num_Filtered_Packets := @ + 1;
+                     end if;
                      Return_Status := Filter;
                      Count := Self.Num_Filtered_Packets;
                   end if;
