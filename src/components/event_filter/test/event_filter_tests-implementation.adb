@@ -39,8 +39,9 @@ package body Event_Filter_Tests.Implementation is
       -- Make necessary connections between tester and component:
       Self.Tester.Connect;
 
-      -- Call component init here.
-      -- Self.Tester.Component_Instance.Init (Event_Id_Start_Range => TBD, Event_Id_End_Range => TBD, Event_Filter_List => TBD);
+      -- Call component init with a default empty range so that Set_Up operates on
+      -- initialized state. Individual tests re-call Init with their own parameters.
+      Self.Tester.Component_Instance.Init (Event_Id_Start_Range => 0, Event_Id_End_Range => 0);
 
       -- Call the component set up method that the assembly would normally call.
       Self.Tester.Component_Instance.Set_Up;
