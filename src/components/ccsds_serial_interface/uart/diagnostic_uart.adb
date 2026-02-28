@@ -2,6 +2,11 @@ with Ada.Text_IO;
 
 package body Diagnostic_Uart is
 
+   -- Verify that overlaying Character and Byte is safe on this target:
+   pragma Compile_Time_Error
+     (Character'Size /= Basic_Types.Byte'Size,
+      "Character and Byte must be the same size for overlay");
+
    function Get return Basic_Types.Byte is
       Val : Character;
       -- Overlay val with a byte to perform the type translation in a fast way:
