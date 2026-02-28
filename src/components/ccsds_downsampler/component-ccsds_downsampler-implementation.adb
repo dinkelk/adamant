@@ -50,7 +50,7 @@ package body Component.Ccsds_Downsampler.Implementation is
    procedure Send_Filter_Data_Product (Self : in out Instance; Tree_Entry : in Ccsds_Downsampler_Tree_Entry; Tree_Index : in Positive) is
       use Data_Product_Types;
       Timestamp : constant Sys_Time.T := Self.Sys_Time_T_Get;
-      Dp_Id : constant Data_Product_Id := Self.Data_Products.Get_Id_Base + Data_Product_Id (Tree_Index - 1) + Data_Product_Id (Ccsds_Downsampler_Data_Products.Num_Data_Products);
+      Dp_Id : constant Data_Product_Id := Self.Data_Products.Get_Id_Base + Data_Product_Id (Tree_Entry.Dp_Index) + Data_Product_Id (Ccsds_Downsampler_Data_Products.Num_Data_Products);
       Dp : Data_Product.T := (Header => (Id => Dp_Id, Time => Timestamp, Buffer_Length => Packed_U16.Serialization.Serialized_Length), Buffer => [others => 0]);
    begin
       Dp.Buffer (Dp.Buffer'First .. Dp.Buffer'First + Packed_U16.Serialization.Serialized_Length - 1) := Packed_U16.Serialization.To_Byte_Array ((Value => Tree_Entry.Filter_Factor));
