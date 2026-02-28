@@ -106,3 +106,14 @@ The core logic (count, forward, reset, data product publish) is straightforward,
 | 3 | **Medium** | §3.3 | No visible command registration in `Set_Up` — needs verification that the framework handles this. |
 | 4 | **Medium** | §2.1 | `Command_Response.T` connector description says "register commands" but it sends command responses. |
 | 5 | **Low** | §1.2 | Events YAML missing top-level `description` field (inconsistent with other model files). |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No unit tests | High | Not Fixed | - | Needs codegen harness |
+| 2 | Silent T_Send_Dropped | Medium | Fixed | - | Added warning event + handler |
+| 3 | Command registration | Medium | Not Fixed | - | Framework handles it |
+| 4 | Connector description | Medium | Fixed | - | Corrected YAML |
+| 5 | Events YAML description | Low | Fixed | - | Added field |
+| 6 | Missing apostrophe | Low | Fixed | - | Resolved by fix #4 |
