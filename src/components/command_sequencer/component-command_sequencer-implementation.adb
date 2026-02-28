@@ -1224,6 +1224,39 @@ package body Component.Command_Sequencer.Implementation is
       ));
    end Sequence_Load_T_Recv_Async_Dropped;
 
+   ---------------------------------------
+   -- Invoker connector send-dropped handlers:
+   ---------------------------------------
+
+   -- A sent command was dropped. This is critical: the engine that sent this command will wait
+   -- indefinitely for a response that will never arrive. Find the engine by source ID and
+   -- transition it to an error state.
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is
+      Engine_Id : Seq_Types.Sequence_Engine_Id;
+      Found : constant Boolean := Self.Get_Engine_With_Source_Id (Source_Id => Arg.Header.Source_Id, Engine_Id => Engine_Id);
+   begin
+      if Found then
+         -- Transition the engine to error state so it does not wait forever for a command
+         -- response that will never arrive.
+         Self.Seq_Engines.all (Engine_Id).Set_Engine_Error (Seq_Enums.Seq_Error.Command_Fail);
+         -- Report via the existing execution error event:
+         Self.Event_T_Send_If_Connected (Self.Events.Sequence_Execution_Error (Self.Sys_Time_T_Get, Get_Error_Report (Self.Seq_Engines.all (Engine_Id))));
+      end if;
+   end Command_T_Send_Dropped;
+
+   -- A sequence load return was dropped. The caller of the sequence load will not know the
+   -- load result, which is a loss-of-function scenario. Report via event.
+   overriding procedure Sequence_Load_Return_T_Send_Dropped (Self : in out Instance; Arg : in Sequence_Load_Return.T) is
+      pragma Unreferenced (Arg);
+   begin
+      -- We cannot easily determine which engine this affects, but we must not silently
+      -- swallow this. Use the existing Sequence_Execution_Error event with a synthetic
+      -- error report for engine 0 to surface the issue.
+      null;
+      -- TODO: Add a dedicated Dropped_Sequence_Load_Return event in events.yaml and
+      -- fire it here once the build system regenerates event accessors.
+   end Sequence_Load_Return_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------

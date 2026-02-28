@@ -113,9 +113,9 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Sequence_Load_Return_T_Send message is dropped due to a full queue.
-   overriding procedure Sequence_Load_Return_T_Send_Dropped (Self : in out Instance; Arg : in Sequence_Load_Return.T) is null;
+   overriding procedure Sequence_Load_Return_T_Send_Dropped (Self : in out Instance; Arg : in Sequence_Load_Return.T);
    -- This procedure is called when a Command_T_Send message is dropped due to a full queue.
-   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is null;
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
