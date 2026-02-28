@@ -195,6 +195,11 @@ package body Seq_Runtime.Decoder is
    begin
       Open (File, In_File, Path);
       while not End_Of_File (File) loop
+         if Sequence_Size >= Buffer'Length then
+            Close (File);
+            Put_Line (Standard_Error, "Sequence file exceeds maximum size of" & Max_Sequence_Size'Image & " bytes");
+            return False;
+         end if;
          Read (File, Data);
          Buffer (Sequence_Size) := Data;
          Sequence_Size := @ + 1;
