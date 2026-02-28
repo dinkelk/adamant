@@ -92,3 +92,12 @@ The implementation is a faithful 16-bit analogue of `connector_counter_8`. Comma
 | 3 | **Low** | §1.2 | Package name `Sixteen_Counter` inconsistent with `Byte_Counter` pattern in sibling |
 | 4 | **Low** | §3.1 | Count increments regardless of downstream connection status (by design, noted for awareness) |
 | 5 | — | — | No further issues identified; implementation is clean and correct |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No unit tests | High | Not Fixed | e96f8ca | Needs codegen harness |
+| 2 | Copy-paste "8 bit" comment | Medium | Fixed | 0c62fc8 | Corrected to 16-bit |
+| 3 | Naming inconsistency | Low | Fixed | 6548c64 | Renamed to U16_Counter |
+| 4 | Count regardless of connection | Low | Not Fixed | 04c6183 | By design |
