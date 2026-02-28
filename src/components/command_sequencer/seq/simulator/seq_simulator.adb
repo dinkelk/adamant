@@ -27,7 +27,7 @@ package body Seq_Simulator is
    -- Sentinel value meaning "load into any available engine."
    Any_Engine : constant Sequence_Engine_Id := Sequence_Engine_Id'Last;
 
-   function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Boolean is
+   function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Init_Status is
       The_Source_Id : Command_Source_Id := Start_Source_Id;
    begin
       Self.Seq_Engines := new Seq_Engine_Array (Sequence_Engine_Id'First .. Sequence_Engine_Id'First + Num_Engines - 1);
@@ -38,12 +38,15 @@ package body Seq_Simulator is
          Self.Seq_Engines (Id).Set_Source_Id (The_Source_Id);
          The_Source_Id := @ + 1;
       end loop;
-      return True;
+      return Success;
    exception
+      when Storage_Error =>
+         Put_Line ("Initialize failed: allocation error");
+         return Allocation_Error;
       when E : others =>
          Put_Line ("Initialize failed: "
                     & Ada.Exceptions.Exception_Information (E));
-         return False;
+         return Configuration_Error;
    end Initialize;
 
    procedure Free_Engines is new Ada.Unchecked_Deallocation (Seq_Engine_Array, Seq_Engine_Array_Access);
