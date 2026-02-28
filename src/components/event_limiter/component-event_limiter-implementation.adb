@@ -149,7 +149,7 @@ package body Component.Event_Limiter.Implementation is
                   null; -- do nothing here and move on
                   -- Save the event id into our event that indicates this id was limited (if room is available)
                when Event_Max_Limit =>
-                  if Num_Event_Limited_Event.Num_Event_Ids <= Num_Event_Limited_Event.Event_Id_Limited_Array'Length then
+                  if Num_Event_Limited_Event.Num_Event_Ids < Num_Event_Limited_Event.Event_Id_Limited_Array'Length then
                      Num_Event_Limited_Event.Event_Id_Limited_Array (Integer (Num_Event_Limited_Event.Num_Event_Ids)) := Dec_Event_Id;
                      Num_Event_Limited_Event.Num_Event_Ids := @ + 1;
                   end if;
