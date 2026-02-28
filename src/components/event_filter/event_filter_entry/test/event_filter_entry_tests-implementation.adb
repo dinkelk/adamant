@@ -627,6 +627,27 @@ package body Event_Filter_Entry_Tests.Implementation is
       State_Filter_Status := Event_Filter.Filter_Event (7);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
 
+      -- Test Destroy/Init cycle: verify Global_Enable_State resets properly (Issue 2.3/4.3)
+      -- Disable the filter globally, then Destroy and re-Init
+      Event_Filter.Set_Global_Enable_State (Global_Filter_State.Disabled);
+      Global_State := Event_Filter.Get_Global_Enable_State;
+      Global_State_Assert.Eq (Global_State, Global_Filter_State.Disabled);
+
+      Event_Filter.Destroy;
+      Event_Filter.Init (Event_Id_Start => 0, Event_Id_Stop => 9, Event_Filter_List => Event_Start_List);
+
+      -- After Destroy/Init cycle, global state should be Enabled (the default)
+      Global_State := Event_Filter.Get_Global_Enable_State;
+      Global_State_Assert.Eq (Global_State, Global_Filter_State.Enabled);
+
+      -- Verify filtering works correctly after re-init
+      State_Filter_Status := Event_Filter.Filter_Event (4);
+      Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
+      State_Filter_Status := Event_Filter.Filter_Event (7);
+      Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
+      State_Filter_Status := Event_Filter.Filter_Event (5);
+      Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
+
       Event_Filter.Destroy;
       pragma Unreferenced (Event_Filter);
    end Test_Global_Enable_Switch;
