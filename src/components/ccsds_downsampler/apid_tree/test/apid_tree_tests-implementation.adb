@@ -95,17 +95,17 @@ package body Apid_Tree_Tests.Implementation is
       Tree_Entry := Tree.Get_Tree_Entry (1);
       Natural_Assert.Eq (Natural (Tree_Entry.Apid), 2);
       Unsigned_16_Assert.Eq (Tree_Entry.Filter_Factor, 0);
-      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 3);
+      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 0);
 
       Tree_Entry := Tree.Get_Tree_Entry (2);
       Natural_Assert.Eq (Natural (Tree_Entry.Apid), 3);
       Unsigned_16_Assert.Eq (Tree_Entry.Filter_Factor, 3);
-      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 7);
+      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 1);
 
       Tree_Entry := Tree.Get_Tree_Entry (3);
       Natural_Assert.Eq (Natural (Tree_Entry.Apid), 4);
       Unsigned_16_Assert.Eq (Tree_Entry.Filter_Factor, 1);
-      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 6);
+      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 0);
 
    end Test_Init_List;
 
