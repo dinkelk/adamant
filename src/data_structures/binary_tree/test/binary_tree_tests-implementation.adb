@@ -124,6 +124,30 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Search (8, Ignore, Ignore_Index), False);
       Boolean_Assert.Eq (Self.Tree.Search (10_001, Ignore, Ignore_Index), False);
 
+      -- Test Get: retrieve elements by index after search
+      Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Tree_Index), True);
+      Natural_Assert.Eq (Self.Tree.Get (Tree_Index), 35);
+      -- Get first and last elements:
+      Natural_Assert.Eq (Self.Tree.Get (1), 1);
+      Natural_Assert.Eq (Self.Tree.Get (10), 200);
+
+      -- Test Set: replace element maintaining sorted order (Set now returns Boolean)
+      -- Replace 35 with 36 (valid: neighbors are 17 and 50)
+      Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Tree_Index), True);
+      Boolean_Assert.Eq (Self.Tree.Set (Tree_Index, 36), True);
+      Natural_Assert.Eq (Self.Tree.Get (Tree_Index), 36);
+      Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Try to set a value that would break sorted order (should fail):
+      Boolean_Assert.Eq (Self.Tree.Set (Tree_Index, 999), False);
+      -- Element should be unchanged:
+      Natural_Assert.Eq (Self.Tree.Get (Tree_Index), 36);
+      Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Restore original value for remaining tests:
+      Boolean_Assert.Eq (Self.Tree.Set (Tree_Index, 35), True);
+
+      -- Test Set with out-of-bounds index (should fail):
+      Boolean_Assert.Eq (Self.Tree.Set (11, 42), False);
+
       -- Clear the tree:
       Natural_Assert.Eq (Self.Tree.Get_Capacity, 10);
       Natural_Assert.Eq (Self.Tree.Get_Size, 10);
