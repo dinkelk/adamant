@@ -14,6 +14,7 @@ package body Binary_Tree is
       procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Element_Array, Name => Element_Array_Access);
    begin
       Free_If_Testing (Self.Tree);
+      Self.Tree := null;
       Self.Clear;
    end Destroy;
 
