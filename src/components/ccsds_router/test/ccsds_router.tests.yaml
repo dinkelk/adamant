@@ -13,3 +13,5 @@ tests:
     description: This unit test tests that CCSDS packets of non-contiguous sequence counts produce a warning event.
   - name: Test_Duplicate_Packet_Drop
     description: This unit test tests that CCSDS packets of identical subsequent sequence counts get dropped.
+  - name: Test_Sequence_Count_Wraparound
+    description: This unit test verifies that sequence count wraparound from 16383 to 0 is treated as the expected next value and does not trigger a warning.

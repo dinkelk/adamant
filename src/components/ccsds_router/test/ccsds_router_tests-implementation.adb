@@ -772,4 +772,36 @@ package body Ccsds_Router_Tests.Implementation is
       Ccsds_Space_Packet_Assert.Eq (T.Error_Packet_History.Get (3), Packet_6);
    end Test_Duplicate_Packet_Drop;
 
+   overriding procedure Test_Sequence_Count_Wraparound (Self : in out Instance) is
+      T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Use APID 3 which is in Warn mode. First send a packet to establish
+      -- a known Last_Sequence_Count, then wrap from 16383 to 0.
+
+      -- Send first packet with sequence count 16382 (establishes baseline after initial warning):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (16382);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      -- First packet always warns (IMPL-2: Last_Sequence_Count inits to 16383, expected is 0):
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- Send packet with sequence count 16383 (sequential, no warning expected):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (16383);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- Send packet with sequence count 0 (wraparound, should be treated as expected next value):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (0);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      -- No new warning should be generated since 0 = (16383 + 1) mod 2**14:
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- Send packet with sequence count 1 (sequential after wraparound):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (1);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- No error packets should have been generated:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Sequence_Count_Wraparound;
+
 end Ccsds_Router_Tests.Implementation;
