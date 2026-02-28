@@ -203,7 +203,7 @@ package body Component.Event_Limiter.Implementation is
                            Byte_Num := @ + 1;
                      end case;
                   when Invalid_Id =>
-                     pragma Assert (False, "Invalid_Id found when decrementing all event limiter counters which should not be possible: " & Natural'Image (Natural (Id)));
+                     pragma Assert (False, "Invalid_Id found when getting enable state for event limiter state packet which should not be possible: " & Natural'Image (Natural (Id)));
                end case;
             end loop;
             -- Finish the last byte of the packet if necessary
