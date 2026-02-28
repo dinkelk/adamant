@@ -634,6 +634,21 @@ package body Event_Filter_Entry_Tests.Implementation is
       State_Filter_Status := Event_Filter.Filter_Event (7);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
 
+      -- Test counter behavior when globally disabled (Issue 4.4)
+      -- The unfiltered counter should still increment when globally disabled
+      declare
+         Unfiltered_Before : constant Unsigned_32 := Event_Filter.Get_Event_Unfiltered_Count;
+      begin
+         Event_Filter.Set_Global_Enable_State (Global_Filter_State.Disabled);
+         State_Filter_Status := Event_Filter.Filter_Event (4); -- would be filtered if enabled
+         Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
+         State_Filter_Status := Event_Filter.Filter_Event (5); -- unfiltered either way
+         Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
+         -- Both events should have incremented the unfiltered counter
+         Unsigned_32_Assert.Eq (Event_Filter.Get_Event_Unfiltered_Count, Unfiltered_Before + 2);
+         Event_Filter.Set_Global_Enable_State (Global_Filter_State.Enabled);
+      end;
+
       -- Test Destroy/Init cycle: verify Global_Enable_State resets properly (Issue 2.3/4.3)
       -- Disable the filter globally, then Destroy and re-Init
       Event_Filter.Set_Global_Enable_State (Global_Filter_State.Disabled);
