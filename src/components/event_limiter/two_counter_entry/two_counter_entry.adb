@@ -72,7 +72,10 @@ package body Two_Counter_Entry is
                         -- Check if the event was at the max persistence and should be limited
                         if Event_Info.Top_Event_Count >= Self.Persistence then
                            -- Increment our number of limited event counter if the event is enabled here (so that its protected in the component)
-                           Self.Num_Events_Limited := @ + 1;
+                           -- Use saturating increment to prevent silent wraparound at Unsigned_16'Last
+                           if Self.Num_Events_Limited < Interfaces.Unsigned_16'Last then
+                              Self.Num_Events_Limited := @ + 1;
+                           end if;
                            Increment_Status := Event_Max_Limit;
                            -- Increment if we are less than the persistence
                         else
@@ -95,7 +98,10 @@ package body Two_Counter_Entry is
                         -- Check if the event was at the max persistence and limited
                         if Event_Info.Bottom_Event_Count >= Self.Persistence then
                            -- Increment our number of limited event counter if the event is enabled here (so that its protected in the component)
-                           Self.Num_Events_Limited := @ + 1;
+                           -- Use saturating increment to prevent silent wraparound at Unsigned_16'Last
+                           if Self.Num_Events_Limited < Interfaces.Unsigned_16'Last then
+                              Self.Num_Events_Limited := @ + 1;
+                           end if;
                            Increment_Status := Event_Max_Limit;
                            -- Increment if we are less than the persistence
                         else
