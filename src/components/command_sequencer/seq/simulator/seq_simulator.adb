@@ -45,6 +45,12 @@ package body Seq_Simulator is
    begin
       Open (File, In_File, Path);
       while not End_Of_File (File) loop
+         if Sequence_Size > Buffer'Last then
+            Close (File);
+            Put_Line ("Error: Sequence file exceeds maximum size of"
+                       & Natural'Image (Max_Sequence_Size) & " bytes.");
+            return False;
+         end if;
          Read (File, Data);
          Buffer (Sequence_Size) := Data;
          Sequence_Size := @ + 1;
