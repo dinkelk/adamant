@@ -108,9 +108,9 @@ package body Component.Event_Limiter.Implementation is
       (Self : in out Instance; Event_Id_Start : in Event_Types.Event_Id; Event_Id_Stop : in Event_Types.Event_Id; Event_Disable_List : in Two_Counter_Entry.Event_Id_List := [1 .. 0 => 0]; Event_Limit_Persistence : in Two_Counter_Entry.Persistence_Type)
    is
    begin
-      Self.Event_Array.Init (Event_Id_Start, Event_Id_Stop, Event_Disable_List, Event_Limit_Persistence);
       -- This is asserted in the package as well but added here for extra clarity
       pragma Assert (Event_Id_Stop >= Event_Id_Start, "Stop id must be equal to or greater than the start ID for the event limiter");
+      Self.Event_Array.Init (Event_Id_Start, Event_Id_Stop, Event_Disable_List, Event_Limit_Persistence);
 
       -- Divide by 8 to determine the number of ids we need to accommodate (1 id per bit). Add eight since the difference needs to account for an extra byte if we have ids that need to fil up some of the next byte
       Self.State_Packet_Size := Natural (Event_Id_Stop - Event_Id_Start + 8) / 8;
