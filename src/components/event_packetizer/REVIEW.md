@@ -368,3 +368,19 @@ vs.
 | 3 | TEST-3 | **High** | No test for destroy-then-use scenario, which would catch the Critical IMPL-1 bug |
 | 4 | IMPL-4 | **Medium** | `Invalid_Command` silently triggers `Send_Packet` instead of rejecting the malformed command |
 | 5 | IMPL-3 | **Medium** | `Get_Bytes_Available` adds `Buffer'First` to `Buffer_Length` — latent defect if buffer is non-zero-indexed |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Destroy doesn't reset Initialized | Critical | Fixed | - | Added Initialized := False |
+| 2 | Events_Dropped wraps to 0 | High | Fixed | - | Saturating counter |
+| 3 | No destroy-then-use test | High | Fixed | - | Added test |
+| 4 | Get_Bytes_Available Buffer'First bug | Medium | Fixed | - | Removed erroneous addition |
+| 5 | Invalid_Command triggers behavior | Medium | Fixed | - | Now rejects with Failure |
+| 6 | No event connector for drops | Medium | Not Fixed | - | Needs model regen |
+| 7 | Null Packet_T_Send_Dropped | Medium | Not Fixed | - | Needs new data product |
+| 8 | No invalid-command test | Medium | Fixed | - | Added test |
+| 9 | No queue backpressure test | Medium | Not Fixed | - | No simulation mechanism |
+| 10 | Object_Size/8 vs Serialized_Length | Medium | Fixed | - | Standardized |
+| 11-16 | Low items | Low | Mixed | - | Doc fixes, buffer cleanup, design docs |
