@@ -150,3 +150,13 @@ Test coverage is thorough with 7 tests covering:
 ---
 
 **Overall Assessment:** This is a well-structured, cleanly implemented component. The extraction logic correctly handles boundary conditions, and the test suite is comprehensive. The main concerns are around observability of silent failures on downstream send drops, and a minor defensive programming improvement for the extraction loop. No critical or high severity issues were found.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Silent packet loss on downstream send connector overflow | Medium | Fixed | ea9efed | Added counters for dropped packets with observability |
+| 2 | No validation of Init parameters | Medium | Fixed | 27b121f | Added pragma Assert on Start_Offset + Stop_Offset |
+| 3 | Loop termination depends on external deserialization contract | Low | Fixed | 9cbfae3 | Added pragma Assert on Num_Bytes_Deserialized > 0 |
+| 4 | No test for unlimited extraction mode | Low | Fixed | e1bcb77 | Added explicit test with Max_Subpackets=-1 |
+| 5 | No test for combined offsets with Max_Subpackets | Low | Fixed | 0b16b3c | Added combined feature interaction test |
