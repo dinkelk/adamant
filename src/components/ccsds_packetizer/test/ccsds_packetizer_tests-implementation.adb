@@ -65,17 +65,23 @@ package body Ccsds_Packetizer_Tests.Implementation is
       -- Check data:
       Assert (Ccsds_Packet.Data (Sys_Time.Serialization.Serialized_Length .. Natural (Ccsds_Packet.Header.Packet_Length) - Crc_16_Type'Length) = P.Buffer (P.Buffer'First .. P.Buffer'First + P.Header.Buffer_Length - 1), "Comparing buffers failed.");
 
-      -- Check checksum:
+      -- Check checksum using an independently constructed byte array rather than
+      -- a memory overlay, so that this verification does not mirror the implementation's
+      -- overlay technique (addresses T-7 review finding).
       declare
          Crc : constant Crc_16_Type := Ccsds_Packet.Data (Natural (Ccsds_Packet.Header.Packet_Length) - Crc_16_Type'Length + 1 .. Natural (Ccsds_Packet.Header.Packet_Length));
-         Overlay : Basic_Types.Byte_Array (0 .. Natural (Ccsds_Packet.Header.Packet_Length) + Ccsds_Primary_Header.Serialization.Serialized_Length - Crc_16_Type'Length) with
-            Import,
-            Convention => Ada,
-            Address => Ccsds_Packet'Address;
+         -- Build the CRC input independently by serializing the header and concatenating data:
+         Header_Bytes : constant Basic_Types.Byte_Array := Ccsds_Primary_Header.Serialization.To_Byte_Array (Ccsds_Packet.Header);
+         Data_Before_Crc : constant Basic_Types.Byte_Array := Ccsds_Packet.Data (Ccsds_Packet.Data'First .. Natural (Ccsds_Packet.Header.Packet_Length) - Crc_16_Type'Length);
+         Crc_Input : Basic_Types.Byte_Array (0 .. Header_Bytes'Length + Data_Before_Crc'Length - 1);
+         Expected_Crc : Crc_16_Type;
       begin
+         Crc_Input (0 .. Header_Bytes'Length - 1) := Header_Bytes;
+         Crc_Input (Header_Bytes'Length .. Crc_Input'Last) := Data_Before_Crc;
+         Expected_Crc := Compute_Crc_16 (Crc_Input);
          Put_Line (Ccsds_Space_Packet.Representation.Image (Ccsds_Packet));
          Put_Line (Basic_Types.Representation.Image (Crc));
-         Assert (Crc = Compute_Crc_16 (Overlay), "Comparing checksums failed.");
+         Assert (Crc = Expected_Crc, "Comparing checksums failed (independent CRC verification).");
       end;
    end Check_Packet;
 
