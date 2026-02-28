@@ -225,3 +225,19 @@ This is acceptable for a pure types/constants package — the types are exercise
 | 3 | **Medium** | `seq_enums.enums.yaml` : `Seq_Error` | Inconsistent literal naming convention (mix of `ALL_CAPS` and `Mixed_Case`) increases risk of typos and maintenance errors in safety-critical pattern matching. |
 | 4 | **Medium** | `seq_enums.enums.yaml` / `seq_types.ads` | Comments and descriptions incorrectly state "two" internal variables when there are four (`Timeout`, `Seq_Return`, `A`, `B`). Misleading documentation in flight code. |
 | 5 | **Medium** | `kill_eng_record.record.yaml` : `Num_To_Kill` | Uses `Sequence_Engine_Id` type for a count field — semantically incorrect and could mislead maintainers about valid values and overflow behavior. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | var_record.Id bounds-check docs | High | Fixed | 172e3c7 | Added documentation |
+| 2 | telemetry_record.Size constraint | High | Fixed | cf584f9 | Documented 32-bit limit |
+| 3 | Inconsistent Seq_Error casing | Medium | Fixed | 11d2020 | Standardized to ALL_CAPS |
+| 4 | Misleading "two internals" comment | Medium | Fixed | 43c5c35 | Corrected to four |
+| 5 | Num_To_Kill type misuse | Medium | Fixed | dc8f1f6 | Changed to Basic_Types.Byte |
+| 6 | No unit tests | Medium | Not Fixed | b4108a2 | Deferred |
+| 7 | Max_Seq_Size derivation | Low | Fixed | 9b85e35 | Derived from Unsigned_16'Last |
+| 8 | Wide Engine_Id range | Low | Fixed | 88f00ad | Added rationale comment |
+| 9 | Opcode overlap | Low | Not Fixed | 0abda7e | By design |
+| 10 | Typo "my" → "may" | Low | Fixed | 4fd2a2c | Fixed |
+| 11 | Grammar in TELEMETRY_SET | Low | Fixed | 87ae1b5 | Fixed |
