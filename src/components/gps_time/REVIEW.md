@@ -156,3 +156,16 @@ overriding function Sys_Time_T_Return (Self : in out Instance) return Sys_Time.T
 | 3 | **High** | `test/` (missing) | No unit tests for the component (§4.1) |
 | 4 | **High** | `implementation.adb:26` | TODO comment left in deliverable flight code (§3.2) |
 | 5 | **High** | `requirements.yaml` | Single requirement with no ID; missing behavioral and error-handling requirements (§1.1) |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No event connector for errors | Critical | Fixed | fb093d4 | Added event send + events YAML |
+| 2 | To_Sys_Time status discarded | Critical | Fixed | a6cf3b1 | Now checks status, emits event |
+| 3 | TODO in production code | High | Fixed | d0eb61f | Resolved by status handling |
+| 4 | Minimal requirements | High | Fixed | 85378d9 | Added GPS_TIME-001/002/003 |
+| 5 | No unit tests | High | Fixed | 7155af2 | Added test skeleton |
+| 6 | Broken LaTeX reference | Medium | Fixed | a4d95c3 | Placeholder note |
+| 7 | "servicing" description | Low | Fixed | eeaca23 | Changed to passive |
+| 8 | Unused Self | Low | Fixed | 9b468d0 | Now used for events |
