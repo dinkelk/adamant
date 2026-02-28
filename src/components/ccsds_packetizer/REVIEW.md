@@ -77,3 +77,19 @@
 | 3 | M-2 / I-3 | **Medium** | Silent packet drop on full downstream queue — no event, counter, or fault is raised, making data loss invisible to operators. |
 | 4 | T-7 | **Medium** | Test CRC verification mirrors the implementation's overlay technique, so both would fail identically if the overlay assumption breaks — no independent CRC check. |
 | 5 | I-2 | **Medium** | Memory overlay for CRC assumes contiguous, padding-free record layout of `Ccsds_Space_Packet.T`. Fragile under type representation changes. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No Buffer_Length validation (I-1) | High | Fixed | 772eb5d | Added pragma Assert guard |
+| 2 | No test for invalid Buffer_Length (T-1) | High | Fixed | 29c2b98 | Added Test_Invalid_Buffer_Length |
+| 3 | Silent packet drop (M-2/I-3) | Medium | Not Fixed | ea53999 | Requires model architecture changes |
+| 4 | Fragile CRC overlay (I-2) | Medium | Fixed | 0c1acf4 | Added compile-time size check |
+| 5 | No drop test (T-2) | Medium | Not Fixed | e99a084 | Requires tester architecture changes |
+| 6 | CRC test mirrors impl (T-7) | Medium | Fixed | b630e5a | Independent byte-array construction |
+| 7 | Undocumented precondition (D-3) | Low | Fixed | c9d7a43 | Added requirement to YAML |
+| 8 | No design rationale (D-4) | Low | Fixed | 6f7aa07 | Added Conversion Algorithm subsection |
+| 9 | Identical test structure (T-3) | Low | N/A | 547dd8f | Intentional design, acknowledged |
+| 10 | Limited APID diversity (T-4) | Low | Fixed | d739f0a | Added boundary APID tests |
+| 11 | No boundary timestamps (T-5) | Low | Fixed | cf6ed1b | Added boundary timestamp tests |
