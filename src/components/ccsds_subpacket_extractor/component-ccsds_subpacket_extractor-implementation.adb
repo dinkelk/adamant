@@ -128,4 +128,25 @@ package body Component.Ccsds_Subpacket_Extractor.Implementation is
       Self.Drop_Packet (Arg, Self.Events.Dropped_Packet (Self.Sys_Time_T_Get, Arg.Header));
    end Ccsds_Space_Packet_T_Recv_Async_Dropped;
 
+   -- Track dropped downstream packets rather than silently discarding them.
+   overriding procedure Ccsds_Space_Packet_T_Send_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Downstream_Packet_Drop_Count := @ + 1;
+   end Ccsds_Space_Packet_T_Send_Dropped;
+
+   -- Track dropped event sends via counter (cannot safely send an event about a dropped event).
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_Send_Drop_Count := @ + 1;
+   end Event_T_Send_Dropped;
+
+   -- Track dropped packet sends via counter (cannot safely send a packet about a dropped packet).
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Packet_Send_Drop_Count := @ + 1;
+   end Packet_T_Send_Dropped;
+
 end Component.Ccsds_Subpacket_Extractor.Implementation;
