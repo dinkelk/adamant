@@ -570,7 +570,7 @@ package body Component.Command_Sequencer.Implementation is
                if Num_Engines > 0 then
                   if First_Engine < Self.Seq_Engines.all'First or else
                       First_Engine > Self.Seq_Engines.all'Last or else
-                      First_Engine + Num_Engines - 1 > Self.Seq_Engines.all'Last
+                      Natural (First_Engine) + Natural (Num_Engines) - 1 > Natural (Self.Seq_Engines.all'Last)
                   then
                      -- Put sequence into error condition:
                      Engine.Set_Engine_Error (Seq_Enums.Seq_Error.Kill);
