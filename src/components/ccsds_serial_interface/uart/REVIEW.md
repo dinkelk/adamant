@@ -118,3 +118,13 @@ Or simply add a clear inline comment mapping the values.
 | 3 | **Low** | 2.3 | No concurrency protection despite documented multi-use hazard | `diagnostic_uart.adb` |
 | 4 | **Low** | 2.1 | Address overlay assumes `Character'Size = Byte'Size` without compile-time check | `diagnostic_uart.adb:6-8` |
 | 5 | **Low** | 4.2 | Magic numbers in test without clear mapping | `test/test.adb:7` |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Test has no assertions (§4.1) | High | Fixed | 3fdceaa | Expanded to exercise all 4 API entry points |
+| 2 | Put overlays in-mode parameter (§2.2) | Medium | Fixed | 5b2ef28 | Copy to local before taking Address |
+| 3 | No concurrency protection (§2.3) | Low | Fixed | 20b579a | Added task-safety warning |
+| 4 | Implicit size assumption (§2.1) | Low | Fixed | bdcdac8 | Added compile-time size check |
+| 5 | Magic numbers in test (§4.2) | Low | Fixed | 4ece13a | Replaced with Character'Pos |
