@@ -7,7 +7,7 @@ generic:
     - name: T
       description: The generic type of data passed in and out of the forwarder.
 init:
-  description:
+  description: The initialization sets the startup forwarding state (enabled or disabled).
   parameters:
     - name: Startup_Forwarding_State
       type: Basic_Enums.Enable_Disable_Type.E
