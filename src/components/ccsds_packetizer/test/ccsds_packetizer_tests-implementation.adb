@@ -13,6 +13,7 @@ with Ccsds_Space_Packet.Representation;
 with Sys_Time.Assertion; use Sys_Time.Assertion;
 with Packet_Types;
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Assertions;
 with Ccsds_Enums; use Ccsds_Enums;
 
 package body Ccsds_Packetizer_Tests.Implementation is
@@ -173,5 +174,24 @@ package body Ccsds_Packetizer_Tests.Implementation is
          Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (Idx));
       end loop;
    end Test_Min_Size_Packetization;
+
+   overriding procedure Test_Invalid_Buffer_Length (Self : in out Instance) is
+      use Packet_Types;
+      T : Component.Ccsds_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+      -- Create a packet with Buffer_Length exceeding the maximum capacity:
+      P : Packet.T := (Header => (Time => (10, 55), Id => 77, Sequence_Count => 1, Buffer_Length => Packet_Types.Packet_Buffer_Type'Length + 1), Buffer => [others => 0]);
+   begin
+      -- Sending this packet should trigger an assertion failure due to invalid Buffer_Length.
+      -- We expect Assertion_Error to be raised by the pragma Assert guard in To_Ccsds.
+      begin
+         T.Packet_T_Send (P);
+         -- If we reach here, the assertion was not raised — that is a failure.
+         Assert (False, "Expected Assertion_Error for out-of-range Buffer_Length, but none was raised.");
+      exception
+         when Ada.Assertions.Assertion_Error =>
+            -- Expected behavior: the invalid Buffer_Length was caught.
+            null;
+      end;
+   end Test_Invalid_Buffer_Length;
 
 end Ccsds_Packetizer_Tests.Implementation;
