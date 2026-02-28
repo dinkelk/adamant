@@ -9,7 +9,7 @@ with Ada.Execution_Time;
 with Packet;
 with Protected_Variables;
 
--- This component produces a packet holding the CPU execution time for all tasks and interrupts configured for a particular assembly. It is provided an autocoded data structure upon initialization that contains the tasks and interrupts which it is to monitor. The packet produced contains 3 CPU execution numbers (1 bytes in size ranging from 0 - 100) for each task/interrupt, corresponding to different length time periods. The length of these time periods is also specified at initialization as multiples of the master tick driving the component.
+-- This component produces a packet holding the CPU execution time for all tasks and interrupts configured for a particular assembly. It is provided an autocoded data structure upon initialization that contains the tasks and interrupts which it is to monitor. The packet produced contains 3 CPU execution numbers (1 byte in size ranging from 0 - 100) for each task/interrupt, corresponding to different length time periods. The length of these time periods is also specified at initialization as multiples of the master tick driving the component.
 package Component.Cpu_Monitor.Implementation is
 
    -- The component class instance record:
