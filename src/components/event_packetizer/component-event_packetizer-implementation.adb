@@ -255,7 +255,7 @@ package body Component.Event_Packetizer.Implementation is
             return 0;
          else
             Num_Bytes_Not_Full := Num_Packets_Not_Full * Packet_Types.Packet_Buffer_Type'Length;
-            Num_Bytes_Occupied_In_Current_Packet := Packets (Index).Header.Buffer_Length + Packets (Index).Buffer'First;
+            Num_Bytes_Occupied_In_Current_Packet := Packets (Index).Header.Buffer_Length;
             return Num_Bytes_Not_Full - Num_Bytes_Occupied_In_Current_Packet;
          end if;
       end Get_Bytes_Available;
