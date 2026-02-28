@@ -95,9 +95,10 @@ package body Connector_Queuer_Tests.Implementation is
       T.Expect_T_Send_Dropped := True;
       T.T_Send (((13, 13), 13));
 
-      -- Check events:
+      -- Check events and drop count:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 1);
+      Natural_Assert.Eq (T.T_Send_Dropped_Count, 1);
 
       -- Expect tick to be passed through now.
       Natural_Assert.Eq (T.Dispatch_All, 3);
