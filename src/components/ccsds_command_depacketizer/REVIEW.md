@@ -124,3 +124,19 @@ All error paths are tested: invalid checksum, invalid type, too small, too large
 | 3 | **Medium** | `Set_Up` never called in unit test fixture; initial data product emission path untested | `test/ccsds_command_depacketizer_tests-implementation.adb`, `Set_Up_Test` |
 | 4 | **Medium** | No test for `Unsigned_16` counter overflow/wrap-around behavior | `test/ccsds_command_depacketizer_tests-implementation.adb` |
 | 5 | **Medium** | `The_Command.Header.Source_Id` silently defaults to 0 with no documentation | `implementation.adb`, `Ccsds_Space_Packet_T_Recv_Sync` |
+
+---
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 2.1 | Validation Order vs. Checksum | Medium | Fixed | `a70c289` | Reordered validation logic |
+| 2.4 | Requirement for Function Code Interpretation Missing Specifics | Low | Fixed | `eedfda7` | Clarified requirement text |
+| 3.1 | Secondary Header Deserialized Before Validation | High | Fixed | `fdc8d8c` | Moved deserialization after length check |
+| 3.2 | Race Condition on Counters Documented but Unmitigated | Low | Fixed | `fb59f9e` | Updated comment for accuracy |
+| 3.3 | `The_Command` Not Fully Initialized | Medium | Fixed | `b0aca05` | Added documentation comment |
+| 3.4 | Deeply Nested if-else Structure | Low | Fixed | `59746ab` | Refactored to reduce nesting |
+| 4.1 | No Set_Up Call Before Tests | Medium | Fixed | `106ce64` | Added Set_Up call in test fixture |
+| 4.2 | Test_Pad_Bytes Does Not Verify Data Products | Low | Fixed | `07c67da` | Added data product assertions |
+| 4.3 | No Boundary Test for Counter Overflow | Medium | Fixed | `0002ed6` | Added counter overflow test |
