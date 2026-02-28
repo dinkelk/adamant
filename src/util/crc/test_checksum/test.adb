@@ -7,6 +7,10 @@ with Basic_Types.Representation; use Basic_Types;
 procedure Test is
    Checksum : Checksum_16_Type;
 begin
+   -- Test empty array returns default seed
+   Checksum := Compute_Checksum_16 (Basic_Types.Byte_Array'(1 .. 0 => 0));
+   pragma Assert (Checksum = [16#00#, 16#00#], "Empty array should return default seed");
+
    Checksum := Compute_Checksum_16 ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
    pragma Assert (Checksum = [16#14#, 16#19#], "Expected " & Basic_Types.Representation.To_Tuple_String ([16#14#, 16#19#]) & " and got " & Basic_Types.Representation.To_Tuple_String (Checksum));
    Checksum := Compute_Checksum_16 ([1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5, 7 => 6, 8 => 7, 9 => 8, 10 => 9]);
