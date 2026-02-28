@@ -11,7 +11,7 @@ events:
     description: A fault response was cleared.
     param_type: Packed_Fault_Id.T
   - name: Fault_Response_Disabled
-    description: A fault response has been disabled
+    description: A fault response has been disabled.
     param_type: Packed_Fault_Id.T
   - name: Fault_Response_Enabled
     description: A fault response has been enabled.
