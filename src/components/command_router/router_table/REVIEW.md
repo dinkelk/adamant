@@ -186,3 +186,14 @@ Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'L
 | 5 | 4.3 | **Low** | Sentinel value on failed lookup is not verified by tests |
 
 **Overall Assessment:** The package is well-structured and the implementation is correct for its intended use. The primary concerns are test coverage gaps — particularly the absence of post-`Clear` behavioral verification (Issue 4.1), which is significant for a command-routing data structure in flight software. The implementation itself has no functional defects; the sentinel value concern (Issue 2.1) is a defensive-coding observation rather than a bug.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Missing post-Clear test coverage | High | Fixed | 78b8a75 | Added lookup/re-add verification after Clear |
+| 2 | Sentinel value ambiguity | Medium | Fixed | 02bc38a | Added defensive documentation |
+| 3 | No boundary test for table size 1 | Medium | Fixed | 142c453 | Added Single_Entry_Table test case |
+| 4 | Single monolithic test | Medium | Fixed | e27f73b | Implemented boundary test |
+| 5 | Sentinel value untested | Low | Fixed | 30bbb48 | Verify sentinel equals 'Last |
+| 6 | No precondition checks | Low | Fixed | 583b72b | Added pragma Assert on public subprograms |
