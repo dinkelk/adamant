@@ -200,7 +200,7 @@ package body Seq_Simulator is
                begin
                   -- If loading into another engine
                   if Self.Seq_Engines (To_Load).Get_Load_Destination /= To_Load then
-                     if Self.Seq_Engines (To_Load).Get_Load_Destination = 255 then
+                     if Self.Seq_Engines (To_Load).Get_Load_Destination = Any_Engine then
                         Put (ASCII.HT & "Any engine load, please enter an engine to load into >>> ");
                         declare
                            New_Id : constant Sequence_Engine_Id := Sequence_Engine_Id'Value (Get_Line);
