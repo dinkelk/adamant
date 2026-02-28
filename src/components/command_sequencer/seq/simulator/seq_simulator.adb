@@ -24,6 +24,9 @@ package body Seq_Simulator is
    -- Sentinel value meaning "load into any available engine."
    Any_Engine : constant Sequence_Engine_Id := Sequence_Engine_Id'Last;
 
+   -- Sentinel value meaning "load into any available engine."
+   Any_Engine : constant Sequence_Engine_Id := Sequence_Engine_Id'Last;
+
    function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Boolean is
       The_Source_Id : Command_Source_Id := Start_Source_Id;
    begin
@@ -95,6 +98,15 @@ package body Seq_Simulator is
       Instr_Limit : constant Positive := 10_000;
       Pc : Seq_Position;
    begin
+      -- Validate engine ID is within allocated range
+      if To_Load not in Self.Seq_Engines.all'Range then
+         Put_Line ("Error: Engine ID" & To_Load'Image
+                    & " is out of range. Valid range:"
+                    & Self.Seq_Engines.all'First'Image & " .."
+                    & Self.Seq_Engines.all'Last'Image);
+         return;
+      end if;
+
       Buffer := new Basic_Types.Byte_Array (0 .. Max_Sequence_Size - 1);
 
       -- Attempt to load a sequence into a memory region
