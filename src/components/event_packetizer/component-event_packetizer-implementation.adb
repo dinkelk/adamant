@@ -47,6 +47,9 @@ package body Component.Event_Packetizer.Implementation is
       procedure Destroy is
          procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Packet_Array, Name => Packet_Array_Access);
       begin
+         -- Mark as uninitialized first, so concurrent access is safe:
+         Initialized := False;
+
          -- Free packet array from heap:
          Free_If_Testing (Packets);
 
