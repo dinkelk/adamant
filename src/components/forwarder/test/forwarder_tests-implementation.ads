@@ -16,15 +16,15 @@ private
    overriding procedure Set_Up_Test (Self : in out Instance);
    overriding procedure Tear_Down_Test (Self : in out Instance);
 
-   -- This unit test tests initialization.
+   -- Verifies that no data is forwarded before Set_Up, and that Set_Up publishes the initial forwarding state data product as Enabled.
    overriding procedure Test_Init (Self : in out Instance);
-   -- This unit test sends commands to enable and disable forwarding and make sure it functions correctly.
+   -- Verifies that Disable_Forwarding stops data flow and Enable_Forwarding resumes it, with correct events, data products, and command responses.
    overriding procedure Test_Enable_Disable_Forwarding (Self : in out Instance);
    -- Verifies that sending Enable when already enabled (or Disable when already disabled) succeeds without emitting redundant events or data products.
    overriding procedure Test_Idempotent_Commands (Self : in out Instance);
    -- Verifies that initializing with forwarding disabled causes Set_Up to publish a Disabled data product and that data is dropped from startup.
    overriding procedure Test_Init_Disabled (Self : in out Instance);
-   -- This unit test exercises that an invalid command throws the appropriate event.
+   -- Verifies that a command with invalid argument buffer length returns Length_Error and emits an Invalid_Command_Received event.
    overriding procedure Test_Invalid_Command (Self : in out Instance);
 
    -- Instantiate generic component package:
