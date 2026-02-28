@@ -252,7 +252,10 @@ package body Seq_Runtime is
    -- Check if the engine should wake up.
    function Check_Wake (Self : in out Instance; Current_Time : in Sys_Time.T) return Check_Wake_Type is
    begin
-      if Current_Time.Seconds >= Self.Wake_Time.Seconds then
+      if Current_Time.Seconds > Self.Wake_Time.Seconds
+         or else (Current_Time.Seconds = Self.Wake_Time.Seconds
+                  and then Current_Time.Subseconds >= Self.Wake_Time.Subseconds)
+      then
          Self.Set_State_Blocking (Ready);
          return Woken;
       end if;
@@ -730,7 +733,10 @@ package body Seq_Runtime is
          Self.Timeout_Set := True;
          return Seq_Position (Jump_Position);
       else
-         if Self.Most_Recent_Execution_Time.Seconds >= Self.Telemetry_Timeout.Seconds then
+         if Self.Most_Recent_Execution_Time.Seconds > Self.Telemetry_Timeout.Seconds
+            or else (Self.Most_Recent_Execution_Time.Seconds = Self.Telemetry_Timeout.Seconds
+                     and then Self.Most_Recent_Execution_Time.Subseconds >= Self.Telemetry_Timeout.Subseconds)
+         then
             -- Timeout should occur
             Self.Set_Timeout; -- Set internal timeout flag
             Self.Timeout_Set := False;
