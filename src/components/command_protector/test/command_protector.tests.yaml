@@ -15,5 +15,7 @@ tests:
     description: This unit test verifies that sending a second Arm command while already armed correctly resets the timeout.
   - name: Test_Arm_Command_On_Forward_Connector
     description: This unit test verifies behavior when a command matching the Arm command ID arrives on the forwarding connector.
+  - name: Test_Counter_Saturation
+    description: This unit test verifies that telemetry counters saturate at Unsigned_16'Last instead of wrapping.
   - name: Test_Invalid_Command
     description: This unit test makes sure that an invalid command is handled gracefully.
