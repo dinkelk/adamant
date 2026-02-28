@@ -109,12 +109,10 @@ package body Component.Event_Packetizer.Implementation is
             Num_Packets_Full := @ + 1;
             pragma Assert (Num_Packets_Full <= Packets'Length);
             -- Increment index:
-            if Index < Packet_Array_Index'Last then
-               Index := @ + 1;
-            end if;
-            -- Check for roll over:
-            if Index > Packets'Last then
+            if Index >= Packets'Last then
                Index := Packets'First;
+            else
+               Index := @ + 1;
             end if;
          end Next_Packet;
 
