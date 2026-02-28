@@ -95,9 +95,8 @@ package body Component.Cpu_Monitor.Implementation is
          return Byte (Usage);
       end if;
    exception
-      -- Handle divide by zero error, which may happen on start up.
-      -- A constraint error could occur too if the times are wonky.
-      when others =>
+      -- Handle divide by zero or time arithmetic anomalies at start up.
+      when Constraint_Error =>
          return 0;
    end Cpu_Percentage;
 
