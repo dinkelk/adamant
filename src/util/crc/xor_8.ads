@@ -11,6 +11,9 @@ package Xor_8 is
    -- result. This procedure is an implementation of an 8-bit longitudinal parity calculation. Including this parity
    -- byte in the byte array to be checked will result in a result of zero when the longitudinal parity is calculated
    -- again. This method can be used to check for data corruption.
+   -- Seed of 0xFF chosen so that including the computed parity byte in a subsequent
+   -- check over the same data yields a result of zero, enabling corruption detection.
+   -- The standard XOR identity element is 0x00; 0xFF is used here by project convention.
    function Compute_Xor_8 (Bytes : in Basic_Types.Byte_Array; Seed : in Xor_8_Type := 16#FF#) return Xor_8_Type;
 
 end Xor_8;
