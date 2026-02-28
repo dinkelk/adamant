@@ -20,6 +20,8 @@ package body Component.Ccsds_Subpacket_Extractor.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Start_Offset : in Natural := 0; Stop_Offset : in Natural := 0; Max_Subpackets_To_Extract : in Integer := -1) is
    begin
+      pragma Assert (Start_Offset + Stop_Offset < Ccsds_Space_Packet.Ccsds_Data_Type'Length,
+         "Start_Offset + Stop_Offset exceeds maximum CCSDS data section size");
       Self.Start_Offset := Start_Offset;
       Self.Stop_Offset := Stop_Offset;
       Self.Max_Subpackets_To_Extract := Max_Subpackets_To_Extract;
@@ -74,6 +76,7 @@ package body Component.Ccsds_Subpacket_Extractor.Implementation is
             while Idx <= Packet_End_Index loop
                Stat := Ccsds_Space_Packet.Serialization.From_Byte_Array (Subpacket, Arg.Data (Idx .. Packet_End_Index), Num_Bytes_Deserialized);
                if Stat = Success then
+                  pragma Assert (Num_Bytes_Deserialized > 0, "Deserialization returned success with zero bytes");
                   -- Send out subpacket:
                   Self.Ccsds_Space_Packet_T_Send (Subpacket);
                   Idx := @ + Num_Bytes_Deserialized;
@@ -127,5 +130,26 @@ package body Component.Ccsds_Subpacket_Extractor.Implementation is
    begin
       Self.Drop_Packet (Arg, Self.Events.Dropped_Packet (Self.Sys_Time_T_Get, Arg.Header));
    end Ccsds_Space_Packet_T_Recv_Async_Dropped;
+
+   -- Track dropped downstream packets rather than silently discarding them.
+   overriding procedure Ccsds_Space_Packet_T_Send_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Downstream_Packet_Drop_Count := @ + 1;
+   end Ccsds_Space_Packet_T_Send_Dropped;
+
+   -- Track dropped event sends via counter (cannot safely send an event about a dropped event).
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_Send_Drop_Count := @ + 1;
+   end Event_T_Send_Dropped;
+
+   -- Track dropped packet sends via counter (cannot safely send a packet about a dropped packet).
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Packet_Send_Drop_Count := @ + 1;
+   end Packet_T_Send_Dropped;
 
 end Component.Ccsds_Subpacket_Extractor.Implementation;
