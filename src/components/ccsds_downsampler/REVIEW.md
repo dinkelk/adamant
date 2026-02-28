@@ -197,3 +197,25 @@ Filter_Factor_Cmd_Type_Assert.Eq (T.Modified_Factor_Filter_History.Get (1), (Api
 | 3 | **Medium** | Data product ID calculation implicitly depends on binary tree internal array ordering matching YAML-order; fragile coupling that breaks if tree implementation changes | `component-ccsds_downsampler-implementation.adb`, `Send_Filter_Data_Product` (§3.3) |
 | 4 | **Medium** | Python model error messages use string concatenation on integers, causing `TypeError` instead of helpful `ModelException` when validation fails | `gen/models/ccsds_downsampler_filters.py` (§2.1) |
 | 5 | **Medium** | No unit tests for counter overflow behavior, leaving the two highest-severity issues completely unvalidated | Tests (§4.1) |
+
+---
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1.1 | Component Description Quality | Low | Fixed | `2141925` | |
+| 1.2 | Event Name Inconsistency | Low | Fixed | `95a428f` | |
+| 1.3 | Generator Documentation Refers to "Data Products" | Low | Fixed | `b1fc95c` | |
+| 2.1 | Python Model TypeError in Validation | Medium | Fixed | `8bacc8d` | |
+| 2.2 | Duplicate Detection Uses Mixed Key Types | Low | Fixed | `78a215c` | |
+| 2.3 | Array Index Type Semantics | Low | Fixed | `770254f` | |
+| 3.1 | Counter Overflow Saturation (Unsigned_16) | High | Fixed | `d761187` | |
+| 3.2 | Filter_Count Overflow Causes Double-Pass | High | Fixed | `f2368f5` | |
+| 3.3 | Fragile DP ID Coupling to Tree Index | Medium | Fixed | `d8a01c8` | |
+| 3.4 | Redundant null Statement | Informational | Fixed | `0157b94` | |
+| 3.5 | Protected Object Race in Modify_Filter_Factor | Medium | Fixed | `fc0fc01` | |
+| 4.1 | No Test for Counter Overflow | Medium | Fixed | `05a7015` | |
+| 4.2 | No Test for Extreme Filter Factor 65535 | Low | Fixed | `66d6378` | |
+| 4.3 | Tester Dispatch_Data_Product Discards Dynamic DP Identity | Low | Fixed | `ec6fb02` | |
+| 4.4 | Tests Don't Verify Event Payloads | Low | Fixed | `beb0fd9` | |
