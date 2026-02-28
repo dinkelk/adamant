@@ -428,7 +428,7 @@ package body Component.Event_Limiter.Implementation is
       return Success;
    end Disable_Event_Limiting;
 
-   -- Change the persistence of the event limiter for all events that are limited. Value must be between 0 and 7.
+   -- Change the persistence of the event limiter for all events that are limited. Value must be between 1 and 7.
    overriding function Set_Event_Limit_Persistence (Self : in out Instance; Arg : in Event_Limiter_Persistence_Type.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin

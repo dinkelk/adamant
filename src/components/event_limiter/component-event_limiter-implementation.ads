@@ -120,7 +120,7 @@ private
    overriding function Enable_Event_Limiting (Self : in out Instance) return Command_Execution_Status.E;
    -- Disable the event limiters for all event IDs.
    overriding function Disable_Event_Limiting (Self : in out Instance) return Command_Execution_Status.E;
-   -- Set the persistence of the event limiter for all events that are limited. Value must be between 0 and 7.
+   -- Set the persistence of the event limiter for all events that are limited. Value must be between 1 and 7.
    overriding function Set_Event_Limit_Persistence (Self : in out Instance; Arg : in Event_Limiter_Persistence_Type.T) return Command_Execution_Status.E;
    -- Dump a packet for the state of all events on if they are limited or not.
    overriding function Dump_Event_States (Self : in out Instance) return Command_Execution_Status.E;
