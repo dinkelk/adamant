@@ -126,6 +126,20 @@ package body Ccsds_Packetizer_Tests.Implementation is
       T.Packet_T_Send (P);
       Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 6);
       Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (6));
+
+      -- Test with zero timestamp to exercise boundary time serialization (addresses T-5):
+      P.Header.Time := (0, 0);
+      P.Header.Sequence_Count := @ + 1;
+      T.Packet_T_Send (P);
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 7);
+      Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (7));
+
+      -- Test with max timestamp values:
+      P.Header.Time := (Interfaces.Unsigned_32'Last, Interfaces.Unsigned_32'Last);
+      P.Header.Sequence_Count := @ + 1;
+      T.Packet_T_Send (P);
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 8);
+      Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (8));
    end Test_Nominal_Packetization;
 
    overriding procedure Test_Max_Size_Packetization (Self : in out Instance) is
