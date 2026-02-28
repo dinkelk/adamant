@@ -106,7 +106,7 @@ private
    -----------------------------------------------
    -- Description:
    --    These are the commands for the Fault Correction component.
-   -- Enable a fault response for the provided ID. This will only succeed if another response with the same Fault ID is not already enabled.
+   -- Enable a fault response for the provided ID. If the response is currently disabled, it transitions to nominal. If already in any other state, no change is made.
    overriding function Enable_Fault_Response (Self : in out Instance; Arg : in Packed_Fault_Id.T) return Command_Execution_Status.E;
    -- Disable a fault response for the provided ID.
    overriding function Disable_Fault_Response (Self : in out Instance; Arg : in Packed_Fault_Id.T) return Command_Execution_Status.E;
