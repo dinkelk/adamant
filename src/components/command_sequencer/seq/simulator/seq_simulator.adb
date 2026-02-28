@@ -93,6 +93,11 @@ package body Seq_Simulator is
 
       Load_State := Self.Seq_Engines (To_Load).Load (Sequence);
       Put_Line ("Engine loaded with state: " & Load_State'Image);
+      if Load_State /= Success then
+         Put_Line ("Failed to load sequence into engine. Aborting.");
+         Free (Buffer);
+         return;
+      end if;
       New_Line;
       while True loop
          Exec_State := Self.Seq_Engines (To_Load).Execute (Instr_Limit, Time);
