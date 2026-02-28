@@ -7,7 +7,7 @@ package body Binary_Tree is
 
    procedure Init (Self : in out Instance; Maximum_Size : in Positive) is
    begin
-      Self.Tree := new Element_Array (Positive'First .. Positive'First + Maximum_Size - 1);
+      Self.Tree := new Element_Array (1 .. Maximum_Size);
    end Init;
 
    procedure Destroy (Self : in out Instance) is
