@@ -96,4 +96,35 @@ package body Router_Table_Tests.Implementation is
       Registration_Assert.Eq (Registration_Id, 5);
    end Add_To_Table;
 
+   overriding procedure Single_Entry_Table (Self : in out Instance) is
+      Tbl : Router_Table.Instance;
+      Registration_Id : Command_Types.Command_Registration_Id;
+   begin
+      -- Initialize table with minimum capacity of 1:
+      Tbl.Init (1);
+      Natural_Assert.Eq (Tbl.Get_Size, 0);
+      Natural_Assert.Eq (Tbl.Get_Capacity, 1);
+
+      -- Add single entry:
+      Status_Assert.Eq (Tbl.Add ((Registration_Id => 7, Command_Id => 99)), Router_Table.Success);
+      Natural_Assert.Eq (Tbl.Get_Size, 1);
+
+      -- Table should be full:
+      Status_Assert.Eq (Tbl.Add ((Registration_Id => 8, Command_Id => 100)), Router_Table.Table_Full);
+      Natural_Assert.Eq (Tbl.Get_Size, 1);
+
+      -- Duplicate should still be rejected:
+      Status_Assert.Eq (Tbl.Add ((Registration_Id => 9, Command_Id => 99)), Router_Table.Id_Conflict);
+
+      -- Lookup the single entry:
+      Lookup_Assert.Eq (Tbl.Lookup_Registration_Id (99, Registration_Id), Router_Table.Success);
+      Registration_Assert.Eq (Registration_Id, 7);
+
+      -- Lookup nonexistent entry:
+      Lookup_Assert.Eq (Tbl.Lookup_Registration_Id (100, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
+
+      Tbl.Destroy;
+   end Single_Entry_Table;
+
 end Router_Table_Tests.Implementation;
