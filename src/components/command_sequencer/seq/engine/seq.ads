@@ -169,32 +169,46 @@ package Seq is
       Pre => (Self.Get_Engine_State /= Uninitialized);
 
    -- Return the header of the sequence at the specified stack index.
-   function Get_Sequence_Header (Self : in Engine; Index : in Max_Seq_Num) return Sequence_Header.T;
+   function Get_Sequence_Header (Self : in Engine; Index : in Max_Seq_Num) return Sequence_Header.T with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Return the runtime state of the sequence at the specified stack index.
-   function Get_Sequence_State (Self : in Engine; Index : in Max_Seq_Num) return Seq_Runtime_State.E;
+   function Get_Sequence_State (Self : in Engine; Index : in Max_Seq_Num) return Seq_Runtime_State.E with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Return state after the last execution of the sequence at the specified stack index.
    function Get_Last_Execute_State (Self : in Engine) return Seq_Execute_State.E;
 
    -- Return memory region containing the sequence at the specified stack index.
-   function Get_Sequence_Region (Self : in Engine; Index : in Max_Seq_Num) return Memory_Region.T;
+   function Get_Sequence_Region (Self : in Engine; Index : in Max_Seq_Num) return Memory_Region.T with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Return the position of the sequence at the specified stack index.
-   function Get_Sequence_Position (Self : in Engine; Index : in Max_Seq_Num) return Seq_Position;
+   function Get_Sequence_Position (Self : in Engine; Index : in Max_Seq_Num) return Seq_Position with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Return start time of the sequence at the specified stack index.
-   function Get_Sequence_Start_Time (Self : in Engine; Index : in Max_Seq_Num) return Sys_Time.T;
+   function Get_Sequence_Start_Time (Self : in Engine; Index : in Max_Seq_Num) return Sys_Time.T with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Return the last time the sequence at the specified stack index was executed.
-   function Get_Sequence_Last_Executed_Time (Self : in Engine; Index : in Max_Seq_Num) return Sys_Time.T;
+   function Get_Sequence_Last_Executed_Time (Self : in Engine; Index : in Max_Seq_Num) return Sys_Time.T with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Get the sequence ID of the sequence reserved for this engine by the Reserve_Engine subprogram.
    function Get_Reserved_Sequence_Id (Self : in Engine) return Sequence_Types.Sequence_Id;
 
    -- Return the time at which the last telemetry wait started. This returns the execution time from the
    -- first time in the telemetry comparison loop.
-   function Get_Sequence_Telemetry_Wait_Start_Time (Self : in Engine; Index : in Max_Seq_Num) return Sys_Time.T;
+   function Get_Sequence_Telemetry_Wait_Start_Time (Self : in Engine; Index : in Max_Seq_Num) return Sys_Time.T with
+      Pre => (Self.Get_Engine_State /= Uninitialized and then
+              Index <= Self.Get_Stack_Level);
 
    -- Get the sequence ID of the first engine to kill.
    function Get_Kill_Eng_Start (Self : in Engine) return Sequence_Engine_Id;
