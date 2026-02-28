@@ -208,6 +208,27 @@ package body Command_Rejector_Tests.Implementation is
       -- Check packet:
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 3);
       Packet_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (3), T.Packets.Error_Packet_Truncate (T.System_Time, Cmd));
+
+      -- OK send command ID 19 which is also in the reject list but was previously untested:
+      Cmd.Header.Id := 19;
+      T.Command_T_To_Forward_Send (Cmd);
+
+      -- Expect command not to be forwarded:
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Check events:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 4);
+      Natural_Assert.Eq (T.Rejected_Command_History.Get_Count, 4);
+      Command_Header_Assert.Eq (T.Rejected_Command_History.Get (4), Cmd.Header);
+
+      -- Check data products:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 4);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 4);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (4), (Value => 4));
+
+      -- Check packet:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 4);
+      Packet_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (4), T.Packets.Error_Packet_Truncate (T.System_Time, Cmd));
    end Test_Command_Reject;
 
    overriding procedure Test_Counter_Saturation (Self : in out Instance) is
