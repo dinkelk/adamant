@@ -2,7 +2,7 @@
 description: This is a unit test suite for the Event Packetizer component
 tests:
   - name: Test_Nominal_Packetization
-    description: This unit test exercises the nominal behavior of the event packetizer with 3 internal packets.
+    description: This unit test exercises the nominal behavior of the event packetizer with 2 internal packets.
   - name: Test_Partial_Packet_Timeout
     description: This unit test exercises the partial packet timeout feature.
   - name: Test_Partial_Packet_Timeout_Of_1
