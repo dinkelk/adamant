@@ -184,3 +184,16 @@ Self.Tester.Init_Base (Queue_Size => Self.Tester.Component_Instance.Get_Max_Queu
 | 3 | TEST-02 | **Medium** | No test for the explicitly documented `Delay_Us = 0` (Connector Queuer equivalence) mode. |
 | 4 | TEST-03 | **Medium** | Dropped-message test doesn't verify event content or that `Sys_Time_T_Get` was invoked. |
 | 5 | MOD-01 | **Medium** | `Dropped_Message` event carries no payload (no drop count, no identifying info) for flight diagnosis. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Delay duration untested | High | Fixed | fd316c3 | Added timing assertion |
+| 2 | Cumulative delay undocumented | High | Fixed | cbf5e6c | Added documentation |
+| 3 | No zero-delay test | Medium | Fixed | 4b159ad | Added Test_Zero_Delay |
+| 4 | Test_Full_Queue weak assertions | Medium | Fixed | 930fed3 | Assert Sys_Time_T_Get called |
+| 5 | Dropped_Message no payload | Medium | Fixed | f8ff8f6 | Added diagnostic payload |
+| 6 | LaTeX sections | Low | Fixed | de546a0 | Removed |
+| 7 | Test description | Low | Fixed | b18eee6 | Updated |
+| 8 | No drop-count connector | Low | Fixed | c325f17 | Added |
