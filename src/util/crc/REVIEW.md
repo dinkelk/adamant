@@ -117,3 +117,19 @@ No other YAML models to review.
 | 3 | **Medium** | CRC-16 tests use only one input pattern; missing standard CCITT test vector and edge cases | `test/crc_16_tests-implementation.adb` |
 | 4 | **Medium** | `Xor_8` package has no unit tests at all | (missing) |
 | 5 | **Medium** | Checksum_16 modular wraparound behavior is undocumented; relies on `Unsigned_16` semantics without comment | `checksum_16.adb` |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1.1 | Crc_16 Spec: Well-Designed API | None | N/A | — | Informational; no fix needed |
+| 1.2 | Checksum_16 Spec: Missing Object_Size on Subtype | Low | Fixed | `0852da0` | Added `Object_Size` aspect to `Checksum_16_Type` |
+| 1.3 | Xor_8 Spec: Default Seed of 0xFF May Surprise Callers | Low | Fixed | `6269d71` | Added comment documenting rationale for 0xFF seed |
+| 2.1 | Crc_16 Body (Byte_Array_Pointer): Unsafe on Zero-Length Input | High | Fixed | `f66c153` | Added zero-length guard returning seed early |
+| 2.2 | Crc_16 Body: Lookup Tables Declared Inside Function | Low | Fixed | `34d5b36` | Moved lookup tables to package-level declarations |
+| 2.3 | Checksum_16 Body: Unsigned_16 Wraparound Undocumented | Medium | Fixed | `7ae042a` | Added comment documenting modular wraparound behavior |
+| 3.1 | crc_16.tests.yaml | None | N/A | — | Informational; no fix needed |
+| 4.1 | CRC-16 Tests: Only One Input Pattern Tested | Medium | Fixed | `5387af3` | Added CCITT test vector and empty-input test case |
+| 4.2 | CRC-16 Tests: Byte_Array_Pointer Overload Not Tested | Medium | Fixed | `c53af4e` | Added Byte_Array_Pointer overload test |
+| 4.3 | Xor_8: No Unit Tests | Medium | Fixed | `d65cc61` | Added Xor_8 unit test harness |
+| 4.4 | Checksum_16 Tests: pragma Assert Instead of AUnit | Low | Fixed | `0a51f73` | Documented pragma Assert fragility |
