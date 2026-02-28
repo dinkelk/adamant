@@ -202,6 +202,10 @@ package body Seq is
    function Load (Self : in out Engine; Sequence_Region : in Memory_Region.T) return Load_Status is
       Load_State : Seq_Runtime.Load_State_Type;
    begin
+      -- Defensive null check: precondition ensures State /= Uninitialized which implies Stack /= null,
+      -- but this guard adds resilience against future refactoring that might break that invariant.
+      pragma Assert (Self.Stack /= null, "Stack must be allocated before Load is called.");
+
       -- Increment only when loading a new sub-sequence
       if Self.Stack.all (Self.Current).Get_State = Seq_Runtime_State.Wait_Load_New_Sub_Seq then
          if Self.Current + 1 > Self.Stack.all'Last then
