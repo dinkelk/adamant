@@ -257,3 +257,20 @@ No issues identified.
 | 3 | **2.2** | `Init`, allocation | **High** | Calling `Init` without `Destroy` leaks the prior `Events` allocation. No guard against double-init. |
 | 4 | **2.3** | `Destroy` | **High** | `Global_Enable_State` is not reset during `Destroy`, causing stale state to persist across `Destroy`/`Init` cycles. A previously-disabled filter could silently remain disabled after re-initialization. |
 | 5 | **2.4** | `Filter_Event`, global disable path | **Medium** | Events processed while globally disabled are not counted in either counter, creating telemetry blind spots. At minimum, the behavior should be documented. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Silent filter misconfiguration in prod | Critical | Fixed | - | Runtime raise replaces pragma Assert |
+| 2 | Broken negative test | High | Fixed | - | Added Assert(False) after Init |
+| 3 | Memory leak on double-init | High | Fixed | - | Null check + Destroy before alloc |
+| 4 | Destroy doesn't reset Global_Enable | High | Fixed | - | Reset to Enabled in Destroy |
+| 5 | No counting when globally disabled | Medium | Fixed | - | Increment unfiltered counter |
+| 6 | Counter wraparound | Medium | Fixed | - | Saturating arithmetic |
+| 7 | Get_Entry_Array exposes mutable state | Medium | Fixed | - | Added safety warning comment |
+| 8 | No Destroy/Init cycle test | Medium | Fixed | - | Added cycle test |
+| 9 | Misleading package comment | Low | Fixed | - | Replaced |
+| 10 | Unused Event_Id_List_Access | Low | Fixed | - | Removed |
+| 11 | Test memory leaks | Low | Fixed | - | Added Free_Byte_Array |
+| 12 | No disabled counter test | Low | Fixed | - | Added assertions |
