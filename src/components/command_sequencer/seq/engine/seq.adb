@@ -288,6 +288,7 @@ package body Seq is
                else
                   Self.Engine_To_Load := Self.Engine_Id; -- Otherwise we are loading to this engine
                end if;
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Wait_Load_Seq;
                return Self.Last_Execute_State;
             -- These two states switch the engine into a waiting state. This allows us to hide Seq_Runtime_State upstream
@@ -304,18 +305,23 @@ package body Seq is
                if Self.Commands_Sent < Interfaces.Unsigned_16'Last then
                   Self.Commands_Sent := @ + 1;
                end if;
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Wait_Command;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Wait_Telemetry_Set =>
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Set_Telemetry;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Wait_Telemetry_Value =>
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Wait_Telemetry;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Kill_Engine =>
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Kill_Engines;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Wait_Telemetry_Relative =>
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Wait_Telemetry_Relative;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Error =>
@@ -323,6 +329,7 @@ package body Seq is
                Self.Last_Execute_State := Seq_Execute_State.Error;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Print =>
+               Self.State := Waiting;
                Self.Last_Execute_State := Seq_Execute_State.Print;
                return Self.Last_Execute_State;
          end case;
