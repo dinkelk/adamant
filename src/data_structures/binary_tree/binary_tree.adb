@@ -98,6 +98,15 @@ package body Binary_Tree is
       -- Ensure size is as expected
       pragma Assert (Self.Size <= Self.Tree'Length);
 
+      -- Early return for empty tree to avoid any edge-case concerns with
+      -- index arithmetic (High_Index = 0, Low_Index = 1 is safe with Natural,
+      -- but being explicit improves clarity).
+      if Self.Size = 0 then
+         Element_Index := Self.Tree'First;
+         Element_Found := Element;
+         return False;
+      end if;
+
       -- Perform binary search on sorted list:
       while Low_Index <= High_Index loop
          declare
