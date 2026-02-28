@@ -284,4 +284,114 @@ package body Apid_Tree_Tests.Implementation is
       pragma Unreferenced (Tree);
    end Test_Get_Counters;
 
+   overriding procedure Test_Filter_Count_Overflow (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Ignore : Unsigned_16;
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List := [(Apid => 10, Filter_Factor => 3)];
+      Pass_Count : Natural := 0;
+      Filter_Count : Natural := 0;
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- Call Filter_Packet 65540 times (well past the old Unsigned_16 wrap boundary)
+      -- and verify the pass/filter pattern remains consistent: pass every 3rd packet.
+      for I in 0 .. 65_539 loop
+         Status := Tree.Filter_Packet (10, Ignore);
+         if (I mod 3) = 0 then
+            Filter_Action_Status_Assert.Eq (Status, Pass);
+            Pass_Count := Pass_Count + 1;
+         else
+            Filter_Action_Status_Assert.Eq (Status, Filter);
+            Filter_Count := Filter_Count + 1;
+         end if;
+      end loop;
+
+      -- Verify totals
+      Natural_Assert.Eq (Pass_Count, 21847);
+      Natural_Assert.Eq (Filter_Count, 43693);
+      pragma Unreferenced (Tree);
+   end Test_Filter_Count_Overflow;
+
+   overriding procedure Test_Counter_Overflow (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Cnt : Unsigned_16;
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List := [(Apid => 1, Filter_Factor => 1)];
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- Drive Num_Passed_Packets to near overflow by calling with a pass-all APID
+      for I in 1 .. 65_534 loop
+         Status := Tree.Filter_Packet (1, Cnt);
+         Filter_Action_Status_Assert.Eq (Status, Pass);
+      end loop;
+      Unsigned_16_Assert.Eq (Cnt, 65534);
+
+      -- One more to reach 65535
+      Status := Tree.Filter_Packet (1, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+      Unsigned_16_Assert.Eq (Cnt, 65535);
+
+      -- Wrap around to 0 (modular type behavior, documented as intentional)
+      Status := Tree.Filter_Packet (1, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+      Unsigned_16_Assert.Eq (Cnt, 0);
+      pragma Unreferenced (Tree);
+   end Test_Counter_Overflow;
+
+   overriding procedure Test_Empty_Init_List (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Ignore : Unsigned_16;
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List (1 .. 0);
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- All APIDs should return Invalid_Id
+      Status := Tree.Filter_Packet (0, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Invalid_Id);
+      Status := Tree.Filter_Packet (1, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Invalid_Id);
+      Status := Tree.Filter_Packet (100, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Invalid_Id);
+      pragma Unreferenced (Tree);
+   end Test_Empty_Init_List;
+
+   overriding procedure Test_Single_Element_Init_List (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Ignore : Unsigned_16;
+      First_Index : Positive;
+      Last_Index : Natural;
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List := [(Apid => 42, Filter_Factor => 2)];
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- Verify tree bounds
+      First_Index := Tree.Get_Tree_First_Index;
+      Natural_Assert.Eq (First_Index, 1);
+      Last_Index := Tree.Get_Tree_Last_Index;
+      Natural_Assert.Eq (Last_Index, 1);
+
+      -- Verify pass/filter pattern: pass every 2nd
+      Status := Tree.Filter_Packet (42, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+      Status := Tree.Filter_Packet (42, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Filter);
+      Status := Tree.Filter_Packet (42, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+      Status := Tree.Filter_Packet (42, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Filter);
+
+      -- Unknown APID returns Invalid_Id
+      Status := Tree.Filter_Packet (99, Ignore);
+      Filter_Action_Status_Assert.Eq (Status, Invalid_Id);
+      pragma Unreferenced (Tree);
+   end Test_Single_Element_Init_List;
+
 end Apid_Tree_Tests.Implementation;
