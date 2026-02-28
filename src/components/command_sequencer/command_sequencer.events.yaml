@@ -18,30 +18,39 @@ events:
   - name: Invalid_Sequence_Crc
     description: The sequence could not be run due to a bad CRC.
     param_type: Sequence_Crc_Error.T
+    severity: Warning
   - name: Invalid_Sequence_Length
     description: The sequence could not be run due to a bad length.
     param_type: Sequence_Length_Error.T
+    severity: Warning
   - name: Invalid_Sequence_Id
     description: The sequence could not be run due to unexpected ID.
     param_type: Sequence_Id_Error.T
+    severity: Warning
   - name: Load_To_Uninitialized_Engine
     description: The sequence could not be run because the engine has not yet been initialized.
     param_type: Sequence_Load.T
+    severity: Warning
   - name: Load_To_Invalid_Engine_Id
     description: The sequence could not be run due to unexpected engine id.
     param_type: Sequence_Load.T
+    severity: Warning
   - name: No_Engine_Available
     description: No engine is available to take a sequence load.
     param_type: Sequence_Load.T
+    severity: Warning
   - name: No_Engine_Available_For_Load
     description: No engine is available to take a sequence load from another currently running sequence.
     param_type: Packed_Sequence_Engine_Id.T
+    severity: Warning
   - name: Engine_In_Use
     description: The sequence could not be run because the current engine is in use.
     param_type: Sequence_In_Use_Error.T
+    severity: Warning
   - name: Sequence_Load_Error
     description: A sequence could not be loaded due to an internal sequence runner error.
     param_type: Sequence_Load_Error_Info.T
+    severity: Warning
   - name: Killed_All_Engines
     description: A command was executed to kill all running sequences.
   - name: Killed_Engine
@@ -50,54 +59,71 @@ events:
   - name: Dropped_Command
     description: A command was dropped due to a full queue.
     param_type: Command_Header.T
+    severity: Warning
   - name: Dropped_Command_Response
     description: A command response was dropped due to a full queue.
     param_type: Command_Response.T
+    severity: Warning
   - name: Dropped_Tick
     description: A tick was dropped due to a full queue.
     param_type: Tick.T
+    severity: Warning
   - name: Dropped_Sequence_Load
     description: A sequence load was dropped due to a full queue.
     param_type: Sequence_Load.T
+    severity: Warning
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
+    severity: Warning
   - name: Unexpected_Command_Response
     description: A command response was found with an unrecognized source ID.
     param_type: Command_Response.T
+    severity: Warning
   - name: Unexpected_Register_Source
     description: An extra source registration was received, but all engines have a source ID already.
     param_type: Command_Response.T
+    severity: Warning
   - name: Sequence_Execution_Error
     description: An error occurred while executing a sequence.
     param_type: Engine_Error_Type.T
+    severity: Warning
   - name: Sequence_Timeout_Error
-    description: A sequence timed out waiting on a command response of subsequence load.
+    description: A sequence timed out waiting on a command response or subsequence load.
     param_type: Engine_Error_Type.T
+    severity: Warning
   - name: Unexpected_Command_Response_Id
     description: A command response was received with an unexpected command ID.
     param_type: Unexpected_Command_Response_Info.T
+    severity: Warning
   - name: Sequence_Command_Failure
     description: A command from a sequence failed to execute successfully.
     param_type: Command_Fail_Error_Type.T
+    severity: Warning
   - name: Engine_Id_Out_Of_Range_Error
     description: During a sequence load from an engine, the destination engine ID was found to be out of range.
     param_type: Engine_Id_Out_Of_Range.T
+    severity: Warning
   - name: Engine_Unavailable_For_Load
     description: During a sequence load from an engine, the destination engine ID was found to be unavailable.
     param_type: Engine_Id_Out_Of_Range.T
+    severity: Warning
   - name: Data_Product_Id_Out_Of_Range_Error
     description: A data product was fetched with an ID that was not recognized.
     param_type: Engine_Error_Type.T
+    severity: Warning
   - name: Data_Product_Extraction_Error
     description: Data could not be parsed out of the fetched data product.
     param_type: Engine_Error_Type.T
+    severity: Warning
   - name: Execute_Recursion_Limit_Exceeded
     description: The recursion limit was exceeded in a call to execute. This likely means a malformed sequence was executed.
     param_type: Packed_Sequence_Engine_Id.T
+    severity: Warning
   - name: Invalid_Engine_Kill_Range
     description: The engine kill range is invalid and cannot be executed.
     param_type: Packed_Engine_Kill_Params.T
+    severity: Warning
   - name: Engines_Killed
     description: The provided engines were killed by another engine.
     param_type: Packed_Engine_Kill_Params.T
@@ -113,3 +139,4 @@ events:
   - name: Unhandled_Telemetry_Type
     description: The telemetry type specified in the sequence is not handled by this implementation.
     param_type: Engine_Error_Type.T
+    severity: Warning
