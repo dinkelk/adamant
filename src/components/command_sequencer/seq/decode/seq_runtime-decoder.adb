@@ -175,8 +175,8 @@ package body Seq_Runtime.Decoder is
          when Str_Alloc =>
             return Decode_Str_Alloc (Self, Output);
          -- when Str_Dealloc =>            return Self.Decode_Str_Dealloc;
-         -- when Str_Set =>
-         --    return Decode_Str_Set (Self, Output);
+         when Str_Set =>
+            return Decode_Str_Set (Self, Output);
          -- when Str_Update_Bit_Pattern => return Self.Decode_Str_Update_Pattern;
          -- when Str_Copy =>                return Self.Decode_Str_Copy;
          -- when Str_Move =>                return Self.Decode_Str_Move;
