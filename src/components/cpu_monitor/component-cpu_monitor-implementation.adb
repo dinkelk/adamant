@@ -6,11 +6,16 @@ with Interrupt_Cpu_Usage;
 with Basic_Types;
 with Packet_Types;
 with Ada.Task_Identification;
+with Ada.Unchecked_Deallocation;
 
 package body Component.Cpu_Monitor.Implementation is
 
    use Ada.Real_Time;
    use Ada.Execution_Time;
+
+   -- Deallocation procedures for heap-allocated arrays:
+   procedure Free is new Ada.Unchecked_Deallocation (Last_Cpu_Time_Array, Last_Cpu_Time_Array_Access);
+   procedure Free is new Ada.Unchecked_Deallocation (Last_Time_Array, Last_Time_Array_Access);
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -35,6 +40,12 @@ package body Component.Cpu_Monitor.Implementation is
       Self.Interrupts := Interrupt_List;
       Self.Execution_Periods := Execution_Periods;
       Self.Packet_Counter.Set_Period_And_Reset_Count (Packet_Period);
+
+      -- Free any previous allocations to guard against double-init memory leaks:
+      Free (Self.Task_Cpu_Time_List);
+      Free (Self.Task_Up_Time_List);
+      Free (Self.Interrupt_Cpu_Time_List);
+      Free (Self.Interrupt_Up_Time_List);
 
       -- Allocate space on the heap to store the last measured CPU time for all of
       -- the tasks and interrupts.
