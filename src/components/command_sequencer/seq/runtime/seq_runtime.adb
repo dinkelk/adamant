@@ -98,9 +98,9 @@ package body Seq_Runtime is
 
       -- Deny execution for certain states
       case Self.State is
-         when Ready | Wait_Command | Wait_Telemetry_Value | Telemetry_Set | Timeout | Wait_Load_New_Seq_Overwrite | Wait_Load_New_Sub_Seq | Wait_Load_New_Seq_Elsewhere | Kill_Engine | Print | Error =>
+         when Ready | Wait_Command | Wait_Telemetry_Value | Telemetry_Set | Timeout | Wait_Load_New_Seq_Overwrite | Wait_Load_New_Sub_Seq | Wait_Load_New_Seq_Elsewhere | Kill_Engine | Print =>
             null;
-         when Unloaded | Wait_Relative | Wait_Absolute | Wait_Telemetry_Set | Wait_Telemetry_Relative | Done =>
+         when Unloaded | Wait_Relative | Wait_Absolute | Wait_Telemetry_Set | Wait_Telemetry_Relative | Done | Error =>
             return Self.State;
       end case;
 
