@@ -55,8 +55,11 @@ package body Tests.Implementation is
       -- Make sure rollover occurred:
       Boolean_Assert.Eq (T.Check_Counts (Count => 5, Max_Count => 70), True);
 
-      -- We are expecting 74/7 + 74/5 + 2 (for 0th iteration) for
-      -- a total number invocations of 26:
+      -- With Max_Count=70, internal counter cycles 0..69 then wraps.
+      -- 75 ticks sent (0..74), counter goes: 0..69, 0..4
+      -- Divider 5 (index 1): fires at 0,5,10,...,65,0 = 15 times
+      -- Divider 7 (index 3): fires at 0,7,14,...,63,0 = 11 times
+      -- Total: 26 invocations
       Natural_Assert.Eq (T.Tick_T_Recv_Sync_History.Get_Count, 26);
 
       -- Go through the entire history and check it to make sure we
