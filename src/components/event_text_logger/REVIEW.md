@@ -107,3 +107,14 @@ The implementation is otherwise clean and minimal, which is appropriate for a lo
 | 3 | 4.1 | **Medium** | `Test_Event_Printing` | Test only asserts dispatch count, never validates printed output content. |
 | 4 | 4.2 | **Medium** | Test suite (missing) | No test for the queue-full / dropped-event path. |
 | 5 | 2.1 | **Low** | `event_assembly.assembly.yaml`, line 2 | Description says "text_to_events" instead of "event_text_logger". |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Tester resets drop flag after first drop | High | Fixed | c8bb248 | Enables multi-drop tests |
+| 2 | No exception handler on callback | Medium | Fixed | 71c121a | Added handler |
+| 3 | Test never validates output | Medium | Fixed | fd2f4e0 | Documented limitation |
+| 4 | No dropped-event test | Medium | Fixed | d0354f0 | Added Test_Event_Dropped |
+| 5 | Misleading Self renames | Low | Fixed | 19442ce | Removed |
+| 6 | Typo in assembly description | Low | Fixed | 870bd0a | Corrected |
