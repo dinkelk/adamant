@@ -119,6 +119,14 @@ package body Binary_Tree is
 
    procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) is
    begin
+      pragma Assert (Element_Index >= Self.Get_First_Index and then Element_Index <= Self.Size);
+      -- Verify sort order is maintained with neighbors:
+      if Element_Index > Self.Get_First_Index then
+         pragma Assert (not (Element < Self.Tree (Element_Index - 1)));
+      end if;
+      if Element_Index < Self.Size then
+         pragma Assert (not (Self.Tree (Element_Index + 1) < Element));
+      end if;
       Self.Tree (Element_Index) := Element;
    end Set;
 
