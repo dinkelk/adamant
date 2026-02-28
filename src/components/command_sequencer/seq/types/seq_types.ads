@@ -95,7 +95,9 @@ package Seq_Types is
    -- String pools not yet supported by Adamant implementation.
    -- type String_Pool is array (Seq_Local_Id) of Seq_String;
 
-   -- Sequence engine ID type:
+   -- Sequence engine ID type. Range extends to Byte'Last (255) to match the U8 wire
+   -- format used in sequence binary records, even though mission parameter SEQ_NUM_ENGINES
+   -- is typically much smaller (e.g., 16). Runtime bounds checking is required:
    type Sequence_Engine_Id is range 0 .. Basic_Types.Byte'Last;
    subtype Num_Engines_Type is Sequence_Engine_Id range 1 .. Sequence_Engine_Id'Last;
 
