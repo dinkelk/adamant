@@ -316,7 +316,7 @@ package body Event_Packetizer_Tests.Implementation is
       -- Send an event:
       T.Event_T_Send (Event_3);
 
-      -- Send some ticks and expect packet on third tick:
+      -- Send a tick and expect packet on first tick (timeout of 1):
       T.Tick_T_Send (A_Tick);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 1);
@@ -348,7 +348,7 @@ package body Event_Packetizer_Tests.Implementation is
       T.Event_T_Send (Event_2);
       T.Event_T_Send (Event_2);
 
-      -- Send some ticks and expect packet on third tick:
+      -- Send a tick and expect packet on first tick (timeout of 1):
       T.Tick_T_Send (A_Tick);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 2);
       Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 2);
