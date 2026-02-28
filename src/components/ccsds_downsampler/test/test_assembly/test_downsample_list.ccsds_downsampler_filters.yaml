@@ -1,5 +1,5 @@
 ---
-description: Data products for the ccsds downsampler component.
+description: Downsampled packet filter list for the CCSDS downsampler unit test.
 downsampled_packets:
   - apid: 100
     filter_factor: 0
