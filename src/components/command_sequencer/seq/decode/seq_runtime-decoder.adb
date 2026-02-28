@@ -1,4 +1,5 @@
 with Ada.Text_IO; use Ada.Text_IO;
+with Memory_Region;
 with Ada.Sequential_IO;
 with Ada.IO_Exceptions;
 with Command;
