@@ -118,7 +118,7 @@ package body Event_Packetizer_Tests.Implementation is
       Packed_Natural_Assert.Eq (T.Bytes_Available_History.Get (2), (Value => Packet_Types.Packet_Buffer_Type'Length * 2 - Event_Header.Serialization.Serialized_Length - Event_3.Header.Param_Buffer_Length));
 
       -- OK, now fill up a packet:
-      for Idx in 1 .. (Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length)) - 1 loop
+      for Idx in 1 .. (Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length)) - 1 loop
          T.Event_T_Send (Event_3);
          Bytes_Sent := @ + (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length);
          T.Tick_T_Send (A_Tick);
@@ -154,7 +154,7 @@ package body Event_Packetizer_Tests.Implementation is
       Natural_Assert.Eq (P_Idx, Packet_Types.Packet_Buffer_Type'First + Expected_Packet_Header.Buffer_Length);
 
       -- OK, now fill the second packet and make sure that it is sent out:
-      for Idx in 1 .. (Packet_Types.Packet_Buffer_Type'Length - (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length)) / (Event_Header.T'Object_Size / 8 + Event_1.Header.Param_Buffer_Length) loop
+      for Idx in 1 .. (Packet_Types.Packet_Buffer_Type'Length - (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length)) / (Event_Header.Serialization.Serialized_Length + Event_1.Header.Param_Buffer_Length) loop
          T.Event_T_Send (Event_1);
          T.Tick_T_Send (A_Tick);
          Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 1);
@@ -169,7 +169,7 @@ package body Event_Packetizer_Tests.Implementation is
 
       -- Check the packet header:
       The_Packet := T.Events_Packet_History.Get (2);
-      Expected_Packet_Header.Buffer_Length := ((Packet_Types.Packet_Buffer_Type'Length - (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length)) / (Event_Header.T'Object_Size / 8 + Event_1.Header.Param_Buffer_Length)) * (Event_Header.T'Object_Size / 8 + Event_1.Header.Param_Buffer_Length) + (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length);
+      Expected_Packet_Header.Buffer_Length := ((Packet_Types.Packet_Buffer_Type'Length - (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length)) / (Event_Header.Serialization.Serialized_Length + Event_1.Header.Param_Buffer_Length)) * (Event_Header.Serialization.Serialized_Length + Event_1.Header.Param_Buffer_Length) + (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length);
       Expected_Packet_Header.Sequence_Count := @ + 1;
       Packet_Header_Assert.Eq (The_Packet.Header, Expected_Packet_Header);
 
@@ -182,7 +182,7 @@ package body Event_Packetizer_Tests.Implementation is
       Natural_Assert.Eq (P_Idx, Packet_Types.Packet_Buffer_Type'First + Expected_Packet_Header.Buffer_Length);
 
       -- OK, now fill the first packet again and make sure that it is sent out:
-      for Idx in 1 .. (Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_2.Header.Param_Buffer_Length)) - 1 loop
+      for Idx in 1 .. (Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length)) - 1 loop
          T.Event_T_Send (Event_2);
          T.Tick_T_Send (A_Tick);
          Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 2);
@@ -197,7 +197,7 @@ package body Event_Packetizer_Tests.Implementation is
 
       -- Check the packet header:
       The_Packet := T.Events_Packet_History.Get (3);
-      Expected_Packet_Header.Buffer_Length := (Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_2.Header.Param_Buffer_Length)) * (Event_Header.T'Object_Size / 8 + Event_2.Header.Param_Buffer_Length);
+      Expected_Packet_Header.Buffer_Length := (Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length)) * (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length);
       Expected_Packet_Header.Sequence_Count := @ + 1;
       Packet_Header_Assert.Eq (The_Packet.Header, Expected_Packet_Header);
 
@@ -215,7 +215,7 @@ package body Event_Packetizer_Tests.Implementation is
    overriding procedure Test_Partial_Packet_Timeout (Self : in out Instance) is
       T : Component.Event_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
       A_Tick : constant Tick.T := ((1, 2), 3);
-      Expected_Packet_Header : Packet_Header.T := (Time => T.System_Time, Id => 0, Sequence_Count => 0, Buffer_Length => Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length);
+      Expected_Packet_Header : Packet_Header.T := (Time => T.System_Time, Id => 0, Sequence_Count => 0, Buffer_Length => Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length);
       The_Packet : Packet.T;
       P_Idx : Natural;
    begin
@@ -280,7 +280,7 @@ package body Event_Packetizer_Tests.Implementation is
 
       -- Check the packet header:
       The_Packet := T.Events_Packet_History.Get (2);
-      Expected_Packet_Header.Buffer_Length := (Event_Header.T'Object_Size / 8 + Event_2.Header.Param_Buffer_Length) * 2;
+      Expected_Packet_Header.Buffer_Length := (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length) * 2;
       Expected_Packet_Header.Sequence_Count := @ + 1;
       Packet_Header_Assert.Eq (The_Packet.Header, Expected_Packet_Header);
 
@@ -298,7 +298,7 @@ package body Event_Packetizer_Tests.Implementation is
    overriding procedure Test_Partial_Packet_Timeout_Of_1 (Self : in out Instance) is
       T : Component.Event_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
       A_Tick : constant Tick.T := ((1, 2), 3);
-      Expected_Packet_Header : Packet_Header.T := (Time => T.System_Time, Id => 0, Sequence_Count => 0, Buffer_Length => Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length);
+      Expected_Packet_Header : Packet_Header.T := (Time => T.System_Time, Id => 0, Sequence_Count => 0, Buffer_Length => Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length);
       The_Packet : Packet.T;
       P_Idx : Natural;
    begin
@@ -355,7 +355,7 @@ package body Event_Packetizer_Tests.Implementation is
 
       -- Check the packet header:
       The_Packet := T.Events_Packet_History.Get (2);
-      Expected_Packet_Header.Buffer_Length := (Event_Header.T'Object_Size / 8 + Event_2.Header.Param_Buffer_Length) * 2;
+      Expected_Packet_Header.Buffer_Length := (Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length) * 2;
       Expected_Packet_Header.Sequence_Count := @ + 1;
       Packet_Header_Assert.Eq (The_Packet.Header, Expected_Packet_Header);
 
@@ -373,7 +373,7 @@ package body Event_Packetizer_Tests.Implementation is
    overriding procedure Test_Commanded_Packetization (Self : in out Instance) is
       T : Component.Event_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
       A_Tick : constant Tick.T := ((1, 2), 3);
-      Expected_Packet_Header : Packet_Header.T := (Time => T.System_Time, Id => 0, Sequence_Count => 0, Buffer_Length => Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length);
+      Expected_Packet_Header : Packet_Header.T := (Time => T.System_Time, Id => 0, Sequence_Count => 0, Buffer_Length => Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length);
       The_Packet : Packet.T;
       P_Idx : Natural;
       Commands : Event_Packetizer_Commands.Instance renames Self.Tester.Commands;
@@ -474,7 +474,7 @@ package body Event_Packetizer_Tests.Implementation is
 
       -- Check the packet header:
       The_Packet := T.Events_Packet_History.Get (2);
-      Expected_Packet_Header.Buffer_Length := Event_Header.T'Object_Size / 8 + Event_2.Header.Param_Buffer_Length;
+      Expected_Packet_Header.Buffer_Length := Event_Header.Serialization.Serialized_Length + Event_2.Header.Param_Buffer_Length;
       Expected_Packet_Header.Sequence_Count := @ + 1;
       Packet_Header_Assert.Eq (The_Packet.Header, Expected_Packet_Header);
 
@@ -501,14 +501,14 @@ package body Event_Packetizer_Tests.Implementation is
       T.Component_Instance.Init (Num_Internal_Packets => 2, Partial_Packet_Timeout => 0);
 
       -- OK, fill up a packet, and make sure that no packets are dropped:
-      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length) loop
+      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length) loop
          T.Event_T_Send (Event_3);
          Bytes_Sent := @ + (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length);
          Boolean_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Is_Empty, True);
       end loop;
 
       -- OK, fill up a second packet, and make sure that no packets are dropped:
-      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length) loop
+      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length) loop
          T.Event_T_Send (Event_3);
          Boolean_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Is_Empty, True);
       end loop;
@@ -562,12 +562,12 @@ package body Event_Packetizer_Tests.Implementation is
       Natural_Assert.Eq (P_Idx, Packet_Types.Packet_Buffer_Type'First + Expected_Packet_Header.Buffer_Length);
 
       -- OK, fill up a packets again, and make sure that no packets are dropped:
-      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length) loop
+      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length) loop
          T.Event_T_Send (Event_3);
          Natural_Assert.Eq (T.Events_Dropped_Count_History.Get_Count, 1);
       end loop;
 
-      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.T'Object_Size / 8 + Event_3.Header.Param_Buffer_Length) loop
+      for Idx in 1 .. Packet_Types.Packet_Buffer_Type'Length / (Event_Header.Serialization.Serialized_Length + Event_3.Header.Param_Buffer_Length) loop
          T.Event_T_Send (Event_3);
          Natural_Assert.Eq (T.Events_Dropped_Count_History.Get_Count, 1);
       end loop;
