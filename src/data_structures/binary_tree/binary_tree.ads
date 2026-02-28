@@ -48,7 +48,11 @@ package Binary_Tree is
    -- Get an element via its index. This can be helpful to quickly retrieve an element in O(1) time if you have already obtained its index via "search".
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type;
    -- Set an element via its index. This can be helpful to quickly set an element in O(1) time if you have already obtained its index via "search".
-   procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type);
+   -- WARNING: The caller MUST ensure that the new element maintains the sorted invariant of the tree.
+   -- Specifically, the new element must be >= the element at (Element_Index - 1) and <= the element at
+   -- (Element_Index + 1). Violating this precondition will cause Search to return incorrect results.
+   -- Returns True if the set was successful and the sorted invariant is maintained, False otherwise.
+   function Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) return Boolean;
    -- Clear the tree. This is done in O(1) time.
    procedure Clear (Self : in out Instance);
    -- Get functions:

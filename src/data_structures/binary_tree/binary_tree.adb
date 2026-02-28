@@ -117,9 +117,24 @@ package body Binary_Tree is
       return Self.Tree (Element_Index);
    end Get;
 
-   procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) is
+   function Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) return Boolean is
    begin
+      -- Bounds check:
+      if Element_Index > Self.Size then
+         return False;
+      end if;
+
+      -- Check that the new element maintains the sorted invariant:
+      -- It must be >= the previous element (if any) and <= the next element (if any).
+      if Element_Index > 1 and then Self.Tree (Element_Index - 1) > Element then
+         return False;
+      end if;
+      if Element_Index < Self.Size and then Element > Self.Tree (Element_Index + 1) then
+         return False;
+      end if;
+
       Self.Tree (Element_Index) := Element;
+      return True;
    end Set;
 
    procedure Clear (Self : in out Instance) is
