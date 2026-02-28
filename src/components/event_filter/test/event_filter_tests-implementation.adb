@@ -263,6 +263,10 @@ package body Event_Filter_Tests.Implementation is
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 1);
 
+      -- Bit-packed filter states for IDs 0..20, init list [2,5,9,16,20]:
+      -- Byte 0 (IDs 0-7):  ID2=filtered(01), ID5=filtered(01) => 0x24 (36)
+      -- Byte 1 (IDs 8-15): ID9=filtered(01) => 0x40 (64)
+      -- Byte 2 (IDs 16-23): ID16=filtered(01), ID20=filtered(01) => 0x88 (136)
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (1), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 0, Buffer_Length => 3), Buffer => [0 => 36, 1 => 64, 2 => 136, others => 0]));
 
       -- Now change some of the states and issue the packet again
@@ -299,6 +303,10 @@ package body Event_Filter_Tests.Implementation is
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 2);
 
+      -- After additionally filtering IDs 4, 10, 12:
+      -- Byte 0: IDs 2,4,5 filtered => 0x2C
+      -- Byte 1: IDs 9,10,12 filtered => 0x68
+      -- Byte 2: IDs 16,20 filtered => 0x88
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (2), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 1, Buffer_Length => 3), Buffer => [0 => 16#2C#, 1 => 16#68#, 2 => 16#88#, others => 0]));
 
       -- Now unfilter a range and check the packet one more time. Issue the packet with the command for this one.
@@ -315,6 +323,8 @@ package body Event_Filter_Tests.Implementation is
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 3);
 
+      -- After unfiltering range 2..12, only IDs 16 and 20 remain filtered:
+      -- Byte 0: 0x00, Byte 1: 0x00, Byte 2: IDs 16,20 => 0x88
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (3), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 2, Buffer_Length => 3), Buffer => [0 => 0, 1 => 0, 2 => 16#88#, others => 0]));
 
    end Test_Issue_State_Packet;
@@ -363,6 +373,8 @@ package body Event_Filter_Tests.Implementation is
       -- Issue the packet through a tick
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 1);
+      -- Init list [5,8] + filtered IDs 3,4 => IDs 3,4,5,8 filtered (range 3..12)
+      -- Byte 0 (IDs 3-10): IDs 3,4,5,8 filtered => 0xE4 (228)
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (1), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 0, Buffer_Length => 2), Buffer => [0 => 228, others => 0]));
 
       -- Enable event filtering for a range of the events that are not filtered right now
@@ -393,6 +405,7 @@ package body Event_Filter_Tests.Implementation is
       -- Issue the packet through a tick
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 2);
+      -- After unfiltering IDs 3,4: only IDs 5,8 remain filtered => 0x24 (36)
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (2), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 1, Buffer_Length => 2), Buffer => [0 => 36, others => 0]));
 
       -- Finally send invalid events
@@ -541,6 +554,9 @@ package body Event_Filter_Tests.Implementation is
       -- Issue the packet through a tick
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 1);
+      -- Init list [1,9] + filtered range 4..7 => IDs 1,4,5,6,7,9 filtered (range 1..15)
+      -- Byte 0 (IDs 1-8): IDs 1,4,5,6,7 filtered => 0x9E (158)
+      -- Byte 1 (IDs 9-15): ID 9 filtered => 0x80 (128)
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (1), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 0, Buffer_Length => 2), Buffer => [0 => 158, 1 => 128, others => 0]));
 
       -- Back to the start with a packet issue this time
@@ -554,6 +570,8 @@ package body Event_Filter_Tests.Implementation is
 
       T.Tick_T_Send (Input_Tick);
       Natural_Assert.Eq (T.Event_Filter_State_Packet_History.Get_Count, 2);
+      -- After unfiltering range 4..7, only IDs 1 and 9 remain filtered:
+      -- Byte 0: ID 1 => 0x80 (128), Byte 1: ID 9 => 0x80 (128)
       Packet_Assert.Eq (T.Event_Filter_State_Packet_History.Get (2), (Header => (Time => (0, 0), Id => T.Packets.Get_Event_Filter_State_Packet_Id, Sequence_Count => 1, Buffer_Length => 2), Buffer => [0 => 128, 1 => 128, others => 0]));
 
       -- Finally give some invalid ranges for both commands.
