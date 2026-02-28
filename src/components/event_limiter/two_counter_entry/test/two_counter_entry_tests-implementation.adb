@@ -820,6 +820,10 @@ package body Two_Counter_Entry_Tests.Implementation is
       My_Counter : Two_Counter_Entry.Instance;
       Event_Start_List : constant Two_Counter_Entry.Event_Id_List := [4, 5];
       Master_State : Event_State_Type.E;
+      Return_Status : Two_Counter_Entry.Count_Status;
+      Event_State : Event_State_Type.E;
+      State_Return_Status : Two_Counter_Entry.Enable_State_Status;
+      Test_Limit_Count : Interfaces.Unsigned_16;
    begin
       My_Counter.Init (Event_Id_Start => 0, Event_Id_Stop => 5, Event_Disable_List => Event_Start_List, Event_Limit_Persistence => 7);
 
@@ -831,6 +835,47 @@ package body Two_Counter_Entry_Tests.Implementation is
       My_Counter.Set_Master_Enable_State (Event_State_Type.Disabled);
       Master_State := My_Counter.Get_Master_Enable_State;
       Event_State_Assert.Eq (Master_State, Event_State_Type.Disabled);
+
+      -- Verify that Increment_Counter bypasses counting logic when master is disabled
+      -- Event 0 is enabled individually, but master-disabled should prevent any counting
+      State_Return_Status := My_Counter.Get_Enable_State (0, Event_State);
+      Event_State_Status_Assert.Eq (State_Return_Status, Two_Counter_Entry.Success);
+      Event_State_Assert.Eq (Event_State, Event_State_Type.Enabled);
+
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Verify limited count did not change (master disabled should bypass all logic)
+      Test_Limit_Count := My_Counter.Get_Events_Limited_Count;
+      Natural_Assert.Eq (Natural (Test_Limit_Count), 0);
+
+      -- Verify that Decrement_Counter also bypasses when master is disabled
+      Return_Status := My_Counter.Decrement_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Re-enable master and verify counters are still at 0 (nothing was actually incremented)
+      My_Counter.Set_Master_Enable_State (Event_State_Type.Enabled);
+      Master_State := My_Counter.Get_Master_Enable_State;
+      Event_State_Assert.Eq (Master_State, Event_State_Type.Enabled);
+
+      -- Now increment should work normally — counter should start from 0
+      Return_Status := My_Counter.Increment_Counter (0);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Also test odd event ID path with master disabled
+      My_Counter.Set_Master_Enable_State (Event_State_Type.Disabled);
+      Return_Status := My_Counter.Increment_Counter (1);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+      Return_Status := My_Counter.Decrement_Counter (1);
+      Count_Status_Assert.Eq (Return_Status, Two_Counter_Entry.Success);
+
+      -- Verify limited count still 0 after all master-disabled operations
+      Test_Limit_Count := My_Counter.Get_Events_Limited_Count;
+      Natural_Assert.Eq (Natural (Test_Limit_Count), 0);
 
       -- Back to enabled
       My_Counter.Set_Master_Enable_State (Event_State_Type.Enabled);
