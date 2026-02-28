@@ -19,7 +19,7 @@ package Ccsds_Downsampler_Types is
       -- Apid of the packet to downsample
       Apid : Ccsds_Primary_Header.Ccsds_Apid_Type := Ccsds_Primary_Header.Ccsds_Apid_Type'First;
       -- Filter factor to downsample for the corresponding APID
-      Filter_Factor : Unsigned_16 := Unsigned_16'First;
+      Filter_Factor : Unsigned_16 := 1;
    end record;
 
    -- List of product entries of each apid:
