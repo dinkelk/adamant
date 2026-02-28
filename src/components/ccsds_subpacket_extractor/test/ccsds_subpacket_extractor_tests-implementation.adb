@@ -599,6 +599,21 @@ package body Ccsds_Subpacket_Extractor_Tests.Implementation is
       Ccsds_Space_Packet_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (11), Packet_3);
       Ccsds_Space_Packet_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (12), Packet_1);
       Ccsds_Space_Packet_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (13), Packet_3);
+
+      -- Test combined offsets with max subpackets to extract:
+      T.Component_Instance.Init (Start_Offset => 4, Stop_Offset => 6, Max_Subpackets_To_Extract => 2);
+
+      -- Send large packet containing 4 subpackets with offsets:
+      T.Ccsds_Space_Packet_T_Send (Create_Packet ([0 => Packet_1, 1 => Packet_3, 2 => Packet_1, 3 => Packet_3], Start_Offset => 4, Stop_Offset => 6));
+
+      -- Expect no events to be thrown and only two packets extracted (limited by Max_Subpackets_To_Extract):
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 15);
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Check the packets (only first 2 of 4 should be extracted):
+      Ccsds_Space_Packet_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (14), Packet_1);
+      Ccsds_Space_Packet_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (15), Packet_3);
    end Test_Max_Subpackets_To_Extract;
 
 end Ccsds_Subpacket_Extractor_Tests.Implementation;
