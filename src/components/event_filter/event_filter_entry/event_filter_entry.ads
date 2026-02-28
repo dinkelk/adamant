@@ -1,5 +1,7 @@
--- This is a generic, unprotected statistics data structure.
--- The user can instantiate this class with any type that they choose.
+-- This package provides a bit-packed event filter data structure.
+-- Each event ID within a configured range has an associated filter state
+-- (Filtered/Unfiltered) stored as a single bit. The structure also tracks
+-- filtered/unfiltered event counts and a global enable/disable switch.
 with Basic_Types;
 with Event_Types;
 with Event_Filter_Entry_Enums;
