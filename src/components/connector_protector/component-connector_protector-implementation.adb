@@ -8,9 +8,14 @@ package body Component.Connector_Protector.Implementation is
 
       procedure Call (Self : in out Instance; Arg : in T) is
       begin
+         -- Guard against reentrant calls which would be a bounded error
+         -- (ARM 9.5.1) resulting in deadlock or Program_Error:
+         pragma Assert (not In_Call, "Reentrant call to Connector_Protector detected");
+         In_Call := True;
          -- Simply call the connector from within the protected
          -- procedure.
          Self.T_Send (Arg);
+         In_Call := False;
       end Call;
 
    end Protected_Connector;

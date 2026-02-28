@@ -18,7 +18,9 @@ private
       procedure Call (Self : in out Instance; Arg : in T);
 
    private
-   -- No data to protect.
+      -- Guard against reentrant/recursive calls which would be a bounded
+      -- error (ARM 9.5.1) leading to deadlock or Program_Error.
+      In_Call : Boolean := False;
    end Protected_Connector;
 
    -- The component class instance record:
