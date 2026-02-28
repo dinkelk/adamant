@@ -10,6 +10,7 @@ with Telemetry_Record;
 with Packed_U32;
 with Seq_Print.Representation;
 with Sys_Time;
+with Ada.Unchecked_Deallocation;
 
 package body Seq_Simulator is
    use Seq_Error;
@@ -68,6 +69,8 @@ package body Seq_Simulator is
          return False;
    end Load_Sequence_In_Memory;
 
+   procedure Free is new Ada.Unchecked_Deallocation (Basic_Types.Byte_Array, Basic_Types.Byte_Array_Access);
+
    procedure Simulate (Self : in out Instance; Filepath : in String; To_Load : in Sequence_Engine_Id; Engine_Time_S : in Interfaces.Unsigned_32) is
       Sequence : Memory_Region.T;
       Buffer : Basic_Types.Byte_Array_Access;
@@ -82,6 +85,7 @@ package body Seq_Simulator is
       -- Attempt to load a sequence into a memory region
       if Load_Sequence_In_Memory (Filepath, Buffer, Sequence) = False then
          Put_Line ("Could not load given sequence: " & Filepath);
+         Free (Buffer);
          return;
       end if;
       Put_Line ("Sequence was loaded into memory!");
@@ -98,6 +102,7 @@ package body Seq_Simulator is
             when Unloaded =>
                Put_Line ("Simulation for engine" & To_Load'Image & " has finished!");
                New_Line;
+               Free (Buffer);
                return;
             when Wait_Relative =>
                Put_Line (ASCII.HT & "Waiting for: " & Trim (Self.Seq_Engines (To_Load).Get_Wakeup_Time.Seconds'Image, Ada.Strings.Left));
@@ -200,6 +205,8 @@ package body Seq_Simulator is
                                                 -- Attempt to load a sequence into a memory region
                         if Load_Sequence_In_Memory (File_Path, New_Buffer, New_Sequence) = False then
                            Put_Line (ASCII.HT & "Could not load given sequence: " & File_Path);
+                           Free (New_Buffer);
+                           Free (Buffer);
                            return;
                         end if;
                         Put_Line (ASCII.HT & "Sequence was loaded into memory!");
@@ -218,10 +225,12 @@ package body Seq_Simulator is
                Put_Line (ASCII.HT & "The runtime error code is: " & Trim (Self.Seq_Engines (To_Load).Get_Seq_Error_Code'Image, Ada.Strings.Left));
                Put_Line (ASCII.HT & "The error occurred at pc: " & Trim (Self.Seq_Engines (To_Load).Get_Lowest_Child_Position'Image, Ada.Strings.Left));
                New_Line;
+               Free (Buffer);
                return;
             when Kill_Engines =>
                Put_Line (ASCII.HT & "Kill_Engine encountered.");
                New_Line;
+               Free (Buffer);
                return;
             when Print =>
                Put_Line (ASCII.HT & "Print encountered.");
