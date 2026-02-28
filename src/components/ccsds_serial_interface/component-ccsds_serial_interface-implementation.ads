@@ -4,7 +4,6 @@
 
 -- Includes:
 with Ccsds_Space_Packet;
-with Ada.Task_Identification;
 
 -- This component is meant to be a backdoor serial component which uses Ada.Text_IO to send and receive data over a serial port. On Linux, this will send/recv data to/from the terminal, but Ada.Text_IO is attached to a diagnostic uart on most embedded systems. This means that this component can be used as a quick and dirty serial interface without implementing hardware specific uart drivers.
 --
@@ -32,10 +31,6 @@ private
 
    -- The component class instance record:
    type Instance is new Ccsds_Serial_Interface.Base_Instance with record
-      Listener_Task_Id : Ada.Task_Identification.Task_Id;
-      Task_Id_Set : Boolean := False;
-      Cpu_Usage : Float;
-      Count : Natural := 0;
       Interpacket_Gap_Ms : Natural := 0;
    end record;
 
@@ -45,7 +40,7 @@ private
    -- On this connector the Serial Interface Component receives data and sends it out of the serial port.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
    -- This procedure is called when a Ccsds_Space_Packet_T_Recv_Async message is dropped due to a full queue.
-   overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is null;
+   overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
 
    ---------------------------------------
    -- Invoker connector primitives:

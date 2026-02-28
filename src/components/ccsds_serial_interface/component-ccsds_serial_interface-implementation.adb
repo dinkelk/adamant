@@ -6,8 +6,6 @@ with Serializer_Types;
 with Diagnostic_Uart;
 with Ccsds_Primary_Header;
 with Interfaces;
-with Ada.Execution_Time;
-with Ada.Real_Time;
 with Sleep;
 -- with Ada.Text_IO; use Ada.Text_IO;
 -- with Basic_Types.Representation;
@@ -38,25 +36,6 @@ package body Component.Ccsds_Serial_Interface.Implementation is
       Num_Bytes_Serialized : Natural;
       Stat : Serialization_Status;
    begin
-      Self.Count := @ + 1;
-
-      if Self.Count > 200 then
-         -- Measure execution time of listener task. This is important because the execution percentage of this task,
-         -- if set to lowest priority, represents the amount execution margin available on the system.
-         if Self.Task_Id_Set then
-            declare
-               use Ada.Real_Time;
-               use Ada.Execution_Time;
-               Execution_Span, Up_Span : Duration;
-            begin
-               Execution_Span := To_Duration (Ada.Execution_Time.Clock (Self.Listener_Task_Id) - CPU_Time_First);
-               Up_Span := To_Duration (Ada.Real_Time.Clock - Time_First);
-               Self.Cpu_Usage := Float (Execution_Span) / Float (Up_Span) * 100.0;
-            end;
-         end if;
-         Self.Count := 0;
-      end if;
-
       -- Get the length of the packet:
       Stat := Ccsds_Space_Packet.Serialized_Length (Arg, Num_Bytes_Serialized);
       if Stat /= Success then
@@ -78,6 +57,13 @@ package body Component.Ccsds_Serial_Interface.Implementation is
       end if;
    end Ccsds_Space_Packet_T_Recv_Async;
 
+   -- This procedure is called when a Ccsds_Space_Packet_T_Recv_Async message is dropped due to a full queue.
+   -- Emit an event so the drop is observable.
+   overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Packet_Send_Failed (Self.Sys_Time_T_Get, Arg.Header));
+   end Ccsds_Space_Packet_T_Recv_Async_Dropped;
+
    -------------------------------------------------------
    -- Definition of subtasks functions for task execution:
    -------------------------------------------------------
@@ -85,26 +71,28 @@ package body Component.Ccsds_Serial_Interface.Implementation is
    overriding procedure Listener (Self : in out Instance) is
       use Interfaces;
       A_Byte : Basic_Types.Byte;
-      Count : Natural := Sync_Pattern'First;
+      Sync_Index : Natural := Sync_Pattern'First;
       Bytes_Without_Sync : Unsigned_32 := 0;
+      -- Upper bound on sync search to prevent indefinite spinning on a noisy line.
+      -- After this many bytes without finding a sync pattern, we return and let the
+      -- subtask framework re-invoke us, providing a natural back-off point.
+      Max_Sync_Search_Bytes : constant Unsigned_32 := 10_000;
    begin
-      Self.Listener_Task_Id := Ada.Task_Identification.Current_Task;
-      Self.Task_Id_Set := True;
       -- Put_Line(Standard_Error, "cycle serial listener");
       -- First make sure we are in sync:
-      while Count <= Sync_Pattern'Last loop
+      while Sync_Index <= Sync_Pattern'Last and then Bytes_Without_Sync < Max_Sync_Search_Bytes loop
          -- Read byte and see if it matches the
          -- next byte in the sync pattern.
          A_Byte := Diagnostic_Uart.Get;
          -- Put_Line(Standard_Error, "got: " & Natural'Image(Natural(A_Byte)));
 
          -- Check against the sync pattern:
-         if A_Byte = Sync_Pattern (Count) then
-            Count := @ + 1;
+         if A_Byte = Sync_Pattern (Sync_Index) then
+            Sync_Index := @ + 1;
          elsif A_Byte = Sync_Pattern (Sync_Pattern'First) then
-            Count := Sync_Pattern'First + 1;
+            Sync_Index := Sync_Pattern'First + 1;
          else
-            Count := Sync_Pattern'First;
+            Sync_Index := Sync_Pattern'First;
          end if;
 
          -- Increment bytes without sync and send out an event with every 20 bytes:
@@ -113,6 +101,13 @@ package body Component.Ccsds_Serial_Interface.Implementation is
             Self.Event_T_Send_If_Connected (Self.Events.Have_Not_Seen_Sync_Pattern (Self.Sys_Time_T_Get, (Value => Bytes_Without_Sync)));
          end if;
       end loop;
+
+      -- If we hit the search limit without finding sync, return and let the
+      -- subtask framework re-invoke us. This prevents event bus flooding.
+      if Sync_Index <= Sync_Pattern'Last then
+         Self.Event_T_Send_If_Connected (Self.Events.Have_Not_Seen_Sync_Pattern (Self.Sys_Time_T_Get, (Value => Bytes_Without_Sync)));
+         return;
+      end if;
 
       -- OK we found an entire sync packet, now let's read
       -- a CCSDS packet:
