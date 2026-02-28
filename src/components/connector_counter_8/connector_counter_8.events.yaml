@@ -2,6 +2,9 @@
 events:
   - name: Count_Reset
     description: A command was received to reset the count.
+  - name: T_Send_Dropped
+    description: A forwarded connector invocation was dropped due to a full downstream queue. Data has been lost.
+    severity: warning
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
