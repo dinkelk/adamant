@@ -100,7 +100,7 @@ private
    overriding procedure Tick_T_Recv_Async (Self : in out Instance; Arg : in Tick.T);
    -- This procedure is called when a Tick_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Tick_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Tick.T);
-   -- Command responses from sent commands are received on this connector, allowed subsequent commands in a sequence to be sent out.
+   -- Command responses from sent commands are received on this connector, allowing subsequent commands in a sequence to be sent out.
    overriding procedure Command_Response_T_Recv_Async (Self : in out Instance; Arg : in Command_Response.T);
    -- This procedure is called when a Command_Response_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_Response_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command_Response.T);

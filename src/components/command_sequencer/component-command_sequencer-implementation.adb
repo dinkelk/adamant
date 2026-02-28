@@ -858,7 +858,7 @@ package body Component.Command_Sequencer.Implementation is
       end if;
    end Tick_T_Recv_Async;
 
-   -- Command responses from sent commands are received on this connector, allowed subsequent commands in a sequence to be sent out.
+   -- Command responses from sent commands are received on this connector, allowing subsequent commands in a sequence to be sent out.
    overriding procedure Command_Response_T_Recv_Async (Self : in out Instance; Arg : in Command_Response.T) is
       use Seq;
       use Command_Response_Status;

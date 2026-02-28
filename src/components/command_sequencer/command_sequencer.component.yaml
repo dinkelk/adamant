@@ -48,7 +48,7 @@ connectors:
   - description: The schedule invokee connector. This is used to detect sequence timeout errors, meter out the checking of telemetry for sequence conditionals, and determine when to resume a sequence after a relative or absolute wait.
     type: Tick.T
     kind: recv_async
-  - description: Command responses from sent commands are received on this connector, allowed subsequent commands in a sequence to be sent out. Note that during initialization a Register_Source message needs to be sent via this connector for each engine, providing a unique source identifier. This source identifier will be used for each engine when sending out commands after initialization. If using the command router, you should set up the command router to include a unique arrayed connector entry for each engine that needs to be registered.
+  - description: Command responses from sent commands are received on this connector, allowing subsequent commands in a sequence to be sent out. Note that during initialization a Register_Source message needs to be sent via this connector for each engine, providing a unique source identifier. This source identifier will be used for each engine when sending out commands after initialization. If using the command router, you should set up the command router to include a unique arrayed connector entry for each engine that needs to be registered.
     type: Command_Response.T
     kind: recv_async
   - description: The command receive connector. Commands received on this connector are executed by the sequencer itself, ie. halting a sequence.
