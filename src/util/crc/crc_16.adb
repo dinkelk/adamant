@@ -73,12 +73,19 @@ package body Crc_16 is
 
    function Compute_Crc_16 (Byte_Ptr : in Byte_Array_Pointer.Instance; Seed : in Crc_16_Type := [0 => 16#FF#, 1 => 16#FF#]) return Crc_16_Type is
       use Byte_Array_Pointer;
-      subtype Safe_Byte_Array_Type is Basic_Types.Byte_Array (0 .. Length (Byte_Ptr) - 1);
-      -- Perform overlay manually instead of using Byte_Array_Pointer.Pointer to avoid Byte_Array_Access range checking.
-      -- A null (address 0x0) Byte_Array_Access is not allowed in Ada, but we want to be able to CRC at address zero.
-      Safe_Byte_Array : Safe_Byte_Array_Type with Import, Convention => Ada, Address => Address (Byte_Ptr);
    begin
-      return Compute_Crc_16 (Safe_Byte_Array, Seed);
+      -- Guard against zero-length pointer to avoid an address overlay on a potentially invalid address.
+      if Length (Byte_Ptr) = 0 then
+         return Seed;
+      end if;
+      declare
+         subtype Safe_Byte_Array_Type is Basic_Types.Byte_Array (0 .. Length (Byte_Ptr) - 1);
+         -- Perform overlay manually instead of using Byte_Array_Pointer.Pointer to avoid Byte_Array_Access range checking.
+         -- A null (address 0x0) Byte_Array_Access is not allowed in Ada, but we want to be able to CRC at address zero.
+         Safe_Byte_Array : Safe_Byte_Array_Type with Import, Convention => Ada, Address => Address (Byte_Ptr);
+      begin
+         return Compute_Crc_16 (Safe_Byte_Array, Seed);
+      end;
    end Compute_Crc_16;
 
 end Crc_16;
