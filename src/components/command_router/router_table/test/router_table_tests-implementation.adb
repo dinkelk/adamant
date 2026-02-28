@@ -69,14 +69,17 @@ package body Router_Table_Tests.Implementation is
       Registration_Assert.Eq (Registration_Id, 36);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
-      -- Search table for nonexistent registrations:
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (96, Ignore), Router_Table.Id_Not_Found);
+      -- Search table for nonexistent registrations, verify sentinel value:
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (96, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (17, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (17, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (7, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (7, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
       -- Clear table:
