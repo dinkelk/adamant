@@ -143,7 +143,11 @@ package body Component.Ccsds_Router.Implementation is
                      use Ccsds_Primary_Header;
                      Is_Duplicate : constant Boolean := Arg.Header.Sequence_Count = Table_Entry_Found.Last_Sequence_Count;
                   begin
-                     -- Warn via event if unexpected sequence count found:
+                     -- Warn via event if unexpected sequence count found.
+                     -- Note: Warn_Sequence_Count unconditionally updates Last_Sequence_Count
+                     -- in the tree to the current packet's sequence count. For duplicates this
+                     -- update is idempotent (same value), so it is harmless. The duplicate check
+                     -- above captures the flag before the update to avoid any ordering dependency.
                      Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
                      -- Drop duplicate if necessary:
                      if Is_Duplicate then
