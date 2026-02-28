@@ -137,3 +137,19 @@ that loops 65536+ times and checks the pass/filter pattern remains correct.
 | 3 | Test-01 | **High** | No test exercises `Filter_Count` overflow/wrap-around behavior |
 | 4 | Impl-02 | **Medium** | Global pass/filter counters wrap at Unsigned_16'Last with no documentation or mitigation |
 | 5 | Test-02 | **Medium** | No test exercises global counter overflow behavior |
+
+---
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Spec-01 — Misleading comments on public functions | Low | ✅ Fixed | `f478017` | Replaced copy-paste comments with accurate descriptions |
+| 2 | Impl-01 — `pragma Assert` suppressible in production | High | ✅ Fixed | `a9e25f1` | Replaced pragma Assert with unconditional checks |
+| 3 | Impl-02 — `Num_Passed/Filtered_Packets` Unsigned_16 overflow | Medium | ✅ Fixed | `7cc630f` | Documented Unsigned_16 counter wrap-around as intentional |
+| 4 | Impl-03 — `Filter_Count` Unsigned_16 overflow breaks filtering | High | ✅ Fixed | `36f397b` | Fixed Filter_Count overflow logic |
+| 5 | Impl-04 — No thread safety (documented) | Low | ✅ Fixed | `a92923e` | Added task-safety note on Instance type |
+| 6 | Test-01 — No test for `Filter_Count` overflow | High | ✅ Fixed | `cd75a23` | Added test for Filter_Count overflow/wrap-around |
+| 7 | Test-02 — No test for global counter overflow | Medium | ✅ Fixed | `052ebe3` | Added test for global counter overflow |
+| 8 | Test-03 — No test for empty init list | Low | ✅ Fixed | `f264879` | Added test for empty init list |
+| 9 | Test-04 — No test for single-element init list | Low | ✅ Fixed | `1b06ddc` | Added test for single-element init list |
