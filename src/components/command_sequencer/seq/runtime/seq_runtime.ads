@@ -116,7 +116,9 @@ package Seq_Runtime is
                   Self.Get_State = Wait_Telemetry_Relative;
 
    -- Telemetry can be provided to the runtime via this subprogram.
-   procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type);
+   procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type)
+      with Pre => Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Set;
 
    -- Get the ID of the sequence to load. This should be called after encountering a call/spawn/start
    -- instruction, i.e. in a Wait_Load_New_* state.
