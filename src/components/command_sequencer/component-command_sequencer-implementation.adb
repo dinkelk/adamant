@@ -346,8 +346,8 @@ package body Component.Command_Sequencer.Implementation is
 
    -- Takes one single engine and runs it until it is blocked or finished.
    procedure Execute_Engine (Self : in out Instance; Engine : in out Seq.Engine; Recursion_Depth : in Natural := 0) with
-      -- Execute engine should never be called on a non-active engine.
-      Pre => (Engine.Get_Engine_State /= Seq_Engine_State.Uninitialized)
+      -- Execute engine should only be called on engines in an operational state.
+      Pre => (Engine.Get_Engine_State in Seq_Engine_State.Reserved | Seq_Engine_State.Active | Seq_Engine_State.Waiting)
    is
       procedure Send_Engine_Command (Cmd : in Command.T) is
          -- Create a copy of the command on the stack:
