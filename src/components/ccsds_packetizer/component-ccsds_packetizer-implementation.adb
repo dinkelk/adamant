@@ -32,6 +32,12 @@ package body Component.Ccsds_Packetizer.Implementation is
       use Ccsds_Primary_Header;
       use Ccsds_Enums;
 
+      -- Validate Buffer_Length before use. A corrupted or out-of-range value
+      -- could cause Constraint_Error on the slice operations below.
+      pragma Assert
+         (P.Header.Buffer_Length <= Packet_Types.Packet_Buffer_Type'Length,
+          "Buffer_Length exceeds maximum packet buffer capacity");
+
       -- CCSDS Packet:
       To_Return : Ccsds_Space_Packet.T := (
        Header => (
