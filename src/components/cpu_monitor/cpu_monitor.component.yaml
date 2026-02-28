@@ -5,9 +5,9 @@ description: |
   Note that this component monitors CPU utilization by calling the Ada runtime Ada.Execution_Time.Clock subprogram which returns the amount of time since startup that a task or interrupt has been running on the CPU. The input to this subprogram is a Ada.Task_Identification id, which is provided by Adamant in an autocoded global variable for every modeled task which is passed into this component upon initialization. This interface is nonstandard, in that it exchanges information without the use of a connector. However, the use of this nonstandard interface improves efficiency and avoids having to include task identification connectors for every active component, which would be overly cumbersome.
 execution: passive
 preamble: |
-  -- This type holds the number of ticks
-  type Num_Measurement_Periods is range 0 .. 2;
-  type Execution_Periods_Type is array (Num_Measurement_Periods) of Positive;
+  -- Index type for measurement period array (0, 1, 2 = 3 periods)
+  type Measurement_Period_Index is range 0 .. 2;
+  type Execution_Periods_Type is array (Measurement_Period_Index) of Positive;
 init:
   description: This component requires a list of interrupts and tasks ids to monitor.
   parameters:

@@ -31,12 +31,12 @@ package Component.Cpu_Monitor.Implementation is
 private
 
    -- Array of times representing the last time that cpu measurements were taken:
-   type Last_Time_Type is array (Num_Measurement_Periods) of Ada.Real_Time.Time;
+   type Last_Time_Type is array (Measurement_Period_Index) of Ada.Real_Time.Time;
    -- Time measurement array, so we can store this for each task/interrupt:
    type Last_Time_Array is array (Natural range <>) of Last_Time_Type;
    type Last_Time_Array_Access is access all Last_Time_Array;
    -- Array of cpu times representing the last cpu measurements that were taken:
-   type Last_Cpu_Time_Type is array (Num_Measurement_Periods) of Ada.Execution_Time.CPU_Time;
+   type Last_Cpu_Time_Type is array (Measurement_Period_Index) of Ada.Execution_Time.CPU_Time;
    -- Cpu time measurement array, so we can store this for each task/interrupt:
    type Last_Cpu_Time_Array is array (Natural range <>) of Last_Cpu_Time_Type;
    type Last_Cpu_Time_Array_Access is access all Last_Cpu_Time_Array;
