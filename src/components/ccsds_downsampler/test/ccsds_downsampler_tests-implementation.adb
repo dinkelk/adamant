@@ -223,7 +223,7 @@ package body Ccsds_Downsampler_Tests.Implementation is
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Modify_Filter_Factor_Id, Status => Success));
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Modified_Factor_Filter_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Filter_Factor_Modified_History.Get_Count, 1);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 11);
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (11), Test_Dp_Received (2, 1));
 
@@ -251,7 +251,7 @@ package body Ccsds_Downsampler_Tests.Implementation is
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Modify_Filter_Factor_Id, Status => Success));
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
-      Natural_Assert.Eq (T.Modified_Factor_Filter_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Filter_Factor_Modified_History.Get_Count, 2);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 16);
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (16), Test_Dp_Received (2, 5));
 
@@ -307,7 +307,7 @@ package body Ccsds_Downsampler_Tests.Implementation is
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 3);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (3), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Modify_Filter_Factor_Id, Status => Success));
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 3);
-      Natural_Assert.Eq (T.Modified_Factor_Filter_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Filter_Factor_Modified_History.Get_Count, 3);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 28);
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (28), Test_Dp_Received (2, 0));
 
@@ -355,7 +355,7 @@ package body Ccsds_Downsampler_Tests.Implementation is
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 4);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (4), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Modify_Filter_Factor_Id, Status => Failure));
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 4);
-      Natural_Assert.Eq (T.Factor_Filter_Change_Failed_Invalid_Apid_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Filter_Factor_Change_Failed_Invalid_Apid_History.Get_Count, 1);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 37);
 
       T.Command_T_Send (T.Commands.Modify_Filter_Factor ((Filter_Factor => 0, Apid => 501)));
@@ -363,7 +363,7 @@ package body Ccsds_Downsampler_Tests.Implementation is
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 5);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (5), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Modify_Filter_Factor_Id, Status => Failure));
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 5);
-      Natural_Assert.Eq (T.Factor_Filter_Change_Failed_Invalid_Apid_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Filter_Factor_Change_Failed_Invalid_Apid_History.Get_Count, 2);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 37);
 
    end Test_Modify_Filter_Factor;

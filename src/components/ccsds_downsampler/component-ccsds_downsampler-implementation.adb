@@ -155,12 +155,12 @@ package body Component.Ccsds_Downsampler.Implementation is
 
       case Status is
          when Success =>
-            Self.Event_T_Send_If_Connected (Self.Events.Modified_Factor_Filter (Self.Sys_Time_T_Get, Arg));
+            Self.Event_T_Send_If_Connected (Self.Events.Filter_Factor_Modified (Self.Sys_Time_T_Get, Arg));
             -- Send the data product with the atomically-retrieved entry
             Self.Send_Filter_Data_Product (Updated_Entry, Index);
             return Success;
          when Invalid_Id =>
-            Self.Event_T_Send_If_Connected (Self.Events.Factor_Filter_Change_Failed_Invalid_Apid (Self.Sys_Time_T_Get, Arg));
+            Self.Event_T_Send_If_Connected (Self.Events.Filter_Factor_Change_Failed_Invalid_Apid (Self.Sys_Time_T_Get, Arg));
             return Failure;
       end case;
    end Modify_Filter_Factor;

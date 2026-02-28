@@ -18,8 +18,8 @@ package body Component.Ccsds_Downsampler.Implementation.Tester is
       Self.Sys_Time_T_Return_History.Init (Depth => 100);
       -- Event histories:
       Self.Invalid_Command_Received_History.Init (Depth => 100);
-      Self.Modified_Factor_Filter_History.Init (Depth => 100);
-      Self.Factor_Filter_Change_Failed_Invalid_Apid_History.Init (Depth => 100);
+      Self.Filter_Factor_Modified_History.Init (Depth => 100);
+      Self.Filter_Factor_Change_Failed_Invalid_Apid_History.Init (Depth => 100);
       -- Data product histories:
       Self.Total_Packets_Filtered_History.Init (Depth => 100);
       Self.Total_Packets_Passed_History.Init (Depth => 100);
@@ -36,8 +36,8 @@ package body Component.Ccsds_Downsampler.Implementation.Tester is
       Self.Sys_Time_T_Return_History.Destroy;
       -- Event histories:
       Self.Invalid_Command_Received_History.Destroy;
-      Self.Modified_Factor_Filter_History.Destroy;
-      Self.Factor_Filter_Change_Failed_Invalid_Apid_History.Destroy;
+      Self.Filter_Factor_Modified_History.Destroy;
+      Self.Filter_Factor_Change_Failed_Invalid_Apid_History.Destroy;
       -- Data product histories:
       Self.Total_Packets_Filtered_History.Destroy;
       Self.Total_Packets_Passed_History.Destroy;
@@ -113,18 +113,18 @@ package body Component.Ccsds_Downsampler.Implementation.Tester is
    end Invalid_Command_Received;
 
    -- This event indicates that the filter factor for a particular id has been set based on what was commanded.
-   overriding procedure Modified_Factor_Filter (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T) is
+   overriding procedure Filter_Factor_Modified (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T) is
    begin
       -- Push the argument onto the test history for looking at later:
-      Self.Modified_Factor_Filter_History.Push (Arg);
-   end Modified_Factor_Filter;
+      Self.Filter_Factor_Modified_History.Push (Arg);
+   end Filter_Factor_Modified;
 
    -- This event indicates that the command received a Apid it could not find so it fails since it cannot find the id.
-   overriding procedure Factor_Filter_Change_Failed_Invalid_Apid (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T) is
+   overriding procedure Filter_Factor_Change_Failed_Invalid_Apid (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T) is
    begin
       -- Push the argument onto the test history for looking at later:
-      Self.Factor_Filter_Change_Failed_Invalid_Apid_History.Push (Arg);
-   end Factor_Filter_Change_Failed_Invalid_Apid;
+      Self.Filter_Factor_Change_Failed_Invalid_Apid_History.Push (Arg);
+   end Filter_Factor_Change_Failed_Invalid_Apid;
 
    -----------------------------------------------
    -- Data product handler primitive:
