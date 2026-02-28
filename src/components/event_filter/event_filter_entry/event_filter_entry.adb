@@ -11,6 +11,12 @@ package body Event_Filter_Entry is
       pragma Assert (Event_Id_Start <= Event_Id_Stop, "Invalid Event ID range. Start ID must be less than or equal to Stop ID");
       -- Now determine how many bytes we need to store the events. Add two to compensate for an odd number of events since we will need an extra byte in that case. (two events = 1 byte)
       Num_Event_Bytes := Natural (Event_Id_Stop - Event_Id_Start + 8) / 8;
+
+      -- Deallocate any prior allocation to prevent memory leaks on re-init
+      if Self.Events /= null then
+         Destroy (Self);
+      end if;
+
       Self.Start_Id := Event_Id_Start;
       Self.End_Id := Event_Id_Stop;
 
