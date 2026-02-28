@@ -76,6 +76,7 @@ package body Component.Ccsds_Subpacket_Extractor.Implementation is
             while Idx <= Packet_End_Index loop
                Stat := Ccsds_Space_Packet.Serialization.From_Byte_Array (Subpacket, Arg.Data (Idx .. Packet_End_Index), Num_Bytes_Deserialized);
                if Stat = Success then
+                  pragma Assert (Num_Bytes_Deserialized > 0, "Deserialization returned success with zero bytes");
                   -- Send out subpacket:
                   Self.Ccsds_Space_Packet_T_Send (Subpacket);
                   Idx := @ + Num_Bytes_Deserialized;
