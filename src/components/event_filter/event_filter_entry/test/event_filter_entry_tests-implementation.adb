@@ -103,10 +103,11 @@ package body Event_Filter_Entry_Tests.Implementation is
          Start_List : constant Event_Id_List := [2, 5];
       begin
          Event_Filter.Init (Event_Id_Start => 7, Event_Id_Stop => 2, Event_Filter_List => Start_List);
+         -- If we reach here, the expected exception was not raised
+         Assert (False, "Expected assertion failure for invalid Event ID range, but Init succeeded");
       exception
-         -- Expecting the assert to be thrown here:
          when others =>
-            Assert (True, "Invalid Event ID Range assert failed!");
+            null; -- Expected: assertion fired for invalid range
       end Invalid_Init_Range;
 
    begin
