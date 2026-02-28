@@ -5,3 +5,13 @@ tests:
     description: This test sends in a bit pattern and validates that the correct CRC is returned.
   - name: Test_Crc_Seeded
     description: This test sends in a bit scattered pattern and validates that the correct CRC is returned.
+  - name: Test_Crc_Empty
+    description: This test verifies that CRC of an empty array returns the seed unchanged.
+  - name: Test_Crc_Single_Byte
+    description: This test verifies CRC computation on a single-byte input.
+  - name: Test_Crc_All_Zeros
+    description: This test verifies CRC computation on an all-zeros input.
+  - name: Test_Crc_All_Ones
+    description: This test verifies CRC computation on an all-0xFF input.
+  - name: Test_Crc_Pointer
+    description: This test verifies the Byte_Array_Pointer overload produces the same result as the array overload.
