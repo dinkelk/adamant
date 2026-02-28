@@ -27,7 +27,7 @@ package Ccsds_Downsampler_Types is
    end record;
 
    -- List of product entries of each apid:
-   type Ccsds_Downsample_Packet_List is array (Data_Product_Types.Data_Product_Id range <>) of Ccsds_Downsample_Packet_Entry;
+   type Ccsds_Downsample_Packet_List is array (Natural range <>) of Ccsds_Downsample_Packet_Entry;
    type Ccsds_Downsample_Packet_List_Access is access all Ccsds_Downsample_Packet_List;
 
 end Ccsds_Downsampler_Types;
