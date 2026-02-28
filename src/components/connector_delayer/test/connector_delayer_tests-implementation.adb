@@ -71,6 +71,9 @@ package body Connector_Delayer_Tests.Implementation is
       The_Time_2 := Clock;
       Dur := The_Time_2 - The_Time_1;
       Put_Line ("Took: " & Dur'Image);
+      -- Assert that the delay was at least the configured 1.4s:
+      pragma Assert (Dur >= Ada.Real_Time.Microseconds (1_400_000),
+         "Delay too short: expected >= 1.4s for single dispatch");
 
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((1, 2), 3));
@@ -86,6 +89,9 @@ package body Connector_Delayer_Tests.Implementation is
       The_Time_2 := Clock;
       Dur := The_Time_2 - The_Time_1;
       Put_Line ("Took: " & Dur'Image);
+      -- Assert that the delay was at least 2 x 1.4s for two dispatched items:
+      pragma Assert (Dur >= Ada.Real_Time.Microseconds (2_800_000),
+         "Delay too short: expected >= 2.8s for two dispatches");
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (2), ((2, 4), 6));
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (3), ((3, 5), 7));
@@ -102,6 +108,9 @@ package body Connector_Delayer_Tests.Implementation is
       The_Time_2 := Clock;
       Dur := The_Time_2 - The_Time_1;
       Put_Line ("Took: " & Dur'Image);
+      -- Assert that the delay was at least 3 x 1.4s for three dispatched items:
+      pragma Assert (Dur >= Ada.Real_Time.Microseconds (4_200_000),
+         "Delay too short: expected >= 4.2s for three dispatches");
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 6);
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (4), ((8, 10), 12));
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (5), ((9, 11), 13));
