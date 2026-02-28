@@ -95,7 +95,7 @@ private
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Command_T_Send message is dropped due to a full queue.
-   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is null;
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
    overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;
    -- This procedure is called when a Event_T_Send message is dropped due to a full queue.

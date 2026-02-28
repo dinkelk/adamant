@@ -294,6 +294,16 @@ package body Component.Fault_Correction.Implementation is
       ));
    end Fault_T_Recv_Async_Dropped;
 
+   ---------------------------------------
+   -- Invoker connector dropped handlers:
+   ---------------------------------------
+   -- This procedure is called when a Command_T_Send message is dropped due to a full queue.
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is
+   begin
+      -- A fault correction command was lost — this is critical since it is the component's primary safety function.
+      Self.Event_T_Send_If_Connected (Self.Events.Fault_Response_Command_Dropped (Self.Sys_Time_T_Get, Arg.Header));
+   end Command_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------
