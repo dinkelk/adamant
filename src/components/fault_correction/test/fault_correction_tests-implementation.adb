@@ -135,6 +135,11 @@ package body Fault_Correction_Tests.Implementation is
       );
 
       -- Init tests:
+      -- Note: Each Init_* variant catches its exception before heap allocation
+      -- changes persist, so calling Final on the prior (successful) Init state
+      -- is safe. If a future Init variant partially succeeds before asserting,
+      -- this pattern could leak memory. Consider re-initializing between tests
+      -- if Init logic becomes more complex.
       Init_None;
       T.Component_Instance.Final;
       Init_Duplicate;
