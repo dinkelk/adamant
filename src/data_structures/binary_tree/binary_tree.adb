@@ -20,6 +20,9 @@ package body Binary_Tree is
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
    function Add (Self : in out Instance; Element : in Element_Type) return Boolean is
    begin
+      -- Guard against uninitialized tree:
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Add called before Init");
+
       -- Make sure tree is not full:
       if Self.Size >= Self.Tree'Length then
          return False;
@@ -60,6 +63,7 @@ package body Binary_Tree is
 
    function Remove (Self : in out Instance; Element_Index : in Positive) return Boolean is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Remove called before Init");
       -- Make sure index is in tree:
       if Element_Index > Self.Size then
          return False;
@@ -81,11 +85,15 @@ package body Binary_Tree is
 
    -- Search for element in tree. This is done in O(log n) where n is the current size of the tree.
    function Search (Self : in Instance; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive) return Boolean is
-      Low_Index : Natural := Self.Tree'First;
-      High_Index : Natural := Self.Size;
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Search called before Init");
+
+      declare
+         Low_Index : Natural := Self.Tree'First;
+         High_Index : Natural := Self.Size;
+      begin
       -- Ensure size is as expected
-      pragma Assert (Self.Size <= Self.Tree'Last - Self.Tree'First + 1);
+      pragma Assert (Self.Size <= Self.Tree'Length);
 
       -- Perform binary search on sorted list:
       while Low_Index <= High_Index loop
@@ -110,15 +118,18 @@ package body Binary_Tree is
       Element_Found := Element;
 
       return False;
+      end;
    end Search;
 
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Get called before Init");
       return Self.Tree (Element_Index);
    end Get;
 
    function Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) return Boolean is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Set called before Init");
       -- Bounds check:
       if Element_Index > Self.Size then
          return False;
@@ -149,6 +160,7 @@ package body Binary_Tree is
 
    function Get_Capacity (Self : in Instance) return Positive is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Get_Capacity called before Init");
       return Self.Tree'Length;
    end Get_Capacity;
 

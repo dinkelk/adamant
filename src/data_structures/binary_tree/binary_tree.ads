@@ -33,7 +33,9 @@ package Binary_Tree is
    type Instance is tagged limited private;
    type Instance_Access is access all Instance;
 
+   -- Initialize the tree with a given maximum capacity. Must be called before any other operation.
    procedure Init (Self : in out Instance; Maximum_Size : in Positive);
+   -- Destroy the tree and free allocated memory. Tree must be re-initialized before reuse.
    procedure Destroy (Self : in out Instance);
 
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
