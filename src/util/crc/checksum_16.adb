@@ -10,6 +10,7 @@ package body Checksum_16 is
       -- Go through each byte. We need to add each set of two bytes as if it were a
       -- 16-bit integer. To do this intelligently, we know each even byte needs to be
       -- left shifted by 8-bits and each odd byte does not in the addition.
+      -- Note: Unsigned_16 addition wraps mod 2**16 per the checksum algorithm.
       for Idx in Bytes'Range loop
          if ((Idx - Bytes'First) mod 2) = 0 then
             To_Return := @ + Unsigned_16 (Bytes (Idx)) * 16#100#;
