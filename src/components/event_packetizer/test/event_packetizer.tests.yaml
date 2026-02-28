@@ -15,3 +15,5 @@ tests:
     description: This unit test exercises the behavior of the packetizer when it is uninitialized.
   - name: Test_Destroy_Then_Insert
     description: This unit test verifies that events sent after Destroy are safely dropped and do not cause a use-after-free.
+  - name: Test_Invalid_Command
+    description: This unit test verifies that an invalid command is rejected with a failure response and does not trigger any operational behavior.

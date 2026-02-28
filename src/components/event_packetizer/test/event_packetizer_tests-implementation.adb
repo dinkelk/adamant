@@ -654,6 +654,35 @@ package body Event_Packetizer_Tests.Implementation is
       Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 0);
    end Uninitialized;
 
+   overriding procedure Test_Invalid_Command (Self : in out Instance) is
+      T : Component.Event_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+      A_Tick : constant Tick.T := ((1, 2), 3);
+      Cmd : Command.T;
+   begin
+      -- Initialize the component:
+      T.Component_Instance.Init (Num_Internal_Packets => 2, Partial_Packet_Timeout => 0);
+
+      -- Send an event so there is something to potentially packetize:
+      T.Event_T_Send (Event_3);
+
+      -- Construct an invalid command (wrong length to trigger Invalid_Command handler):
+      Cmd := T.Commands.Send_Packet;
+      -- Corrupt the length to make it invalid:
+      Cmd.Header.Arg_Buffer_Length := 99;
+      T.Command_T_Send (Cmd);
+
+      -- Verify a failure command response was sent:
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Send_Packet_Id, Status => Failure));
+
+      -- Tick and verify NO packet was sent (invalid command must not trigger send):
+      T.Tick_T_Send (A_Tick);
+      Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 0);
+
+      -- Verify no events were dropped:
+      Natural_Assert.Eq (T.Events_Dropped_Count_History.Get_Count, 0);
+   end Test_Invalid_Command;
+
    overriding procedure Test_Destroy_Then_Insert (Self : in out Instance) is
       T : Component.Event_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
       A_Tick : constant Tick.T := ((1, 2), 3);

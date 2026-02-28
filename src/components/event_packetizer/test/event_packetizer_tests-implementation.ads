@@ -25,6 +25,8 @@ private
    overriding procedure Uninitialized (Self : in out Instance);
    -- This unit test verifies that events sent after Destroy are safely dropped and do not cause a use-after-free.
    overriding procedure Test_Destroy_Then_Insert (Self : in out Instance);
+   -- This unit test verifies that an invalid command is rejected with a failure response.
+   overriding procedure Test_Invalid_Command (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Event_Packetizer_Tests.Base_Instance with record
