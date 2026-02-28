@@ -254,10 +254,18 @@ package body Component.Fault_Correction.Implementation is
          declare
             The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
             Param_Buffer : Fault_Types.Parameter_Buffer_Type := [others => 0];
+            -- Clamp copy length to the static buffer size to prevent Constraint_Error
+            -- if Arg.Header.Param_Buffer_Length exceeds the static parameter buffer capacity.
+            Copy_Len : constant Natural := Natural'Min (
+               Natural (Arg.Header.Param_Buffer_Length),
+               Param_Buffer'Length
+            );
          begin
             -- Copy over info from fault into statically sized fault type for serialization into info event:
-            Param_Buffer (Param_Buffer'First .. Param_Buffer'First + Arg.Header.Param_Buffer_Length - 1) :=
-               Arg.Param_Buffer (Arg.Param_Buffer'First .. Arg.Param_Buffer'First + Arg.Header.Param_Buffer_Length - 1);
+            if Copy_Len > 0 then
+               Param_Buffer (Param_Buffer'First .. Param_Buffer'First + Copy_Len - 1) :=
+                  Arg.Param_Buffer (Arg.Param_Buffer'First .. Arg.Param_Buffer'First + Copy_Len - 1);
+            end if;
             Self.Event_T_Send_If_Connected (Self.Events.Fault_Received (The_Time, (Header => Arg.Header, Param_Buffer => Param_Buffer)));
             -- Send response event if necessary:
             if Response_Sent then
