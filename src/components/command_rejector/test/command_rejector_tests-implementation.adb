@@ -5,7 +5,6 @@
 with AUnit.Assertions; use AUnit.Assertions;
 with Basic_Assertions; use Basic_Assertions;
 with Packed_U16.Assertion; use Packed_U16.Assertion;
-with Command_Protector_Enums; use Command_Protector_Enums.Armed_State;
 with Command.Assertion; use Command.Assertion;
 with Command_Header.Assertion; use Command_Header.Assertion;
 with Packet.Assertion; use Packet.Assertion;
