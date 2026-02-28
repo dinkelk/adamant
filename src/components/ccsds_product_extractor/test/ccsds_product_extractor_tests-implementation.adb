@@ -214,19 +214,33 @@ package body Ccsds_Product_Extractor_Tests.Implementation is
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (12), Test_Dp_Received_U16 (0, 30, (50, 100)));
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (13), Test_Dp_Received_U8 (1, 40, (0, 0)));
 
+      -- Test boundary-exact packet length: set Packet_Length so that the first product
+      -- (offset=10, length=2) has Offset + Length - 1 == Packet_Length exactly. This verifies
+      -- the boundary condition is a success case (not off-by-one).
+      Incoming_Packet_Apid_100.Header.Packet_Length := 11; -- last valid index = 11, product accesses indices 10..11
+      Incoming_Packet_Apid_100.Data (0 .. Sys_Time.Size_In_Bytes - 1) := Sys_Time.Serialization.To_Byte_Array ((60, 200));
+      Incoming_Packet_Apid_100.Data (11) := 77;
+      T.Ccsds_Space_Packet_T_Send (Incoming_Packet_Apid_100);
+      -- First product (offset 10, length 2) should succeed since 10+2-1=11=Packet_Length
+      -- Second product (offset 16) should fail since 16 > 11
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 5);
+      Natural_Assert.Eq (T.Invalid_Extracted_Product_Length_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 14);
+      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (14), Test_Dp_Received_U16 (0, 77, (60, 200)));
+
       -- Lastly, check the very end of a packet offset
       Incoming_Packet_Apid_100.Header.Packet_Length := 15;
       Incoming_Packet_Apid_100.Data (0 .. Sys_Time.Size_In_Bytes - 1) := Sys_Time.Serialization.To_Byte_Array ((50, 100));
       Incoming_Packet_Apid_100.Data (11) := 25;
       Incoming_Packet_Apid_100.Data (15) := 10;
       T.Ccsds_Space_Packet_T_Send (Incoming_Packet_Apid_100);
-      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 5);
-      Natural_Assert.Eq (T.Invalid_Extracted_Product_Length_History.Get_Count, 3);
-      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (3).Apid), 100);
-      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (3).Id), 1);
-      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (3).Length), 15);
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 14);
-      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (14), Test_Dp_Received_U16 (0, 25, (50, 100)));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 6);
+      Natural_Assert.Eq (T.Invalid_Extracted_Product_Length_History.Get_Count, 4);
+      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (4).Apid), 100);
+      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (4).Id), 1);
+      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (4).Length), 15);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 15);
+      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (15), Test_Dp_Received_U16 (0, 25, (50, 100)));
 
    end Test_Received_Data_Product_Packet;
 
