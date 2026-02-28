@@ -4,6 +4,6 @@ preamble: |
   type Arm_Timeout_Type is new Natural range 0 .. 255;
 fields:
   - name: Timeout
-    description: The timeout value (in ticks).
+    description: The timeout value (in ticks). A value of zero implies infinite timeout.
     type: Arm_Timeout_Type
     format: U8
