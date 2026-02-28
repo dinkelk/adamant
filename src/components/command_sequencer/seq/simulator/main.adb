@@ -69,7 +69,7 @@ begin
 
    -- Initialize the simulator:
    Put_Line ("Initializing simulator with " & Strip (Num_Engines'Image) & " sequence engines, each with a stack depth of " & Strip (Stack_Depth'Image) & ". The starting command source ID is " & Strip (Start_Source_Id'Image) & ".");
-   if not Simulator.Initialize (Sequence_Engine_Id (Num_Engines), Max_Seq_Num (Stack_Depth), Command_Source_Id (Start_Source_Id)) then
+   if Simulator.Initialize (Sequence_Engine_Id (Num_Engines), Max_Seq_Num (Stack_Depth), Command_Source_Id (Start_Source_Id)) /= Seq_Simulator.Success then
       Put_Line ("An error occurred initializing the engines!");
       return;
    end if;
