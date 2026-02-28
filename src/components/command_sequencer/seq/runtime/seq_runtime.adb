@@ -1086,6 +1086,8 @@ package body Seq_Runtime is
          -- This should already be false, but just in case it isn't, override it and set it to false (else component could loop infinitely)
          Self.Telemetry_Request.New_Value_Required := False;
          Self.Set_State_Blocking (Wait_Telemetry_Set);
+      else
+         Self.Set_State_Blocking (Wait_Telemetry_Set);
       end if;
 
       return Self.Next_Position;
