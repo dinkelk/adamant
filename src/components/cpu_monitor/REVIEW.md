@@ -238,3 +238,17 @@
 | 3 | IMPL-5 | **Medium** | `implementation.adb`, `Init` | Dead comment claims zero-entry handling that doesn't exist (and can't occur due to `Positive` type). Misleading for reviewers. |
 | 4 | TEST-1 | **Medium** | `cpu_monitor_tests-implementation.adb` | No validation of packet buffer contents — null-task entries should be zero, all values should be 0–100. Misses off-by-one bugs. |
 | 5 | DOC-3 | **Medium** | `doc/cpu_monitor.tex` | Data Products section missing from the design document despite the component defining the `Packet_Period` data product. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Blanket when others | High | Fixed | d273657 | Narrowed to Constraint_Error |
+| 2 | Max_Count overflow | High | Fixed | 19e83bd | Added overflow guard |
+| 3 | Dead comment re zero check | Medium | Fixed | 19e83bd | Co-fixed with overflow guard |
+| 4 | Double-init leak | Medium | Fixed | f3f2378 | Added deallocation + guard |
+| 5 | Requirements not verifiable | Medium | Fixed | e6dcc52 | Added criteria |
+| 6 | Missing Data Products in doc | Medium | Fixed | 2b1dc14 | Added subsection |
+| 7 | Test buffer contents | Medium | Fixed | aff0cbb | Validates null-task=0, all≤100 |
+| 8 | Missing multi-tick test | Medium | Not Fixed | 40c8579 | Needs build system |
+| 9-15 | Low items | Low | Mixed | - | Typo, rename, assertions, comments |
