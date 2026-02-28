@@ -272,8 +272,10 @@ package body Component.Fault_Correction.Implementation is
                Self.Event_T_Send_If_Connected (Self.Events.Fault_Response_Sent (The_Time, Table_Entry.Command_Response.Header));
             end if;
 
-            -- Send data products if necessary:
-            Self.Fault_Counter := @ + 1;
+            -- Send data products if necessary. Saturate at max to avoid silent wraparound.
+            if Self.Fault_Counter < Interfaces.Unsigned_16'Last then
+               Self.Fault_Counter := @ + 1;
+            end if;
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Fault_Counter (The_Time, (Value => Self.Fault_Counter)));
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Fault_Id_Received (The_Time, (Id => Arg.Header.Id)));
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Time_Of_Last_Fault_Received (The_Time, Arg.Header.Time));
