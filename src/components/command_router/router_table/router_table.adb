@@ -34,6 +34,7 @@ package body Router_Table is
       Ignore_1 : Command_Registration.U;
       Ignore_2 : Natural;
    begin
+      pragma Assert (Self.Table.Get_Capacity > 0, "Router_Table.Add called on uninitialized table");
       -- Make sure the command Id is not already in the table:
       if Self.Table.Search (An_Entry, Ignore_1, Ignore_2) then
          return Id_Conflict;
@@ -48,6 +49,7 @@ package body Router_Table is
 
    procedure Clear (Self : in out Instance) is
    begin
+      pragma Assert (Self.Table.Get_Capacity > 0, "Router_Table.Clear called on uninitialized table");
       Self.Table.Clear;
    end Clear;
 
@@ -56,8 +58,11 @@ package body Router_Table is
       Registration_To_Find : constant Command_Registration.U := (Registration_Id => 0, Command_Id => Cmd_Id);
       Registration_Found : Command_Registration.U;
    begin
+      pragma Assert (Self.Table.Get_Capacity > 0, "Router_Table.Lookup_Registration_Id called on uninitialized table");
       -- Using ID, binary search the table ranges to find the correct entry:
       if not Self.Table.Search (Registration_To_Find, Registration_Found, Ignore) then
+         -- Sentinel: Registration_Id is set to 'Last on failure.
+         -- Callers MUST check the return status before using Registration_Id.
          Registration_Id := Command_Types.Command_Registration_Id'Last;
          return Id_Not_Found;
       end if;
@@ -67,11 +72,13 @@ package body Router_Table is
 
    function Get_Size (Self : in Instance) return Natural is
    begin
+      pragma Assert (Self.Table.Get_Capacity > 0, "Router_Table.Get_Size called on uninitialized table");
       return Self.Table.Get_Size;
    end Get_Size;
 
    function Get_Capacity (Self : in Instance) return Positive is
    begin
+      pragma Assert (Self.Table.Get_Capacity > 0, "Router_Table.Get_Capacity called on uninitialized table");
       return Self.Table.Get_Capacity;
    end Get_Capacity;
 

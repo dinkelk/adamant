@@ -69,20 +69,65 @@ package body Router_Table_Tests.Implementation is
       Registration_Assert.Eq (Registration_Id, 36);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
-      -- Search table for nonexistent registrations:
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (96, Ignore), Router_Table.Id_Not_Found);
+      -- Search table for nonexistent registrations, verify sentinel value:
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (96, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (17, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (17, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
-      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (7, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (7, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
       Natural_Assert.Eq (Self.Table.Get_Size, 3);
 
       -- Clear table:
       Self.Table.Clear;
       Natural_Assert.Eq (Self.Table.Get_Size, 0);
       Natural_Assert.Eq (Self.Table.Get_Capacity, 3);
+
+      -- Verify lookup fails after clear for previously-added entries:
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (0, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (1, Ignore), Router_Table.Id_Not_Found);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (19, Ignore), Router_Table.Id_Not_Found);
+
+      -- Verify re-add works after clear:
+      Status_Assert.Eq (Self.Table.Add ((Registration_Id => 5, Command_Id => 42)), Router_Table.Success);
+      Natural_Assert.Eq (Self.Table.Get_Size, 1);
+      Lookup_Assert.Eq (Self.Table.Lookup_Registration_Id (42, Registration_Id), Router_Table.Success);
+      Registration_Assert.Eq (Registration_Id, 5);
    end Add_To_Table;
+
+   overriding procedure Single_Entry_Table (Self : in out Instance) is
+      Tbl : Router_Table.Instance;
+      Registration_Id : Command_Types.Command_Registration_Id;
+   begin
+      -- Initialize table with minimum capacity of 1:
+      Tbl.Init (1);
+      Natural_Assert.Eq (Tbl.Get_Size, 0);
+      Natural_Assert.Eq (Tbl.Get_Capacity, 1);
+
+      -- Add single entry:
+      Status_Assert.Eq (Tbl.Add ((Registration_Id => 7, Command_Id => 99)), Router_Table.Success);
+      Natural_Assert.Eq (Tbl.Get_Size, 1);
+
+      -- Table should be full:
+      Status_Assert.Eq (Tbl.Add ((Registration_Id => 8, Command_Id => 100)), Router_Table.Table_Full);
+      Natural_Assert.Eq (Tbl.Get_Size, 1);
+
+      -- Duplicate should still be rejected:
+      Status_Assert.Eq (Tbl.Add ((Registration_Id => 9, Command_Id => 99)), Router_Table.Id_Conflict);
+
+      -- Lookup the single entry:
+      Lookup_Assert.Eq (Tbl.Lookup_Registration_Id (99, Registration_Id), Router_Table.Success);
+      Registration_Assert.Eq (Registration_Id, 7);
+
+      -- Lookup nonexistent entry:
+      Lookup_Assert.Eq (Tbl.Lookup_Registration_Id (100, Registration_Id), Router_Table.Id_Not_Found);
+      Registration_Assert.Eq (Registration_Id, Command_Types.Command_Registration_Id'Last);
+
+      Tbl.Destroy;
+   end Single_Entry_Table;
 
 end Router_Table_Tests.Implementation;
