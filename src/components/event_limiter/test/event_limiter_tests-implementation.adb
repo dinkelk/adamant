@@ -976,6 +976,8 @@ package body Event_Limiter_Tests.Implementation is
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Set_Event_Limit_Persistence_Id, Status => Success));
       Natural_Assert.Eq (T.Set_New_Persistence_History.Get_Count, 1);
+      -- Verify the persistence value in the event matches the commanded value
+      Natural_Assert.Eq (Natural (T.Set_New_Persistence_History.Get (1).Persistence), 4);
 
       -- Test that the persistence took effect
       T.Event_Forward_T_Recv_Sync_History.Clear;
