@@ -2,7 +2,7 @@
 description: This is a unit test suite for the Connector Delayer.
 tests:
   - name: Test_Queued_Call
-    description: This unit test invokes the async connector and makes sure the arguments are passed through asynchronously, as expected.
+    description: This unit test invokes the async connector and verifies that arguments are passed through asynchronously with the configured delay (1.4s). Wall-clock time is measured via Ada.Real_Time.Clock and asserted to confirm the delay behavior for single and multiple dispatches.
   - name: Test_Zero_Delay
     description: This unit test verifies that with Delay_Us=0, the component behaves like a Connector Queuer with negligible dispatch latency.
   - name: Test_Full_Queue
