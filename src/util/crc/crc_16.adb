@@ -2,14 +2,11 @@ with Interfaces; use Interfaces;
 
 package body Crc_16 is
 
-   -- Function to compute CRC on a variable array of bytes. A CRC of the whole
-   -- array is computed.
-   function Compute_Crc_16 (Bytes : in Basic_Types.Byte_Array; Seed : in Crc_16_Type := [0 => 16#FF#, 1 => 16#FF#]) return Crc_16_Type is
+   -- CRC lookup table index type and tables, declared at package level to
+   -- guarantee static allocation and avoid stack usage on each call.
+   type Byte_Array_Byte_Index is array (Basic_Types.Byte) of Basic_Types.Byte;
 
-      -- Constants:
-      type Byte_Array_Byte_Index is array (Basic_Types.Byte) of Basic_Types.Byte;
-
-      Low_Crc : constant Byte_Array_Byte_Index := [
+   Low_Crc : constant Byte_Array_Byte_Index := [
          16#00#, 16#21#, 16#42#, 16#63#, 16#84#, 16#a5#, 16#c6#, 16#e7#, 16#08#, 16#29#, 16#4a#, 16#6b#, 16#8c#,
          16#ad#, 16#ce#, 16#ef#, 16#31#, 16#10#, 16#73#, 16#52#, 16#b5#, 16#94#, 16#f7#, 16#d6#, 16#39#, 16#18#,
          16#7b#, 16#5a#, 16#bd#, 16#9c#, 16#ff#, 16#de#, 16#62#, 16#43#, 16#20#, 16#01#, 16#e6#, 16#c7#, 16#a4#,
@@ -55,6 +52,9 @@ package body Crc_16 is
          16#9f#, 16#6e#, 16#7e#, 16#4e#, 16#5e#, 16#2e#, 16#3e#, 16#0e#, 16#1e#
       ];
 
+   -- Function to compute CRC on a variable array of bytes. A CRC of the whole
+   -- array is computed.
+   function Compute_Crc_16 (Bytes : in Basic_Types.Byte_Array; Seed : in Crc_16_Type := [0 => 16#FF#, 1 => 16#FF#]) return Crc_16_Type is
       -- Local parity variables:
       High_Parity : Basic_Types.Byte := Seed (Crc_16_Type'First);
       Low_Parity : Basic_Types.Byte := Seed (Crc_16_Type'First + 1);
