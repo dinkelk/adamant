@@ -71,24 +71,28 @@ package body Component.Ccsds_Serial_Interface.Implementation is
    overriding procedure Listener (Self : in out Instance) is
       use Interfaces;
       A_Byte : Basic_Types.Byte;
-      Count : Natural := Sync_Pattern'First;
+      Sync_Index : Natural := Sync_Pattern'First;
       Bytes_Without_Sync : Unsigned_32 := 0;
+      -- Upper bound on sync search to prevent indefinite spinning on a noisy line.
+      -- After this many bytes without finding a sync pattern, we return and let the
+      -- subtask framework re-invoke us, providing a natural back-off point.
+      Max_Sync_Search_Bytes : constant Unsigned_32 := 10_000;
    begin
       -- Put_Line(Standard_Error, "cycle serial listener");
       -- First make sure we are in sync:
-      while Count <= Sync_Pattern'Last loop
+      while Sync_Index <= Sync_Pattern'Last and then Bytes_Without_Sync < Max_Sync_Search_Bytes loop
          -- Read byte and see if it matches the
          -- next byte in the sync pattern.
          A_Byte := Diagnostic_Uart.Get;
          -- Put_Line(Standard_Error, "got: " & Natural'Image(Natural(A_Byte)));
 
          -- Check against the sync pattern:
-         if A_Byte = Sync_Pattern (Count) then
-            Count := @ + 1;
+         if A_Byte = Sync_Pattern (Sync_Index) then
+            Sync_Index := @ + 1;
          elsif A_Byte = Sync_Pattern (Sync_Pattern'First) then
-            Count := Sync_Pattern'First + 1;
+            Sync_Index := Sync_Pattern'First + 1;
          else
-            Count := Sync_Pattern'First;
+            Sync_Index := Sync_Pattern'First;
          end if;
 
          -- Increment bytes without sync and send out an event with every 20 bytes:
@@ -97,6 +101,13 @@ package body Component.Ccsds_Serial_Interface.Implementation is
             Self.Event_T_Send_If_Connected (Self.Events.Have_Not_Seen_Sync_Pattern (Self.Sys_Time_T_Get, (Value => Bytes_Without_Sync)));
          end if;
       end loop;
+
+      -- If we hit the search limit without finding sync, return and let the
+      -- subtask framework re-invoke us. This prevents event bus flooding.
+      if Sync_Index <= Sync_Pattern'Last then
+         Self.Event_T_Send_If_Connected (Self.Events.Have_Not_Seen_Sync_Pattern (Self.Sys_Time_T_Get, (Value => Bytes_Without_Sync)));
+         return;
+      end if;
 
       -- OK we found an entire sync packet, now let's read
       -- a CCSDS packet:
