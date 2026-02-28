@@ -20,6 +20,8 @@ private
    overriding procedure Test_Init (Self : in out Instance);
    -- This unit test sends commands to enable and disable forwarding and make sure it functions correctly.
    overriding procedure Test_Enable_Disable_Forwarding (Self : in out Instance);
+   -- Verifies that sending Enable when already enabled (or Disable when already disabled) succeeds without emitting redundant events or data products.
+   overriding procedure Test_Idempotent_Commands (Self : in out Instance);
    -- Verifies that initializing with forwarding disabled causes Set_Up to publish a Disabled data product and that data is dropped from startup.
    overriding procedure Test_Init_Disabled (Self : in out Instance);
    -- This unit test exercises that an invalid command throws the appropriate event.

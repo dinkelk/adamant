@@ -125,6 +125,44 @@ package body Forwarder_Tests.Implementation is
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (4), ((4, 5), 6));
    end Test_Enable_Disable_Forwarding;
 
+   overriding procedure Test_Idempotent_Commands (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+   begin
+      -- Component starts Enabled. Send Enable again — should succeed with no event or DP:
+      T.Command_T_Send (T.Commands.Enable_Forwarding);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Enable_Forwarding_Id, Status => Success));
+
+      -- No event or data product should have been emitted:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Data should still flow:
+      T.T_Send (((1, 2), 3));
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+
+      -- Now disable:
+      T.Command_T_Send (T.Commands.Disable_Forwarding);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
+
+      -- This one should have emitted event + DP since state actually changed:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
+
+      -- Send Disable again — should succeed with no additional event or DP:
+      T.Command_T_Send (T.Commands.Disable_Forwarding);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 3);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (3), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Disable_Forwarding_Id, Status => Success));
+
+      -- No new event or data product:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
+
+      -- Data should still be dropped:
+      T.T_Send (((4, 5), 6));
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+   end Test_Idempotent_Commands;
+
    overriding procedure Test_Init_Disabled (Self : in out Instance) is
       T : Component_Tester_Package.Instance_Access renames Self.Tester;
    begin

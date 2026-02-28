@@ -5,6 +5,8 @@ tests:
     description: This unit test tests initialization.
   - name: Test_Enable_Disable_Forwarding
     description: This unit test sends commands to enable and disable forwarding and make sure it functions correctly.
+  - name: Test_Idempotent_Commands
+    description: Verifies that sending Enable when already enabled (or Disable when already disabled) succeeds without emitting redundant events or data products.
   - name: Test_Init_Disabled
     description: Verifies that initializing with forwarding disabled causes Set_Up to publish a Disabled data product and that data is dropped from startup.
   - name: Test_Invalid_Command
