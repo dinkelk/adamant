@@ -730,8 +730,7 @@ package body Seq_Runtime.Decoder is
       pragma Assert (Status = Success);
       Put (Output, "Setting str" & Instruction.Var_Info.Id'Image & " = """);
       Print_Decode_String (Instruction.Encoded_String, Output);
-      Put (Output, """");
-      New_Line;
+      Put_Line (Output, """");
       return Self.Next_Position;
    end Decode_Str_Set;
 
