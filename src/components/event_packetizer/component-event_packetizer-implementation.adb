@@ -96,7 +96,9 @@ package body Component.Event_Packetizer.Implementation is
          -- Helper procedure to increment the dropped event counter:
          procedure Increment_Events_Dropped is
          begin
-            Events_Dropped := @ + 1;
+            if Events_Dropped < Unsigned_32'Last then
+               Events_Dropped := @ + 1;
+            end if;
             New_Packets_Dropped := True;
          end Increment_Events_Dropped;
 
