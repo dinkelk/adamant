@@ -92,7 +92,9 @@ package body Ccsds_Packetizer_Tests.Implementation is
    overriding procedure Test_Nominal_Packetization (Self : in out Instance) is
       use Packet_Types;
       T : Component.Ccsds_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
-      P : Packet.T := (Header => (Time => (10, 55), Id => 77, Sequence_Count => 99, Buffer_Length => 5), Buffer => [1, 2, 3, 4, 5, others => 0]);
+      -- Use boundary APID values (0 and max 2047) alongside nominal values to
+      -- improve coverage of the Ccsds_Apid_Type conversion (addresses T-4).
+      P : Packet.T := (Header => (Time => (10, 55), Id => 0, Sequence_Count => 99, Buffer_Length => 5), Buffer => [1, 2, 3, 4, 5, others => 0]);
    begin
       -- Send a few packets:
       P.Header.Sequence_Count := @ + 1;
@@ -117,6 +119,13 @@ package body Ccsds_Packetizer_Tests.Implementation is
          P.Header.Sequence_Count := @ + 1;
          Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (Idx));
       end loop;
+
+      -- Test with max APID boundary value (2047) to exercise Ccsds_Apid_Type conversion:
+      P.Header.Id := 2047;
+      P.Header.Sequence_Count := @ + 1;
+      T.Packet_T_Send (P);
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 6);
+      Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (6));
    end Test_Nominal_Packetization;
 
    overriding procedure Test_Max_Size_Packetization (Self : in out Instance) is
