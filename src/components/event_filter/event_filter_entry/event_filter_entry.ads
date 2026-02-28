@@ -46,7 +46,8 @@ package Event_Filter_Entry is
    function Get_Event_Unfiltered_Count (Self : in Instance) return Interfaces.Unsigned_32;
    -- Function to fetch the event range. This helps keep the component in sync with the package
    function Get_Event_Start_Stop_Range (Self : in Instance; Event_Stop_Id : out Event_Id) return Event_Id;
-   -- Function to get the pointer for the array. This is so that we can quickly copy the whole thing into the state packet
+   -- WARNING: Returns a direct pointer to internal state. Callers MUST treat as read-only.
+   -- Used for efficient serialization into state packets by the owning component.
    function Get_Entry_Array (Self : in Instance) return Basic_Types.Byte_Array_Access;
 
 private
