@@ -89,7 +89,7 @@ events:
     param_type: Engine_Error_Type.T
     severity: Warning
   - name: Sequence_Timeout_Error
-    description: A sequence timed out waiting on a command response or subsequence load.
+    description: A sequence timed out waiting on a command response or a subsequence load.
     param_type: Engine_Error_Type.T
     severity: Warning
   - name: Unexpected_Command_Response_Id
