@@ -58,14 +58,16 @@ package body Component.Command_Router.Implementation is
 
       -- Now provide the source IDs to all connected command source components:
       for Index in Self.Connector_Command_Response_T_To_Forward_Send'Range loop
-         -- Send special command response that has the Register status set. This should indicate to the
-         -- component that it should assign the source id provided as its source id when sending commands.
-         Self.Command_Response_T_To_Forward_Send (Command_Response_T_To_Forward_Send_Index (Index), (
-            Source_Id => Command_Source_Id (Index),
-            Registration_Id => 0,
-            Command_Id => 0,
-            Status => Register_Source
-         ));
+         if Self.Is_Command_Response_T_To_Forward_Send_Connected (Command_Response_T_To_Forward_Send_Index (Index)) then
+            -- Send special command response that has the Register status set. This should indicate to the
+            -- component that it should assign the source id provided as its source id when sending commands.
+            Self.Command_Response_T_To_Forward_Send (Command_Response_T_To_Forward_Send_Index (Index), (
+               Source_Id => Command_Source_Id (Index),
+               Registration_Id => 0,
+               Command_Id => 0,
+               Status => Register_Source
+            ));
+         end if;
       end loop;
    end Set_Up;
 
