@@ -43,6 +43,9 @@ package body Tests.Implementation is
       T.Event_T_Send (Events.Event_1 (Tick_1.Time, Tick_1));
       T.Event_T_Send (Events.Event_2 (Tick_2.Time, Tick_2));
       T.Event_T_Send (Events.Event_3 (Tick_3.Time, Tick_3));
+      -- Note: This is a smoke test. It verifies dispatch count but does not
+      -- validate the actual text printed to Standard_Error. A more thorough
+      -- test would redirect Standard_Error and assert expected substrings.
       Cnt := T.Dispatch_All;
       Natural_Assert.Eq (Cnt, 3);
    end Test_Event_Printing;
