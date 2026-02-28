@@ -45,7 +45,7 @@ package body Event_Packetizer_Tests.Implementation is
 
    Event_1 : constant Event.T := (Header => ((1, 2), 1, 0), Param_Buffer => [others => 0]); -- Same size as event header, 14 bytes.
    Event_2 : constant Event.T := (Header => ((1, 2), 2, 6), Param_Buffer => [0 => 1, 1 => 2, 2 => 3, 3 => 4, 4 => 5, 5 => 6, others => 0]); -- Event header + 6 bytes, 20 bytes.
-   Event_3 : constant Event.T := (Header => ((1, 2), 3, 3), Param_Buffer => [0 => 1, 1 => 2, 2 => 3, 3 => 4, 4 => 5, 5 .. 11 => 6, others => 0]); -- Event header + 3 bytes, 14 bytes.
+   Event_3 : constant Event.T := (Header => ((1, 2), 3, 3), Param_Buffer => [0 => 1, 1 => 2, 2 => 3, others => 0]); -- Event header + 3 bytes, 14 bytes.
 
    -------------------------------------------------------------------------
    -- Helper function:
