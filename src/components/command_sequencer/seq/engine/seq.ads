@@ -53,7 +53,8 @@ package Seq is
       Pre => (Self.Get_Engine_State /= Uninitialized);
 
    -- Externally sets the engine to an error state, this is also cascaded down into the current runtime instance
-   procedure Set_Engine_Error (Self : in out Engine; Error_Code : in Seq_Error.E);
+   procedure Set_Engine_Error (Self : in out Engine; Error_Code : in Seq_Error.E) with
+      Pre => (Self.Get_Engine_State /= Uninitialized);
 
    -- Get the allocated stack depth for the engine. Each entry in the stack can hold a single sequence.
    function Get_Stack_Depth (Self : in Engine) return Max_Seq_Num;
