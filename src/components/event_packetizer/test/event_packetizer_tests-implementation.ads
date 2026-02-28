@@ -23,6 +23,8 @@ private
    overriding procedure Test_Dropped_Events (Self : in out Instance);
    -- This unit test exercises the behavior of the packetizer when it is uninitialized.
    overriding procedure Uninitialized (Self : in out Instance);
+   -- This unit test verifies that events sent after Destroy are safely dropped and do not cause a use-after-free.
+   overriding procedure Test_Destroy_Then_Insert (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Event_Packetizer_Tests.Base_Instance with record

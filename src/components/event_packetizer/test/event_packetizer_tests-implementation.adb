@@ -654,4 +654,34 @@ package body Event_Packetizer_Tests.Implementation is
       Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 0);
    end Uninitialized;
 
+   overriding procedure Test_Destroy_Then_Insert (Self : in out Instance) is
+      T : Component.Event_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+      A_Tick : constant Tick.T := ((1, 2), 3);
+   begin
+      -- Initialize the component with 2 internal packets, and no packet timeout:
+      T.Component_Instance.Init (Num_Internal_Packets => 2, Partial_Packet_Timeout => 0);
+
+      -- Send an event to confirm normal operation:
+      T.Event_T_Send (Event_3);
+
+      -- Destroy the component:
+      T.Component_Instance.Destroy;
+
+      -- Send events after destroy — these must be safely dropped, not cause a crash:
+      T.Event_T_Send (Event_2);
+      T.Event_T_Send (Event_2);
+      T.Event_T_Send (Event_2);
+
+      -- Re-initialize to allow Tear_Down_Test to run cleanly:
+      T.Component_Instance.Init (Num_Internal_Packets => 2, Partial_Packet_Timeout => 0);
+
+      -- Send tick and verify dropped events were counted:
+      T.Tick_T_Send (A_Tick);
+      Natural_Assert.Eq (T.Events_Dropped_Count_History.Get_Count, 1);
+      Packed_U32_Assert.Eq (T.Events_Dropped_Count_History.Get (1), (Value => 3));
+
+      -- Verify no packets were sent (the pre-destroy event was lost with destroy):
+      Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 0);
+   end Test_Destroy_Then_Insert;
+
 end Event_Packetizer_Tests.Implementation;
