@@ -41,6 +41,8 @@ private
    package Ccsds_Downsample_B_Tree is new Binary_Tree (Ccsds_Downsampler_Tree_Entry, Less_Than, Greater_Than);
 
    type Instance is tagged limited record
+      -- Note: These counters are modular Unsigned_16 and intentionally wrap around at 65535->0.
+      -- They are used for telemetry display only; wrap-around is acceptable.
       Num_Filtered_Packets : Unsigned_16 := Unsigned_16'First;
       Num_Passed_Packets : Unsigned_16 := Unsigned_16'First;
       -- Binary tree instance for tracking downsampling
