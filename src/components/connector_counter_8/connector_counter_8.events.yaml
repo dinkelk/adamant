@@ -1,4 +1,5 @@
 ---
+description: Events for the connector counter component.
 events:
   - name: Count_Reset
     description: A command was received to reset the count.
