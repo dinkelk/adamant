@@ -516,6 +516,46 @@ package body Command_Protector_Tests.Implementation is
       Packed_U16_Assert.Eq (T.Protected_Command_Forward_Count_History.Get (2), (Value => 2));
    end Test_Protected_Command_Reject_Timeout;
 
+   overriding procedure Test_Rearm_While_Armed (Self : in out Instance) is
+      T : Component.Command_Protector.Implementation.Tester.Instance_Access renames Self.Tester;
+      Cmd : Command.T := (Header => (Source_Id => 0, Id => 4, Arg_Buffer_Length => 19), Arg_Buffer => [others => 88]);
+   begin
+      -- Arm the component with timeout 10:
+      T.Command_T_Send (T.Commands.Arm ((Timeout => 10)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Arm_Id, Status => Success));
+
+      -- Verify armed state:
+      Natural_Assert.Eq (T.Armed_State_History.Get_Count, 1);
+      Packed_Arm_State_Assert.Eq (T.Armed_State_History.Get (1), (State => Armed));
+      Natural_Assert.Eq (T.Armed_State_Timeout_History.Get_Count, 1);
+      Packed_Arm_Timeout_Assert.Eq (T.Armed_State_Timeout_History.Get (1), (Timeout => 10));
+
+      -- Tick a few times to decrement:
+      T.Tick_T_Send (((0, 0), 0));
+      T.Tick_T_Send (((0, 0), 0));
+      Natural_Assert.Eq (T.Armed_State_Timeout_History.Get_Count, 3);
+      Packed_Arm_Timeout_Assert.Eq (T.Armed_State_Timeout_History.Get (3), (Timeout => 8));
+
+      -- Re-arm with a different timeout while still armed:
+      T.Command_T_Send (T.Commands.Arm ((Timeout => 50)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Arm_Id, Status => Success));
+
+      -- Verify still armed with new timeout:
+      Natural_Assert.Eq (T.Armed_State_History.Get_Count, 3);
+      Packed_Arm_State_Assert.Eq (T.Armed_State_History.Get (3), (State => Armed));
+      Packed_Arm_Timeout_Assert.Eq (T.Armed_State_Timeout_History.Get (T.Armed_State_Timeout_History.Get_Count), (Timeout => 50));
+
+      -- Verify the component still works - send a protected command:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 1);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (1), Cmd);
+
+      -- Verify transitioned to unarmed:
+      Packed_Arm_State_Assert.Eq (T.Armed_State_History.Get (T.Armed_State_History.Get_Count), (State => Unarmed));
+   end Test_Rearm_While_Armed;
+
    overriding procedure Test_Invalid_Command (Self : in out Instance) is
       T : Component.Command_Protector.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T := T.Commands.Arm ((Timeout => 3));

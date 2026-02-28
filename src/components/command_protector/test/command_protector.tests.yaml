@@ -11,5 +11,7 @@ tests:
     description: This unit test tests that a protected command is rejected if the component is unarmed.
   - name: Test_Protected_Command_Reject_Timeout
     description: This unit test tests that a protected command is rejected if the component is unarmed due to timeout.
+  - name: Test_Rearm_While_Armed
+    description: This unit test verifies that sending a second Arm command while already armed correctly resets the timeout.
   - name: Test_Invalid_Command
     description: This unit test makes sure that an invalid command is handled gracefully.
