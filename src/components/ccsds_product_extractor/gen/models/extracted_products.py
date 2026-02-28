@@ -95,7 +95,7 @@ class extracted_products(base):
             # Make sure there are no duplicate names for all data products regardless of apid
             for apid_num, product_list in self.apids.items():
                 for item in product_list:
-                    if the_products.name in item.name:
+                    if the_products.name == item.name:
                         raise ModelException(
                             "Cannot have duplicate names in the product extractor: "
                             + str(the_products.name)
