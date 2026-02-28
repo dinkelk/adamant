@@ -15,6 +15,11 @@ package body Extract_Data_Product is
       );
 
       -- Don't try to read if it's going to overflow out of the packet.
+      -- Note: Per the CCSDS Space Packet Protocol (CCSDS 133.0-B-2), the Packet_Length
+      -- field contains the number of octets in the packet data field minus 1. Therefore
+      -- Packet_Length represents the index of the last valid byte when Pkt.Data is 0-based.
+      -- Offset is a 0-based index into Pkt.Data, so the last byte accessed is at
+      -- Offset + Length - 1, and we check that this does not exceed Packet_Length.
       if Offset + Length - 1 <= Natural (Pkt.Header.Packet_Length) then
          Dp.Buffer (Dp.Buffer'First .. Dp.Buffer'First + Length - 1) := Pkt.Data (Offset .. Offset + Length - 1);
          return Success;
