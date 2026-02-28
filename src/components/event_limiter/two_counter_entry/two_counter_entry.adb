@@ -46,6 +46,7 @@ package body Two_Counter_Entry is
       Self.End_Id := Event_Id'First;
       Self.Persistence := Persistence_Type'Last;
       Self.Num_Events_Limited := Interfaces.Unsigned_16'First;
+      Self.Master_Enable_State := Event_State_Type.Enabled;
    end Destroy;
 
    -- increment the counter for a given id
