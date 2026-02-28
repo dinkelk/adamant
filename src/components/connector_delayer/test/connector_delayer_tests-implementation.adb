@@ -165,6 +165,8 @@ package body Connector_Delayer_Tests.Implementation is
       -- Check events:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 1);
+      -- Verify that Sys_Time_T_Get was invoked to timestamp the event:
+      Natural_Assert.Eq (T.Sys_Time_T_Return_History.Get_Count, 1);
 
       -- Expect tick to be passed through now.
       Natural_Assert.Eq (T.Dispatch_All, 3);
