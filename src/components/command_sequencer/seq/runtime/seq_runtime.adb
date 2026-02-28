@@ -403,15 +403,24 @@ package body Seq_Runtime is
    -- Gets a byte from the buffer assuming it is a valid opcode. If it is not a valid opcode it returns Invalid.
    function Get_Opcode_From_Memory (Self : in Instance) return Seq_Opcode.E is
       use System.Storage_Elements;
+      Opcode_Size : constant Natural := Packed_Seq_Opcode.T'Object_Size / Basic_Types.Byte'Object_Size;
       Offset : constant Storage_Offset := Storage_Offset (Self.Position);
-      This_Opcode : Packed_Seq_Opcode.T with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Offset;
    begin
-      -- Validate the opcode before returning it.
-      if This_Opcode.Opcode'Valid then
-         return This_Opcode.Opcode;
-      else
+      -- Bounds check: ensure opcode fits within sequence region
+      if Natural (Self.Position) + Opcode_Size > Self.Sequence_Region.Length then
          return Invalid;
       end if;
+
+      declare
+         This_Opcode : Packed_Seq_Opcode.T with Import, Convention => Ada, Address => Self.Sequence_Region.Address + Offset;
+      begin
+         -- Validate the opcode before returning it.
+         if This_Opcode.Opcode'Valid then
+            return This_Opcode.Opcode;
+         else
+            return Invalid;
+         end if;
+      end;
    end Get_Opcode_From_Memory;
 
    -- Performs bitwise or/and/xor on two signed packed records, returns signed packed record.
