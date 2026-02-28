@@ -57,7 +57,8 @@ package Seq is
       Pre => (Self.Get_Engine_State /= Uninitialized);
 
    -- Get the allocated stack depth for the engine. Each entry in the stack can hold a single sequence.
-   function Get_Stack_Depth (Self : in Engine) return Max_Seq_Num;
+   function Get_Stack_Depth (Self : in Engine) return Max_Seq_Num with
+      Pre => (Self.Get_Engine_State /= Uninitialized);
 
    -- Resets the engine and runtime stack. Useful if a nested sequence encounters an error, will clear the calling stack.
    -- This also effectively "kills" a running engine.
