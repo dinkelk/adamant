@@ -111,7 +111,9 @@ package body Event_Filter_Entry is
    begin
       -- Check the component state. If its disabled then skip the logic altogether and just pass out that we are not filtered
       if Self.Global_Enable_State = Global_Filter_State.Disabled then
-         Self.Num_Events_Unfiltered := @ + 1;
+         if Self.Num_Events_Unfiltered < Interfaces.Unsigned_32'Last then
+            Self.Num_Events_Unfiltered := @ + 1;
+         end if;
          return Unfiltered;
       end if;
 
@@ -147,10 +149,14 @@ package body Event_Filter_Entry is
             end case;
 
             if Event_State = Event_Filter_State.Filtered then
-               Self.Num_Events_Filtered := @ + 1;
+               if Self.Num_Events_Filtered < Interfaces.Unsigned_32'Last then
+                  Self.Num_Events_Filtered := @ + 1;
+               end if;
                return Filtered;
             else
-               Self.Num_Events_Unfiltered := @ + 1;
+               if Self.Num_Events_Unfiltered < Interfaces.Unsigned_32'Last then
+                  Self.Num_Events_Unfiltered := @ + 1;
+               end if;
                return Unfiltered;
             end if;
          end;

@@ -395,7 +395,7 @@ package body Event_Filter_Entry_Tests.Implementation is
       Filter_Count := Event_Filter.Get_Event_Filtered_Count;
       Unsigned_32_Assert.Eq (Filter_Count, Unsigned_32'Last - 4);
 
-      -- Filtered events should increment the count
+      -- Filtered events should increment the count up to saturation
       State_Filter_Status := Event_Filter.Filter_Event (3);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
       State_Filter_Status := Event_Filter.Filter_Event (3);
@@ -408,18 +408,18 @@ package body Event_Filter_Entry_Tests.Implementation is
       State_Filter_Status := Event_Filter.Filter_Event (5);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
 
-      -- Should be back to 0 here
+      -- Counter should saturate at Unsigned_32'Last, not wrap to 0
       Filter_Count := Event_Filter.Get_Event_Filtered_Count;
-      Unsigned_32_Assert.Eq (Filter_Count, 0);
+      Unsigned_32_Assert.Eq (Filter_Count, Unsigned_32'Last);
 
       State_Filter_Status := Event_Filter.Filter_Event (5);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
       State_Filter_Status := Event_Filter.Filter_Event (5);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
 
-      -- Count should now be 2
+      -- Count should remain saturated at Unsigned_32'Last
       Filter_Count := Event_Filter.Get_Event_Filtered_Count;
-      Unsigned_32_Assert.Eq (Filter_Count, 2);
+      Unsigned_32_Assert.Eq (Filter_Count, Unsigned_32'Last);
 
       Event_Filter.Destroy;
       pragma Unreferenced (Event_Filter);
@@ -537,7 +537,7 @@ package body Event_Filter_Entry_Tests.Implementation is
       Unfiltered_Count := Event_Filter.Get_Event_Unfiltered_Count;
       Unsigned_32_Assert.Eq (Unfiltered_Count, Unsigned_32'Last - 3);
 
-      -- Filtered events should increment the count
+      -- Unfiltered events should increment the count up to saturation
       State_Filter_Status := Event_Filter.Filter_Event (2);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
       State_Filter_Status := Event_Filter.Filter_Event (2);
@@ -554,18 +554,18 @@ package body Event_Filter_Entry_Tests.Implementation is
       State_Filter_Status := Event_Filter.Filter_Event (4);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
 
-      -- Should have rolled here
+      -- Counter should saturate at Unsigned_32'Last, not wrap to 0
       Unfiltered_Count := Event_Filter.Get_Event_Unfiltered_Count;
-      Unsigned_32_Assert.Eq (Unfiltered_Count, 3);
+      Unsigned_32_Assert.Eq (Unfiltered_Count, Unsigned_32'Last);
 
       State_Filter_Status := Event_Filter.Filter_Event (11);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
       State_Filter_Status := Event_Filter.Filter_Event (11);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
 
-      -- Count should now be 5
+      -- Count should remain saturated at Unsigned_32'Last
       Unfiltered_Count := Event_Filter.Get_Event_Unfiltered_Count;
-      Unsigned_32_Assert.Eq (Unfiltered_Count, 5);
+      Unsigned_32_Assert.Eq (Unfiltered_Count, Unsigned_32'Last);
 
       Event_Filter.Destroy;
       pragma Unreferenced (Event_Filter);
