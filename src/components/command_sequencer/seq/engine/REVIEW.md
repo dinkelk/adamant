@@ -244,3 +244,20 @@ No unit test files exist in this package directory or a `test/` subdirectory. Te
 | 3 | **High** | `seq.adb` — `Initialize` | No guard against `Stack_Depth = 0`, which creates a zero-length stack array. All subsequent operations will fail. |
 | 4 | **High** | `seq.ads` — `Set_Engine_Error` | Missing precondition allows call on uninitialized engine; corrupts state by setting `Engine_Error` on an engine that was never initialized. |
 | 5 | **Medium** | `seq.adb` — `Execute` state management | `Self.State` is not updated in most `Execute` branches, causing `Get_Engine_State` to return `Active` when the engine is actually blocked on commands, telemetry, loads, or prints. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Missing index bounds preconditions | Critical | Fixed | ca42d55 | Added to 7 getters |
+| 2 | Set_Engine_Error no precondition | High | Fixed | 432bcb6 | Added guard |
+| 3 | Stack_Depth=0 not guarded | High | Fixed | a0e7a24 | Added Initialize guard |
+| 4 | Recursive Execute | High | Fixed | 9d29b23 | Converted to iterative loop |
+| 5 | Off-by-one in stack depth check | Medium | Fixed | 771da4a | <= changed to < |
+| 6 | Commands_Sent overflow | Medium | Fixed | fd865ef | Saturating increment |
+| 7 | State not updated in blocking branches | Medium | Fixed | f1b5038 | Set Waiting state |
+| 8 | No unit tests | Medium | Not Fixed | 549cc49 | Needs separate effort |
+| 9 | Get_Stack_Depth precondition | Low | Fixed | 3fa109b | Added |
+| 10 | Return type API change | Low | Not Fixed | e340d1f | Would break callers |
+| 11 | Null check in Load | Low | Fixed | f818104 | Added pragma Assert |
+| 12 | Structural concern | Low | Not Fixed | 416a4fb | Code is sound |
