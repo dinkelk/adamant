@@ -6,6 +6,7 @@ with Ada.Strings; use Ada.Strings;
 with System.Storage_Elements;
 with Serializer_Types; use Serializer_Types;
 with Data_Product_Types;
+with Ada.Unchecked_Deallocation;
 
 -- Instruction records
 with Set_Bit_Record.Validation;
@@ -47,6 +48,8 @@ package body Seq_Runtime.Decoder is
    -- We can handle up to 512 KB sized sequence.
    Max_Sequence_Size : constant Natural := 524_288;
 
+   procedure Free_Buffer is new Ada.Unchecked_Deallocation (Basic_Types.Byte_Array, Basic_Types.Byte_Array_Access);
+
    function Strip (In_String : in String) return String is
    begin
       return Trim (In_String, Ada.Strings.Both);
@@ -61,6 +64,7 @@ package body Seq_Runtime.Decoder is
       -- Attempt to load a sequence into a memory region
       if Load_Sequence_In_Memory (Path, Buffer, Sequence) = False then
          Put_Line (Output, "Sequence " & Path & " does not exist!");
+         Free_Buffer (Buffer);
          return;
       end if;
 
@@ -86,6 +90,7 @@ package body Seq_Runtime.Decoder is
          Self.Position := Decode_Instruction (Self, Output);
       end loop;
       Put_Line (Output, "Done decoding " & Path);
+      Free_Buffer (Buffer);
    end Decode;
 
    function Decode_Instruction (Self : in out Decoder_Instance; Output : in File_Type) return Seq_Position is
