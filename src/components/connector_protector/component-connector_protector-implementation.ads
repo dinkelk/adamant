@@ -15,7 +15,7 @@ private
    -- invocation.
    protected type Protected_Connector is
       -- Procedures requiring full mutual exclusion:
-      procedure Call (Self : in out Instance; Arg : in T);
+      procedure Call (Inst : in out Instance; Arg : in T);
 
    private
       -- Guard against reentrant/recursive calls which would be a bounded

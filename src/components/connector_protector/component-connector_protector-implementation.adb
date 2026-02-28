@@ -6,7 +6,7 @@ package body Component.Connector_Protector.Implementation is
 
    protected body Protected_Connector is
 
-      procedure Call (Self : in out Instance; Arg : in T) is
+      procedure Call (Inst : in out Instance; Arg : in T) is
       begin
          -- Guard against reentrant calls which would be a bounded error
          -- (ARM 9.5.1) resulting in deadlock or Program_Error:
@@ -14,7 +14,7 @@ package body Component.Connector_Protector.Implementation is
          In_Call := True;
          -- Simply call the connector from within the protected
          -- procedure.
-         Self.T_Send (Arg);
+         Inst.T_Send (Arg);
          In_Call := False;
       end Call;
 
