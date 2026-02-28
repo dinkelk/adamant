@@ -10,7 +10,7 @@ package Arm_State is
       --
       -- Functions that provide read-only access to the private data:
       --
-      function Get_State (The_Timeout : out Packed_Arm_Timeout.Arm_Timeout_Type) return Command_Protector_Enums.Armed_State.E;
+      procedure Get_State (The_State : out Command_Protector_Enums.Armed_State.E; The_Timeout : out Packed_Arm_Timeout.Arm_Timeout_Type);
 
       --
       -- Procedures requiring full mutual exclusion:

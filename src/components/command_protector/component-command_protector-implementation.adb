@@ -51,8 +51,9 @@ package body Component.Command_Protector.Implementation is
    overriding procedure Set_Up (Self : in out Instance) is
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
       Start_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-      Start_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Start_Timeout);
+      Start_State : Command_Protector_Enums.Armed_State.E;
    begin
+      Self.Command_Arm_State.Get_State (Start_State, Start_Timeout);
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State (The_Time, (State => Start_State)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State_Timeout (The_Time, (Timeout => Start_Timeout)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Protected_Command_Forward_Count (The_Time, (Value => Self.Protected_Command_Forward_Count)));
@@ -124,10 +125,11 @@ package body Component.Command_Protector.Implementation is
             declare
                -- After Try_Unarm the state is now Unarmed with timeout 0:
                New_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-               New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (New_Timeout);
+               New_State : Command_Protector_Enums.Armed_State.E;
                -- Timestamp:
                The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
             begin
+               Self.Command_Arm_State.Get_State (New_State, New_Timeout);
                -- Send new armed data product:
                Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State (The_Time, (State => New_State)));
                Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State_Timeout (The_Time, (Timeout => New_Timeout)));
@@ -210,8 +212,9 @@ package body Component.Command_Protector.Implementation is
       declare
          The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
          New_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-         New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (New_Timeout);
+         New_State : Command_Protector_Enums.Armed_State.E;
       begin
+         Self.Command_Arm_State.Get_State (New_State, New_Timeout);
          Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State (The_Time, (State => New_State)));
          Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State_Timeout (The_Time, (Timeout => New_Timeout)));
 
