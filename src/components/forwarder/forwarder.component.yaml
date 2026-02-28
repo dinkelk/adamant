@@ -2,7 +2,7 @@
 description: This is a generic component that can be used to forward a single connector of any type. The component that synchronously forwards any type that it receives. It includes commands to enable or disable this forwarding, so can be effectively used as a stream on/off switch.
 execution: passive
 generic:
-  description: The forwarder is generic in that it can be instantiated to forwarder a stream of any type at compile time.
+  description: The forwarder is generic in that it can be instantiated to forward a stream of any type at compile time.
   parameters:
     - name: T
       description: The generic type of data passed in and out of the forwarder.
