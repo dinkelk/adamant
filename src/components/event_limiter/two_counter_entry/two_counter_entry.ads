@@ -19,7 +19,6 @@ package Two_Counter_Entry is
 
    -- The type of data stored on the statistic array.
    type Event_Id_List is array (Natural range <>) of Event_Types.Event_Id;
-   type Event_Id_List_Access is access Event_Id_List;
 
    -- Persistence type
    subtype Persistence_Type is Event_Count_Type range 1 .. Event_Count_Type'Last;
