@@ -308,7 +308,7 @@ package body Tests.Implementation is
       T : Component.Tick_Divider.Implementation.Tester.Instance_Access renames Self.Tester;
       Systime : constant Sys_Time.T := (Seconds => 30, Subseconds => 40);
    begin
-      -- Test 1: All disabled connectors (should handle gracefully)
+      -- Test 1a: All disabled connectors in Tick_Counter mode (should handle gracefully)
       declare
          All_Disabled : aliased Component.Tick_Divider.Divider_Array_Type := [0, 0, 0, 0];
       begin
@@ -320,6 +320,25 @@ package body Tests.Implementation is
          end loop;
 
          Natural_Assert.Eq (T.Tick_T_Recv_Sync_History.Get_Count, 0);
+         T.Tick_T_Recv_Sync_History.Clear;
+      end;
+
+      -- Test 1b: All disabled connectors in Internal mode
+      -- With all dividers=0, Max_Count stays 1. Internal counter cycles as
+      -- (0+1) mod 1 = 0, staying at 0. No connectors fire since all dividers are 0.
+      declare
+         All_Disabled_Internal : aliased Component.Tick_Divider.Divider_Array_Type := [0, 0, 0, 0];
+      begin
+         T.Component_Instance.Init (All_Disabled_Internal'Unchecked_Access, Tick_Source => Internal);
+
+         -- Send several ticks - should produce no calls and no exceptions
+         for Count in 0 .. 5 loop
+            T.Tick_T_Send ((Time => Systime, Count => Unsigned_32 (Count)));
+         end loop;
+
+         Natural_Assert.Eq (T.Tick_T_Recv_Sync_History.Get_Count, 0);
+         -- Verify degenerate Max_Count=1 and counter stays at 0
+         Boolean_Assert.Eq (T.Check_Counts (Count => 0, Max_Count => 1), True);
          T.Tick_T_Recv_Sync_History.Clear;
       end;
 
