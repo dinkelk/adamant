@@ -599,7 +599,7 @@ package body Seq_Runtime.Decoder is
          raise Program_Error with "Decode_Cast_F_To_U : Invalid field detected";
       end if;
 
-      Put_Line (Output, "Casting internal " & Instruction.Id'Image);
+      Put_Line (Output, "Cast INTERNAL." & Instruction.Id'Image & " from FLOAT to UNSIGNED");
 
       return Self.Next_Position;
    end Decode_Cast_F_To_U;
@@ -611,7 +611,7 @@ package body Seq_Runtime.Decoder is
          raise Program_Error with "Decode_Cast_U_To_F : Invalid field detected";
       end if;
 
-      Put_Line (Output, "Casting internal " & Instruction.Id'Image);
+      Put_Line (Output, "Cast INTERNAL." & Instruction.Id'Image & " from UNSIGNED to FLOAT");
 
       return Self.Next_Position;
    end Decode_Cast_U_To_F;
