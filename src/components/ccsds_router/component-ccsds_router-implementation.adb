@@ -130,14 +130,17 @@ package body Component.Ccsds_Router.Implementation is
                   -- Warn via event if unexpected sequence count found:
                   Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
                when Drop_Dupes =>
-                  -- Warn via event if unexpected sequence count found:
-                  Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
-                  -- Check for duplicate; report and drop if necessary:
+                  -- Check for duplicate BEFORE updating Last_Sequence_Count.
+                  -- Table_Entry_Found is a snapshot from Search, so we compare
+                  -- against the previous packet's sequence count explicitly.
                   declare
                      use Ccsds_Primary_Header;
-                     Last_Sequence_Count : Ccsds_Primary_Header.Ccsds_Sequence_Count_Type renames Table_Entry_Found.Last_Sequence_Count;
+                     Is_Duplicate : constant Boolean := Arg.Header.Sequence_Count = Table_Entry_Found.Last_Sequence_Count;
                   begin
-                     if Arg.Header.Sequence_Count = Last_Sequence_Count then
+                     -- Warn via event if unexpected sequence count found:
+                     Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
+                     -- Drop duplicate if necessary:
+                     if Is_Duplicate then
                         Self.Drop_Packet (Arg, Self.Events.Dropped_Duplicate_Packet (Self.Sys_Time_T_Get, Arg.Header));
                         Route_To_Destination := False;
                      end if;
