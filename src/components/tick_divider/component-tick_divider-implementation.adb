@@ -36,18 +36,23 @@ package body Component.Tick_Divider.Implementation is
             -- rollover does not skip ticks for any components we need to select a Max_Count
             -- value that is divisible by all the divisors. The simplest way to do this is
             -- to simply multiply all the divisors together.
-            Self.Max_Count := 1;
-            for Index in Self.Dividers'Range loop
-               -- Ignore zero entries, since this special value means that the connector index
-               -- is disabled, thus it should not be included in the calculation.
-               Divider := Self.Dividers (Index);
-               if Divider > 0 then
-                  Self.Max_Count := @ * Divider;
-               end if;
-            end loop;
+            declare
+               Acc : Interfaces.Unsigned_64 := 1;
+            begin
+               for Index in Self.Dividers'Range loop
+                  -- Ignore zero entries, since this special value means that the connector index
+                  -- is disabled, thus it should not be included in the calculation.
+                  Divider := Self.Dividers (Index);
+                  if Divider > 0 then
+                     Acc := Acc * Interfaces.Unsigned_64 (Divider);
+                  end if;
+               end loop;
 
-            -- Make sure Max_Count doesn't overflow on increment (leave room for +1).
-            pragma Assert (Self.Max_Count < Interfaces.Unsigned_32'Last);
+               -- Make sure the product fits in Unsigned_32 and leaves room for +1.
+               pragma Assert (Acc < Interfaces.Unsigned_64 (Interfaces.Unsigned_32'Last),
+                  "Product of dividers overflows Unsigned_32!");
+               Self.Max_Count := Interfaces.Unsigned_32 (Acc);
+            end;
          when Tick_Counter =>
             null; -- Max_Count will be unused in this case, so do nothing with it.
       end case;
