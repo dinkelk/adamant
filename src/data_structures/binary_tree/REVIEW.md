@@ -136,3 +136,22 @@ function Issorted (Self : in out Binary_Tree.Instance) return Boolean;
 | 3 | **High** | 2.1 | Full-capacity check in `Add` uses `Self.Tree'Last` instead of `Self.Tree'Length` — fragile coupling to array lower bound |
 | 4 | **Medium** | 1.1 / 2.4 | Duplicate elements silently allowed; `Search` behavior with duplicates is nondeterministic |
 | 5 | **Medium** | 4.1 | `Get` and `Set` (including the dangerous sorted-invariant-breaking `Set`) are completely untested |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1.1 | Duplicate Elements Not Addressed in Contract | Medium | Fixed | 65d6f9f | Covered by duplicate elements fix |
+| 1.2 | `Set` Can Silently Break Sorted Invariant | High | Fixed | b044e7a | Fix High review item: Set can silently break sorted invariant |
+| 1.3 | `Get`/`Set` Have No Bounds Protection | Medium | Fixed | e2c8829 | Fix Medium review item: Get/Set have no bounds protection |
+| 1.4 | Only `"<"` Is Needed; `">"` Is Redundant | Low | Fixed | 8323b70 | Fix Low review item: Only "<" is needed, requiring ">" is redundant |
+| 2.1 | `Add` Full-Check Uses Wrong Bound | High | Fixed | a49a7f1 | Fix High review item: Add full-check uses wrong bound |
+| 2.2 | `Search` Subtraction Can Underflow When Empty | Medium | Fixed | 195876f | Fix Medium review item: Search subtraction can underflow when tree is empty |
+| 2.3 | `Search` on Uninitialized Tree Dereferences Null | High | Fixed | 60af629 | Fix High review item: Null dereference if operations called before Init |
+| 2.4 | `Add` Allows Duplicate Elements Without Detection | Medium | Fixed | 65d6f9f | Fix Medium review item: Duplicate elements silently allowed |
+| 2.5 | `Destroy` Calls `Clear` After Deallocation | Low | Fixed | 39e21a9 | Fix Low review item: Destroy calls Clear after deallocation |
+| 3.1 | YAML Test Model | N/A | N/A | N/A | No issues found |
+| 4.1 | No Test for `Get` and `Set` | Medium | Fixed | 8e1fb16 | Fix Medium review item: No tests for Get and Set |
+| 4.2 | No Test for Search on Empty Tree | Low | Fixed | a0ac033 | Fix Low review item: No test for Search on empty tree |
+| 4.3 | No Test for `Get_First_Index`/`Get_Last_Index` After Removal | Low | Fixed | 7315795 | Fix Low review item: No test for Get_First_Index/Get_Last_Index after removal |
+| 4.4 | Tester `IsSorted` Uses `in out` Mode Unnecessarily | Low | Fixed | 53e8071 | Fix Low review item: Tester IsSorted uses "in out" mode unnecessarily |
