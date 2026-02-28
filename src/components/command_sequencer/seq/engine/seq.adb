@@ -301,7 +301,9 @@ package body Seq is
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Wait_Command =>
                Self.Last_Command_Id := Self.Stack.all (Self.Current).Get_Command_Id;
-               Self.Commands_Sent := @ + 1;
+               if Self.Commands_Sent < Interfaces.Unsigned_16'Last then
+                  Self.Commands_Sent := @ + 1;
+               end if;
                Self.Last_Execute_State := Seq_Execute_State.Wait_Command;
                return Self.Last_Execute_State;
             when Seq_Runtime_State.Wait_Telemetry_Set =>
