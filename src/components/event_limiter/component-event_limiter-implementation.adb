@@ -124,7 +124,7 @@ package body Component.Event_Limiter.Implementation is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- This is the base tick for the component. Upon reception the component will decrement the count of each ID unless it is already 0. Every 10 ticks, an event of what is filtered will be sent.
+   -- This is the base tick for the component. Upon reception the component will decrement the count of each ID unless it is already 0. Every tick, an event of what has been filtered will be sent.
    overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is
       use Event_State_Type;
       -- Get the timestamp for the package
