@@ -8,6 +8,8 @@ package body Two_Counter_Entry is
    begin
       -- First make sure that we are not given a range that is invalid
       pragma Assert (Event_Id_Start <= Event_Id_Stop, "Invalid Event ID range. Start ID must be less than or equal to Stop ID");
+      -- Guard against double-init memory leak: caller must Destroy before re-initializing
+      pragma Assert (Self.Bytes = null, "Init called on already-initialized instance; call Destroy first");
       -- Now determine how many bytes we need to store the events. Add two to compensate for an odd number of events since we will need an extra byte in that case. (two events = 1 byte)
       Num_Event_Bytes := Natural (Event_Id_Stop - Event_Id_Start + 2) / 2;
       Self.Start_Id := Event_Id_Start;
