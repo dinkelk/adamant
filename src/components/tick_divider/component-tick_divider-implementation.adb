@@ -42,7 +42,14 @@ package body Component.Tick_Divider.Implementation is
                -- is disabled, thus it should not be included in the calculation.
                Divider := Self.Dividers (Index);
                if Divider > 0 then
-                  Self.Max_Count := @ * Divider;
+                  declare
+                     Wide : constant Interfaces.Unsigned_64 :=
+                       Interfaces.Unsigned_64 (Self.Max_Count) * Interfaces.Unsigned_64 (Divider);
+                  begin
+                     pragma Assert (Wide < Interfaces.Unsigned_64 (Interfaces.Unsigned_32'Last),
+                       "Max_Count overflow: product of divisors exceeds Unsigned_32 range!");
+                     Self.Max_Count := Interfaces.Unsigned_32 (Wide);
+                  end;
                end if;
             end loop;
 
