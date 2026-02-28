@@ -56,6 +56,7 @@ package body Two_Counter_Entry is
       Event_Info : Two_Counter_Entry_Type.T;
       Status : Event_Location;
       Increment_Status : Count_Status := Success;
+      Modified : Boolean := False;
    begin
       -- Check the master state. If it is disabled then bypass all the logic for efficiency
       if Self.Master_Enable_State = Enabled then
@@ -85,6 +86,7 @@ package body Two_Counter_Entry is
                            -- Increment if we are less than the persistence
                         else
                            Event_Info.Top_Event_Count := @ + 1;
+                           Modified := True;
                         end if;
                         -- Nothing to do if disabled
                      when Event_State_Type.Disabled =>
@@ -111,6 +113,7 @@ package body Two_Counter_Entry is
                            -- Increment if we are less than the persistence
                         else
                            Event_Info.Bottom_Event_Count := @ + 1;
+                           Modified := True;
                         end if;
                         -- Nothing to do if disabled
                      when Event_State_Type.Disabled =>
@@ -119,8 +122,10 @@ package body Two_Counter_Entry is
                end;
          end case;
 
-         -- Write the new values back into our structure
-         Set_Entry (Self, Id, Event_Info);
+         -- Only write back if the entry was actually modified
+         if Modified then
+            Set_Entry (Self, Id, Event_Info);
+         end if;
       end if;
 
       return Increment_Status;
@@ -132,6 +137,7 @@ package body Two_Counter_Entry is
       Event_Info : Two_Counter_Entry_Type.T;
       Status : Event_Location;
       Decrement_Status : Count_Status := Success;
+      Modified : Boolean := False;
    begin
       -- If the master state is disabled, then bypass all the logic and just return success
       if Self.Master_Enable_State = Enabled then
@@ -155,6 +161,7 @@ package body Two_Counter_Entry is
                         -- Decrement the count if needed
                         if Event_Info.Top_Event_Count > 0 then
                            Event_Info.Top_Event_Count := @ - 1;
+                           Modified := True;
                         end if;
                         -- Nothing to do if disabled
                      when Disabled =>
@@ -176,6 +183,7 @@ package body Two_Counter_Entry is
                         -- Decrement count if needed
                         if Event_Info.Bottom_Event_Count > 0 then
                            Event_Info.Bottom_Event_Count := @ - 1;
+                           Modified := True;
                         end if;
                         -- Nothing to do if disabled
                      when Disabled =>
@@ -184,8 +192,10 @@ package body Two_Counter_Entry is
                end;
          end case;
 
-         -- Write the new values back into our structure
-         Set_Entry (Self, Id, Event_Info);
+         -- Only write back if the entry was actually modified
+         if Modified then
+            Set_Entry (Self, Id, Event_Info);
+         end if;
       end if;
 
       return Decrement_Status;
