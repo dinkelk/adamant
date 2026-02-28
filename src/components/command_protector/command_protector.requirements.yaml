@@ -7,6 +7,6 @@ requirements:
   - text: The component shall exit the armed state upon receipt of any command on the forwarding connector.
   - text: The component shall exit the armed state after a timeout.
   - text: The component shall set the armed state timeout through ground command.
-  - text: The component shall accept armed state timeouts in the range of 0 to 255 seconds (in 1 second intervals). A value of zero implies infinite timeout.
+  - text: The component shall accept armed state timeouts in the range of 0 to 255 ticks. A value of zero implies infinite timeout.
   - text: The component shall report the armed state timeout in telemetry.
 
