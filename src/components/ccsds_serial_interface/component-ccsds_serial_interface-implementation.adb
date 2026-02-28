@@ -14,6 +14,25 @@ with Sleep;
 
 package body Component.Ccsds_Serial_Interface.Implementation is
 
+   -- Protected body for Listener_Task_Id_Store:
+   protected body Listener_Task_Id_Store is
+      procedure Set (Id : in Ada.Task_Identification.Task_Id) is
+      begin
+         Task_Id := Id;
+         Id_Set := True;
+      end Set;
+
+      function Get return Ada.Task_Identification.Task_Id is
+      begin
+         return Task_Id;
+      end Get;
+
+      function Is_Set return Boolean is
+      begin
+         return Id_Set;
+      end Is_Set;
+   end Listener_Task_Id_Store;
+
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
@@ -43,13 +62,14 @@ package body Component.Ccsds_Serial_Interface.Implementation is
       if Self.Count > 200 then
          -- Measure execution time of listener task. This is important because the execution percentage of this task,
          -- if set to lowest priority, represents the amount execution margin available on the system.
-         if Self.Task_Id_Set then
+         if Self.Listener_Id_Store.Is_Set then
             declare
                use Ada.Real_Time;
                use Ada.Execution_Time;
                Execution_Span, Up_Span : Duration;
+               Listener_Id : constant Ada.Task_Identification.Task_Id := Self.Listener_Id_Store.Get;
             begin
-               Execution_Span := To_Duration (Ada.Execution_Time.Clock (Self.Listener_Task_Id) - CPU_Time_First);
+               Execution_Span := To_Duration (Ada.Execution_Time.Clock (Listener_Id) - CPU_Time_First);
                Up_Span := To_Duration (Ada.Real_Time.Clock - Time_First);
                Self.Cpu_Usage := Float (Execution_Span) / Float (Up_Span) * 100.0;
             end;
@@ -88,8 +108,7 @@ package body Component.Ccsds_Serial_Interface.Implementation is
       Count : Natural := Sync_Pattern'First;
       Bytes_Without_Sync : Unsigned_32 := 0;
    begin
-      Self.Listener_Task_Id := Ada.Task_Identification.Current_Task;
-      Self.Task_Id_Set := True;
+      Self.Listener_Id_Store.Set (Ada.Task_Identification.Current_Task);
       -- Put_Line(Standard_Error, "cycle serial listener");
       -- First make sure we are in sync:
       while Count <= Sync_Pattern'Last loop

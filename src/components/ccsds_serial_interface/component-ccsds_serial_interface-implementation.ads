@@ -30,10 +30,20 @@ package Component.Ccsds_Serial_Interface.Implementation is
 
 private
 
+   -- Protected object to safely share Listener_Task_Id between the listener
+   -- subtask (writer) and the queue-dispatch task (reader).
+   protected type Listener_Task_Id_Store is
+      procedure Set (Id : in Ada.Task_Identification.Task_Id);
+      function Get return Ada.Task_Identification.Task_Id;
+      function Is_Set return Boolean;
+   private
+      Task_Id : Ada.Task_Identification.Task_Id;
+      Id_Set : Boolean := False;
+   end Listener_Task_Id_Store;
+
    -- The component class instance record:
    type Instance is new Ccsds_Serial_Interface.Base_Instance with record
-      Listener_Task_Id : Ada.Task_Identification.Task_Id;
-      Task_Id_Set : Boolean := False;
+      Listener_Id_Store : Listener_Task_Id_Store;
       Cpu_Usage : Float;
       Count : Natural := 0;
       Interpacket_Gap_Ms : Natural := 0;
