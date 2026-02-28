@@ -20,11 +20,16 @@ package body Arm_State is
       --
       -- Arm the system and provide a timeout value:
       procedure Arm (New_Timeout : in Packed_Arm_Timeout.Arm_Timeout_Type) is
+         use Packed_Arm_Timeout;
       begin
-         -- Arm the system
-         State := Command_Protector_Enums.Armed_State.Armed;
-         -- Set the timeout:
-         Timeout := New_Timeout;
+         -- Only arm if timeout is positive; a zero timeout is meaningless
+         -- and would create a stuck Armed state that never times out.
+         if New_Timeout > Arm_Timeout_Type'First then
+            -- Arm the system
+            State := Command_Protector_Enums.Armed_State.Armed;
+            -- Set the timeout:
+            Timeout := New_Timeout;
+         end if;
       end Arm;
 
       -- Unarm the system and cancel the timeout:
