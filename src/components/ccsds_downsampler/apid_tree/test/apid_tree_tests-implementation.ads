@@ -20,6 +20,8 @@ private
    overriding procedure Test_Get_Counters (Self : in out Instance);
    -- This test verifies counter saturation and Filter_Count modular arithmetic.
    overriding procedure Test_Counter_Saturation (Self : in out Instance);
+   -- This test verifies correct behavior with an extreme filter factor of Unsigned_16'Last (65535).
+   overriding procedure Test_Extreme_Filter_Factor (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Apid_Tree_Tests.Base_Instance with record

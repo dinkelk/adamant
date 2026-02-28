@@ -334,4 +334,34 @@ package body Apid_Tree_Tests.Implementation is
       pragma Unreferenced (Tree);
    end Test_Counter_Saturation;
 
+   overriding procedure Test_Extreme_Filter_Factor (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Cnt : Unsigned_16;
+      -- Filter factor of Unsigned_16'Last (65535): only 1 in every 65535 packets passes
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List := [(Apid => 42, Filter_Factor => Unsigned_16'Last)];
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- First packet should pass (Filter_Count = 0, 0 mod 65535 = 0)
+      Status := Tree.Filter_Packet (42, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+
+      -- Next 65534 packets should all be filtered
+      for I in 2 .. Unsigned_16'Last loop
+         Status := Tree.Filter_Packet (42, Cnt);
+         Filter_Action_Status_Assert.Eq (Status, Filter);
+      end loop;
+
+      -- The next packet should pass again (Filter_Count wrapped modularly back to 0)
+      Status := Tree.Filter_Packet (42, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+
+      -- And the next should be filtered again
+      Status := Tree.Filter_Packet (42, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Filter);
+      pragma Unreferenced (Tree);
+   end Test_Extreme_Filter_Factor;
+
 end Apid_Tree_Tests.Implementation;

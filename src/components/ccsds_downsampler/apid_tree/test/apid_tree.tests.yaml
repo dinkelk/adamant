@@ -9,3 +9,5 @@ tests:
     description: This unit test makes sure the counters for the number of packets that should be passed or filtered are correct.
   - name: Test_Counter_Saturation
     description: This test verifies that Num_Passed_Packets and Num_Filtered_Packets saturate at Unsigned_16'Last instead of wrapping around to 0, and that Filter_Count uses modular arithmetic correctly.
+  - name: Test_Extreme_Filter_Factor
+    description: This test verifies correct behavior with an extreme filter factor of Unsigned_16'Last (65535), where only 1 in every 65535 packets should pass.
