@@ -66,9 +66,10 @@ package body Component.Cpu_Monitor.Implementation is
       -- to simply multiply all the periods together.
       Self.Max_Count := 1;
       for Index in Self.Execution_Periods'Range loop
-         -- Ignore zero entries, since this special value means that the connector index
-         -- is disabled, thus it should not be included in the calculation.
+         -- Period is Positive, so no zero-check needed.
          Period := Self.Execution_Periods (Index);
+         pragma Assert (Period <= Natural'Last / Self.Max_Count,
+            "Execution_Periods product overflows Natural");
          Self.Max_Count := @ * Period;
       end loop;
    end Init;
