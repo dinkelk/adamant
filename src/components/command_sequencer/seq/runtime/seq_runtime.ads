@@ -110,7 +110,10 @@ package Seq_Runtime is
 
    -- If the runtime is in a wait on telemetry type state, this will fetch the telemetry record which holds
    -- the necessary information for fetching telemetry in the system and parsing is out appropriately.
-   function Get_Telemetry_Request (Self : in Instance) return Telemetry_Record.T;
+   function Get_Telemetry_Request (Self : in Instance) return Telemetry_Record.T
+      with Pre => Self.Get_State = Wait_Telemetry_Set or else
+                  Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Relative;
 
    -- Telemetry can be provided to the runtime via this subprogram.
    procedure Set_Telemetry (Self : in out Instance; Telemetry : in Poly_32_Type);
@@ -126,13 +129,19 @@ package Seq_Runtime is
    function Get_Start_Time (Self : in Instance) return Sys_Time.T;
 
    -- Get the time at which telemetry fetching times out.
-   function Get_Telemetry_Timeout (Self : in Instance) return Sys_Time.T;
+   function Get_Telemetry_Timeout (Self : in Instance) return Sys_Time.T
+      with Pre => Self.Get_State = Wait_Telemetry_Set or else
+                  Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Relative;
 
    -- Unload this sequence, so that it can no longer be run, and we can accept a new sequence into this runtime.
    procedure Unload (Self : in out Instance);
 
    -- Fetch the time at which the last wait on telemetry commenced.
-   function Get_Telemetry_Wait_Start_Time (Self : in Instance) return Sys_Time.T;
+   function Get_Telemetry_Wait_Start_Time (Self : in Instance) return Sys_Time.T
+      with Pre => Self.Get_State = Wait_Telemetry_Set or else
+                  Self.Get_State = Wait_Telemetry_Value or else
+                  Self.Get_State = Wait_Telemetry_Relative;
 
    -- Get the error code for the last encountered error.
    function Get_Error_Code (Self : in Instance) return Seq_Error.E;
