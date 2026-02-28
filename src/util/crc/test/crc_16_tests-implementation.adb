@@ -5,6 +5,7 @@
 with AUnit.Assertions; use AUnit.Assertions;
 with Crc_16;
 with Basic_Types;
+with Byte_Array_Pointer;
 with String_Util;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -69,6 +70,20 @@ package body Crc_16_Tests.Implementation is
       Put_Line ("Expected CRC (empty): " & String_Util.Bytes_To_String (Expected));
       Assert (Result = Expected, "Empty input CRC should equal the default seed!");
    end Test_Crc_Empty;
+
+   procedure Test_Crc_Byte_Array_Pointer (Self : in out Instance) is
+      use Crc_16;
+      use Basic_Types;
+      Ignore : Instance renames Self;
+      Bytes : aliased Basic_Types.Byte_Array (0 .. 14) := [16#06#, 16#00#, 16#0c#, 16#f0#, 16#00#, 16#04#, 16#00#, 16#55#, 16#88#, 16#73#, 16#c9#, 16#00#, 16#00#, 16#05#, 16#21#];
+      Ptr : constant Byte_Array_Pointer.Instance := Byte_Array_Pointer.From_Address (Bytes'Address, Bytes'Length);
+      Result_Array : constant Crc_16_Type := Compute_Crc_16 (Bytes);
+      Result_Ptr : constant Crc_16_Type := Compute_Crc_16 (Ptr);
+   begin
+      Put_Line ("Array CRC:   " & String_Util.Bytes_To_String (Result_Array));
+      Put_Line ("Pointer CRC: " & String_Util.Bytes_To_String (Result_Ptr));
+      Assert (Result_Ptr = Result_Array, "Byte_Array_Pointer overload must match Byte_Array overload!");
+   end Test_Crc_Byte_Array_Pointer;
 
    procedure Test_Crc_Ccitt_Vector (Self : in out Instance) is
       use Crc_16;
