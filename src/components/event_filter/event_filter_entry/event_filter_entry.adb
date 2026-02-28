@@ -31,8 +31,10 @@ package body Event_Filter_Entry is
       -- Then disable the event based on our disable list
       for Event_Id_To_Filter of Event_Filter_List loop
          Status := Set_Filter_State (Self, Event_Id_To_Filter, Event_Filter_State.Filtered);
-         -- Assert here on status
-         pragma Assert (Status /= Invalid_Id, "Event ID in the filtered list is out of range");
+         -- Runtime check: do not rely on pragma Assert which may be suppressed in production
+         if Status = Invalid_Id then
+            raise Constraint_Error with "Event ID in the filtered list is out of range: " & Event_Types.Event_Id'Image (Event_Id_To_Filter);
+         end if;
       end loop;
 
    end Init;
