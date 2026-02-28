@@ -71,6 +71,9 @@ package body Seq_Config is
 
    function Seq_Str_Cmp (L : in Seq_String; R : in String) return Boolean is
    begin
+      if R'Length > L'Length then
+         return False;
+      end if;
       return L (1 .. R'Length) = R;
    end Seq_Str_Cmp;
 
