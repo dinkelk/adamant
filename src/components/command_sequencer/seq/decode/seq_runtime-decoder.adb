@@ -1,3 +1,4 @@
+with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Sequential_IO;
 with Ada.IO_Exceptions;
 with Command;
