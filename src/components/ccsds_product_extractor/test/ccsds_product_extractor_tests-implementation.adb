@@ -258,6 +258,17 @@ package body Ccsds_Product_Extractor_Tests.Implementation is
       -- Product 2 uses current_time, so timestamp comes from Sys_Time_T_Get connector
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (17), Test_Dp_Received_U8 (1, 44, (99, 42)));
 
+      -- Test single-product APID (300) with length failure. APID 300 has one product
+      -- at offset 15 with length 4. Set packet length too short to trigger failure.
+      Incoming_Packet_Apid_300.Header.Packet_Length := 10;
+      T.Ccsds_Space_Packet_T_Send (Incoming_Packet_Apid_300);
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 7);
+      Natural_Assert.Eq (T.Invalid_Extracted_Product_Length_History.Get_Count, 5);
+      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (5).Apid), 300);
+      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (5).Id), 4);
+      Natural_Assert.Eq (Natural (T.Invalid_Extracted_Product_Length_History.Get (5).Length), 10);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 17);
+
    end Test_Received_Data_Product_Packet;
 
 end Ccsds_Product_Extractor_Tests.Implementation;
