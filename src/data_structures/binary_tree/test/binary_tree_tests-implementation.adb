@@ -43,6 +43,9 @@ package body Binary_Tree_Tests.Implementation is
       Natural_Assert.Eq (Self.Tree.Get_Last_Index, 0);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
+      -- Search on pristine empty tree should return False:
+      Boolean_Assert.Eq (Self.Tree.Search (42, Ignore, Ignore_Index), False);
+
       -- Fill up tree making sure the internals are sorted after each insertion:
       Boolean_Assert.Eq (Self.Tree.Add (16), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 1);
@@ -80,11 +83,18 @@ package body Binary_Tree_Tests.Implementation is
       Natural_Assert.Eq (Self.Tree.Get_Size, 9);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
-      Boolean_Assert.Eq (Self.Tree.Add (17), True);
+      -- Duplicate element should be rejected:
+      Boolean_Assert.Eq (Self.Tree.Add (17), False);
+      Natural_Assert.Eq (Self.Tree.Get_Size, 9);
+      Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+
+      -- Fill to capacity:
+      Boolean_Assert.Eq (Self.Tree.Add (200), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 10);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
-      Boolean_Assert.Eq (Self.Tree.Add (17), False);
+      -- Tree is full, add should fail:
+      Boolean_Assert.Eq (Self.Tree.Add (999), False);
       Natural_Assert.Eq (Self.Tree.Get_Size, 10);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
@@ -95,8 +105,8 @@ package body Binary_Tree_Tests.Implementation is
       Natural_Assert.Eq (Tree_Index, 1);
 
       -- Largest:
-      Boolean_Assert.Eq (Self.Tree.Search (110, Tree_Element, Tree_Index), True);
-      Natural_Assert.Eq (Tree_Element, 110);
+      Boolean_Assert.Eq (Self.Tree.Search (200, Tree_Element, Tree_Index), True);
+      Natural_Assert.Eq (Tree_Element, 200);
       Natural_Assert.Eq (Tree_Index, 10);
 
       -- Medium:
@@ -105,7 +115,7 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Ignore), True);
       Natural_Assert.Eq (Tree_Element, 35);
 
-      -- Duplicate:
+      -- Unique element that was previously a duplicate test:
       Boolean_Assert.Eq (Self.Tree.Search (17, Tree_Element, Ignore), True);
       Natural_Assert.Eq (Tree_Element, 17);
 
@@ -116,6 +126,30 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Search (56, Ignore, Ignore_Index), False);
       Boolean_Assert.Eq (Self.Tree.Search (8, Ignore, Ignore_Index), False);
       Boolean_Assert.Eq (Self.Tree.Search (10_001, Ignore, Ignore_Index), False);
+
+      -- Test Get: retrieve elements by index after search
+      Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Tree_Index), True);
+      Natural_Assert.Eq (Self.Tree.Get (Tree_Index), 35);
+      -- Get first and last elements:
+      Natural_Assert.Eq (Self.Tree.Get (1), 1);
+      Natural_Assert.Eq (Self.Tree.Get (10), 200);
+
+      -- Test Set: replace element maintaining sorted order (Set now returns Boolean)
+      -- Replace 35 with 36 (valid: neighbors are 17 and 50)
+      Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Tree_Index), True);
+      Boolean_Assert.Eq (Self.Tree.Set (Tree_Index, 36), True);
+      Natural_Assert.Eq (Self.Tree.Get (Tree_Index), 36);
+      Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Try to set a value that would break sorted order (should fail):
+      Boolean_Assert.Eq (Self.Tree.Set (Tree_Index, 999), False);
+      -- Element should be unchanged:
+      Natural_Assert.Eq (Self.Tree.Get (Tree_Index), 36);
+      Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Restore original value for remaining tests:
+      Boolean_Assert.Eq (Self.Tree.Set (Tree_Index, 35), True);
+
+      -- Test Set with out-of-bounds index (should fail):
+      Boolean_Assert.Eq (Self.Tree.Set (11, 42), False);
 
       -- Clear the tree:
       Natural_Assert.Eq (Self.Tree.Get_Capacity, 10);
@@ -152,6 +186,9 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 0);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Check index boundaries after removal to empty:
+      Natural_Assert.Eq (Self.Tree.Get_First_Index, 1);
+      Natural_Assert.Eq (Self.Tree.Get_Last_Index, 0);
 
       -- Add two Tree_Elements
       Boolean_Assert.Eq (Self.Tree.Add (16), True);
@@ -165,6 +202,9 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 1);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+      -- Check index boundaries after partial removal:
+      Natural_Assert.Eq (Self.Tree.Get_First_Index, 1);
+      Natural_Assert.Eq (Self.Tree.Get_Last_Index, 1);
 
       -- Add two Tree_Elements
       Boolean_Assert.Eq (Self.Tree.Add (4), True);
