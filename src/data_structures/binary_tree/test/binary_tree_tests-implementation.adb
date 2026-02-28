@@ -80,11 +80,18 @@ package body Binary_Tree_Tests.Implementation is
       Natural_Assert.Eq (Self.Tree.Get_Size, 9);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
-      Boolean_Assert.Eq (Self.Tree.Add (17), True);
+      -- Duplicate element should be rejected:
+      Boolean_Assert.Eq (Self.Tree.Add (17), False);
+      Natural_Assert.Eq (Self.Tree.Get_Size, 9);
+      Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
+
+      -- Fill to capacity:
+      Boolean_Assert.Eq (Self.Tree.Add (200), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 10);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
-      Boolean_Assert.Eq (Self.Tree.Add (17), False);
+      -- Tree is full, add should fail:
+      Boolean_Assert.Eq (Self.Tree.Add (999), False);
       Natural_Assert.Eq (Self.Tree.Get_Size, 10);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
@@ -95,8 +102,8 @@ package body Binary_Tree_Tests.Implementation is
       Natural_Assert.Eq (Tree_Index, 1);
 
       -- Largest:
-      Boolean_Assert.Eq (Self.Tree.Search (110, Tree_Element, Tree_Index), True);
-      Natural_Assert.Eq (Tree_Element, 110);
+      Boolean_Assert.Eq (Self.Tree.Search (200, Tree_Element, Tree_Index), True);
+      Natural_Assert.Eq (Tree_Element, 200);
       Natural_Assert.Eq (Tree_Index, 10);
 
       -- Medium:
@@ -105,7 +112,7 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Ignore), True);
       Natural_Assert.Eq (Tree_Element, 35);
 
-      -- Duplicate:
+      -- Unique element that was previously a duplicate test:
       Boolean_Assert.Eq (Self.Tree.Search (17, Tree_Element, Ignore), True);
       Natural_Assert.Eq (Tree_Element, 17);
 

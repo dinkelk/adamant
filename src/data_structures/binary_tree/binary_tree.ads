@@ -39,7 +39,8 @@ package Binary_Tree is
    procedure Destroy (Self : in out Instance);
 
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
-   -- Return: True means add was successful. False means there is no more room in the tree.
+   -- Duplicate elements are rejected. Return: True means add was successful. False means there
+   -- is no more room in the tree or the element already exists.
    function Add (Self : in out Instance; Element : in Element_Type) return Boolean;
    -- Remove element from tree. This is done in O(n) time where n is the current size of the tree.
    -- Return: True means remove was successful. False means the provided index is not found in the tree.

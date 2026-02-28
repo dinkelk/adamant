@@ -38,6 +38,9 @@ package body Binary_Tree is
             if Element < Self.Tree (Index) then
                Insert_Index := Index;
                exit;
+            elsif not (Self.Tree (Index) < Element) then
+               -- Element is equal (not less and not greater) — reject duplicate
+               return False;
             end if;
          end loop;
 
