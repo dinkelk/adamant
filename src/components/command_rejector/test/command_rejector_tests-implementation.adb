@@ -89,8 +89,12 @@ package body Command_Rejector_Tests.Implementation is
       Init_Nominal;
       T.Component_Instance.Final;
       Init_None;
-      T.Component_Instance.Final;
+      -- Do NOT call Final here; Init_None raised before allocating the tree.
       Init_Duplicate;
+      -- Final the partially-initialized state from Init_Duplicate:
+      T.Component_Instance.Final;
+      -- Re-initialize with the standard list so Set_Up below works correctly:
+      T.Component_Instance.Init (Command_Id_Reject_List => Reject_Command_Id_List);
 
       -- Make sure no events are thrown at start up:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
