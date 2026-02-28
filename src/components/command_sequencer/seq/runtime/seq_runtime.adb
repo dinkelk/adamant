@@ -171,6 +171,7 @@ package body Seq_Runtime is
       Self.Telemetry_Wait_Start_Time := (0, 0);
       Self.Seq_Id_To_Load := Sequence_Types.Sequence_Id'First;
       Self.Spawn_Destination := Sequence_Engine_Id'First;
+      Self.String_To_Print := (Print_Type => Seq_Print_Type.Debug, Encoded_String => [others => 0]);
 
       -- Note: We do NOT reset the following, as these can be used after the sequence has been unloaded to provide
       -- information to another running sequence.
