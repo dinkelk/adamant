@@ -227,7 +227,10 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
    overriding function Sync_Once (Self : in out Instance) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
-      -- Set new sync period:
+      -- Set the Sync_Once flag. Note: if PTP is currently Enabled, this will cause
+      -- the next Sync to fire at the next tick regardless of Cycle_Count, which may
+      -- disrupt the periodic cadence. Only one Sync is sent per tick due to the
+      -- short-circuit evaluation in the tick handler.
       Self.Sync_Once := True;
 
       -- Send info event:
