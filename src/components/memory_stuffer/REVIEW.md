@@ -262,3 +262,16 @@ Region_2 : aliased Basic_Types.Byte_Array := [98, 97, 96, 95, ...];
 | 3 | DOC-02 | **Medium** | Memory copy feature (copy, destination validation, release) has no traceability to any requirement. |
 | 4 | IMPL-04 | **Medium** | Dropped tick/command/copy messages are silently ignored (`is null`), which can extend the armed timeout window without any indication to operators. |
 | 5 | TEST-01 | **Medium** | Unit tests share mutable package-level memory regions and depend on execution order; most tests do not reset state, making them fragile and non-independent. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Memory copy bypasses region checks | High | Fixed | - | Added protected region checking |
+| 2 | No length guard on Write_Memory | High | Fixed | - | Added bounds check |
+| 3 | No copy requirements | Medium | Fixed | - | Added 4 requirements |
+| 4 | Get-then-unarm race | Medium | Fixed | - | Documented safety assumption |
+| 5 | Null dropped handlers | Medium | Fixed | - | Added event YAML (needs regen) |
+| 6 | Test state sharing | Medium | Fixed | - | Added resets |
+| 7 | No copy-to-protected test | Medium | Fixed | - | Added test |
+| 8-15 | Low items | Low | Mixed | - | Doc cleanup, tests, comments |
