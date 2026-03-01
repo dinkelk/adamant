@@ -87,10 +87,19 @@ package body Component.Memory_Copier.Implementation is
       Request : constant Memory_Region_Request.T := Self.Memory_Region_Request_T_Get;
       -- Calculate the minimum length that the requested region must have in order for
       -- the virtual memory region to be valid.
-      Min_Length : constant Natural := Virtual_Region.Address + Virtual_Region.Length;
+      -- Guard against overflow: if Address + Length would exceed Natural'Last, fail gracefully.
+      Min_Length : Natural;
    begin
       -- Initialize out parameter to null in case we fail to find memory region
       Returned_Physical_Region := (Id => 0, Region => (Address => System.Null_Address, Length => 0));
+
+      -- Guard against overflow in Address + Length computation:
+      if Virtual_Region.Address > Natural'Last - Virtual_Region.Length then
+         Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Length_Mismatch (Self.Sys_Time_T_Get,
+            (Region => (Address => System.Null_Address, Length => 0), Expected_Length => 0)));
+         return False;
+      end if;
+      Min_Length := Virtual_Region.Address + Virtual_Region.Length;
 
       -- Check the request memory status:
       case Request.Status is
