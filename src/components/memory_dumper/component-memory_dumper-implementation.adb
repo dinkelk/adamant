@@ -62,13 +62,13 @@ package body Component.Memory_Dumper.Implementation is
       Ignore : Natural;
    begin
       if Memory_Manager_Types.Is_Region_Valid (Arg, Self.Regions, Ptr, Ignore) then
-         Self.Event_T_Send_If_Connected (Self.Events.Crcing_Memory (Self.Sys_Time_T_Get, Arg));
-         -- Calculate CRC:
-         Crc := Crc_16.Compute_Crc_16 (Ptr);
-         -- Report CRC:
          declare
             Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
          begin
+            Self.Event_T_Send_If_Connected (Self.Events.Crcing_Memory (Time, Arg));
+            -- Calculate CRC:
+            Crc := Crc_16.Compute_Crc_16 (Ptr);
+            -- Report CRC:
             Self.Event_T_Send_If_Connected (Self.Events.Memory_Crc (Time, (Region => (Address => Arg.Address, Length => Arg.Length), Crc => Crc)));
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Crc_Report (Time, (Region => (Address => Arg.Address, Length => Arg.Length), Crc => Crc)));
          end;
