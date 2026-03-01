@@ -477,12 +477,15 @@ package body Component.Sequence_Store.Implementation is
                                  Slot_Bytes : Slot_Byte_Array with Import, Convention => Ada, Address => Slot_Sequence_Region.Address;
                                  Ignore_Stat : Command_Execution_Status.E;
                               begin
-                                 -- Modify the sequence validity and write it back in the header.
+                                 -- OK do the actual copy first, before marking the slot as valid.
+                                 -- This ordering ensures that if power is lost during the copy,
+                                 -- the slot header will not yet indicate Valid, preventing
+                                 -- an inconsistent state in MRAM (incomplete data marked as valid).
+                                 Slot_Bytes (0 .. Sequence_Size - 1) := Sequence_Bytes;
+
+                                 -- Now that the data copy is complete, mark the slot as valid.
                                  Slot_Header.Slot_Info.Validity := Valid;
                                  Self.Set_Slot_Header (Arg.Slot, Slot_Header);
-
-                                 -- OK do the actual copy:
-                                 Slot_Bytes (0 .. Sequence_Size - 1) := Sequence_Bytes;
 
                                  -- Throw info event:
                                  Self.Event_T_Send_If_Connected (Self.Events.Wrote_Sequence_To_Slot (Self.Sys_Time_T_Get, (Store => Arg, Header => Self.Get_Slot_Header (Arg.Slot))));
