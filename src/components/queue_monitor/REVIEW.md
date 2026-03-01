@@ -93,3 +93,14 @@ The component is well-documented. The `.component.yaml` description clearly expl
 | 3 | T1 | **Medium** | No test coverage for the `Is_Packet_T_Send_Connected` guard (disconnected packet connector path). |
 | 4 | T3 | **Medium** | Test state is shared at package scope with no high-water-mark reset between tests, creating order-dependent test execution. |
 | 5 | I4 | **Medium** | `Command_Response_T_Send_Dropped` is null — dropped command responses leave operators without feedback. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Silent packet/event/command drops | High | Fixed | b910de2 | Added event handlers for all dropped message types |
+| 2 | Sequence count overflow | Medium | Fixed | 2bd47dd | Safe wrapping logic |
+| 3 | Typo in Init comment | Low | Fixed | 309054e | 'disable' → 'disables' |
+| 4 | Duplicated test assertion | Low | Fixed | 3447a01 | Removed duplicate block |
+| 5 | Disconnected packet connector test | Medium | Not Fixed | - | Test infrastructure change needed |
+| 6 | Order-dependent tests | Medium | Not Fixed | - | Requires test restructure |
