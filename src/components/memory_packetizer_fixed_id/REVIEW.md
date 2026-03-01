@@ -177,3 +177,15 @@
 | 3 | **Medium** | `implementation.ads` + `component.yaml` | Doc comments say `Memory_Dump_Recv_Sync` (should be `_Async`) and describe the rate as "per single second" despite a configurable period. |
 | 4 | **Medium** | `events.yaml` / `implementation.adb` | Zero-length memory dumps are silently ignored with no event or telemetry. |
 | 5 | **Medium** | Unit tests | No tests for boundary conditions: zero-length dump, zero packet rate, or single-byte dump. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Zero rate infinite loop | Critical | Fixed | - | Assert in Init + runtime guard |
+| 2 | Wrong test history indices | High | Fixed | - | Corrected to Get(12)/Get(16) |
+| 3 | _Sync vs _Async typo | Medium | Fixed | - | Corrected |
+| 4 | "per single second" misleading | Medium | Fixed | - | Updated to "per time period" |
+| 5 | No zero-length dump handling | Medium | Fixed | - | Added event + early return |
+| 6-7 | Missing tests | Medium | Not Fixed | - | Need codegen |
+| 8-12 | Low items | Low | Mixed | - | Typos, requirements, docs, overflow guard |
