@@ -291,11 +291,9 @@ package body Component.Sequence_Store.Implementation is
 
       -- We need to make sure none of the sequence slot memory regions overlap. If they do, this is
       -- a user error and should be caught here.
-      for Idx in Self.Slots.all'Range loop
-         for Jdx in Self.Slots.all'Range loop
-            -- Don't compare the same memory region against itself.
-            if Idx /= Jdx then
-               declare
+      for Idx in Self.Slots.all'First .. Self.Slots.all'Last - 1 loop
+         for Jdx in Idx + 1 .. Self.Slots.all'Last loop
+            declare
                   use System.Storage_Elements;
                   A : Memory_Region.T renames Self.Slots.all (Idx);
                   B : Memory_Region.T renames Self.Slots.all (Jdx);
@@ -322,7 +320,6 @@ package body Component.Sequence_Store.Implementation is
                      pragma Assert ((B_Start - A_Stop) > 0, "Regions overlap.");
                   end if;
                end;
-            end if;
          end loop;
       end loop;
 
