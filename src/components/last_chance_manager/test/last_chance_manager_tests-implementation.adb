@@ -196,7 +196,9 @@ package body Last_Chance_Manager_Tests.Implementation is
       -- OK now modify the region:
       Exception_Data := (Exception_Name => [others => 44], Exception_Message => [others => 33], Stack_Trace_Depth => 16, Stack_Trace => [others => (Address => To_Address (Integer_Address (99)))]);
 
-      -- Call Set_Up, make sure, correct stuff thrown with exception data in store.
+      -- Intentionally call Set_Up a second time (first call was in Set_Up_Test fixture)
+      -- to verify that Set_Up correctly reports the modified exception data. This is
+      -- safe because Set_Up has no one-time-only side effects in this component.
       Self.Tester.Component_Instance.Set_Up;
 
       -- Make sure some events were thrown:
