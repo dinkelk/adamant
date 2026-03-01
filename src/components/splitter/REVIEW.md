@@ -63,3 +63,12 @@
 ---
 
 *End of review.*
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No unit tests | High | Not Fixed | - | Requires test infrastructure setup |
+| 2 | Silent dropped sends | Medium | Not Fixed | - | Requires event YAML |
+| 3 | Zero-output guard | Medium | Not Fixed | - | Assembly-level concern |
+| 4 | Typo in spec comment | Low | Fixed | 6c55ae7 | Grammar correction |
