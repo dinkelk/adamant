@@ -64,8 +64,13 @@ package body Component.Parameter_Store.Implementation is
             Pkt : Packet.T;
             Stat : constant Serialization_Status := Self.Packets.Stored_Parameters (Self.Sys_Time_T_Get, Computed_Crc & Self.Bytes.all, Pkt);
          begin
-            -- Send the packet:
-            pragma Assert (Stat = Success, "This should never fail since we checked at Init that self.bytes.all could fit cleanly within a Packet.T type.");
+            -- Verify serialization succeeded. Using an explicit check rather than pragma Assert
+            -- ensures this safety check is not silently skipped if assertions are disabled in
+            -- a release build. This should never fail since Init verifies that the parameter
+            -- table fits within a Packet.T type.
+            if Stat /= Success then
+               return;
+            end if;
             Self.Packet_T_Send (Pkt);
          end;
 
