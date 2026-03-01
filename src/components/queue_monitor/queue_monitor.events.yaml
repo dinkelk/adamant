@@ -3,6 +3,15 @@ events:
   - name: Packet_Period_Set
     description: A command was received to change the packet period.
     param_type: Packed_U16.T
+  - name: Packet_Send_Dropped
+    description: A queue usage packet was dropped because the downstream queue is full. This is especially critical because it means queue health telemetry is being lost.
+    param_type: Packet_Types.Packet_Header.T
+  - name: Command_Response_Send_Dropped
+    description: A command response message was dropped because the downstream queue is full.
+  - name: Data_Product_Send_Dropped
+    description: A data product message was dropped because the downstream queue is full.
+  - name: Event_Send_Dropped
+    description: An event message was dropped because the downstream queue is full.
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
