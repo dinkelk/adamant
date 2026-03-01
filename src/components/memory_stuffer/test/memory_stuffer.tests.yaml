@@ -19,3 +19,5 @@ tests:
     description: This unit test exercises the memory region copy and release connectors.
   - name: Test_Memory_Region_Copy_Invalid_Address
     description: This unit test exercises the memory region copy and release connectors with an invalid destination address.
+  - name: Test_Memory_Region_Copy_Protected
+    description: This unit test exercises memory region copy to a protected region, verifying it is rejected.

@@ -29,6 +29,8 @@ private
    overriding procedure Test_Memory_Region_Copy (Self : in out Instance);
    -- This unit test exercises the memory region copy and release connectors with an invalid destination address.
    overriding procedure Test_Memory_Region_Copy_Invalid_Address (Self : in out Instance);
+   -- This unit test exercises memory region copy to a protected region, verifying it is rejected.
+   overriding procedure Test_Memory_Region_Copy_Protected (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Memory_Stuffer_Tests.Base_Instance with record

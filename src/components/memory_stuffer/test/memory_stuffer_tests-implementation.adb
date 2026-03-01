@@ -1084,4 +1084,57 @@ package body Memory_Stuffer_Tests.Implementation is
       Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
    end Test_Memory_Region_Copy_Invalid_Address;
 
+   overriding procedure Test_Memory_Region_Copy_Protected (Self : in out Instance) is
+      use Memory_Enums.Memory_Copy_Status;
+      Region : Memory_Region.T;
+      Region_Copy : Memory_Region_Copy.T;
+      T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Reset memory regions:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init with protection list (Region_1 unprotected, Region_2 protected):
+      T.Component_Instance.Init (Regions'Access, Protection_List'Access);
+
+      -- Make sure no events are thrown at start up:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Attempt to copy to protected Region_2 — should be rejected:
+      Region := (Address => Region_3_Address, Length => Region_2'Length);
+      Region_Copy := (Source_Region => Region, Destination_Address => Region_2_Address);
+      T.Memory_Region_Copy_T_Send (Region_Copy);
+
+      -- Drain the queue:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Expect rejection event and failure release:
+      Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 1);
+      Memory_Region_Release_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get (1), (Region => Region, Status => Failure));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Protected_Write_Denied_History.Get_Count, 1);
+
+      -- Check memory is unchanged:
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+
+      -- Copy to unprotected Region_1 — should succeed:
+      Region := (Address => Region_3_Address, Length => Region_1'Length);
+      Region_Copy := (Source_Region => Region, Destination_Address => Region_1_Address);
+      T.Memory_Region_Copy_T_Send (Region_Copy);
+
+      -- Drain the queue:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Expect success:
+      Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 2);
+      Memory_Region_Release_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get (2), (Region => Region, Status => Success));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Copying_Memory_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Memory_Copied_History.Get_Count, 1);
+
+      -- Check memory:
+      Byte_Array_Assert.Eq (Region_1, [66, 67, 68, 69, 70, 71, 72, 73, 74, 75]);
+   end Test_Memory_Region_Copy_Protected;
+
 end Memory_Stuffer_Tests.Implementation;
