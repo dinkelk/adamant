@@ -229,11 +229,14 @@ package body Component.Task_Watchdog.Implementation is
                      null;
                end case;
 
-               -- If critical, then set the flag not to pet the hardware watchdog and send an event.
-               -- The critical flag should only be set to true if the task is critical and in an error state
+               -- If critical, then set the flag not to pet the hardware watchdog.
+               -- The critical flag should only be set to true if the task is critical and in an error state.
+               -- Only send the event on the first failure detection (not every tick) to avoid flooding the event bus.
                if Is_Critical then
                   Critical_Tasks_Running_Well := False;
-                  Self.Event_T_Send_If_Connected (Self.Events.Critical_Task_Not_Petting (Timestamp, (Index => Idx)));
+                  if Status = Warn_Failure or else Status = Fault_Failure then
+                     Self.Event_T_Send_If_Connected (Self.Events.Critical_Task_Not_Petting (Timestamp, (Index => Idx)));
+                  end if;
                end if;
             end;
          end loop;
