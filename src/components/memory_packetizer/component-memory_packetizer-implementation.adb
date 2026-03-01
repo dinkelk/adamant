@@ -227,6 +227,13 @@ package body Component.Memory_Packetizer.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (Self.Sys_Time_T_Get, (Id => Cmd.Header.Id, Errant_Field_Number => Errant_Field_Number, Errant_Field => Errant_Field)));
    end Invalid_Command;
 
+   -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is
+   begin
+      -- Emit an event so dropped packets are visible in telemetry:
+      Self.Event_T_Send_If_Connected (Self.Events.Packet_Send_Dropped (Self.Sys_Time_T_Get, (Id => Arg.Header.Id)));
+   end Packet_T_Send_Dropped;
+
    -- This procedure is called when a Memory_Dump_Recv_Async message is dropped due to a full queue.
    overriding procedure Memory_Dump_Recv_Async_Dropped (Self : in out Instance; Arg : in Memory_Packetizer_Types.Memory_Dump) is
    begin

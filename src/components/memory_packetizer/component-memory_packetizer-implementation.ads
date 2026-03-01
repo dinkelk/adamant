@@ -83,7 +83,7 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
-   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T);
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
