@@ -39,7 +39,10 @@ private
       -- Protected variables that can be set synchronously in commands:
       Send_Counter : Protected_Natural_Counter.Counter;
       Do_Sync_Once : Protected_Boolean.Variable;
-      -- Number of time at tone transactions sent:
+      -- Number of time at tone transactions sent. These counters are not
+      -- protected because the component's execution model guarantees that
+      -- recv_sync connectors are invoked sequentially by a single task.
+      -- If this assumption changes, these must be moved to protected variables.
       Tone_Message_Count : Unsigned_32 := 0;
       Time_Message_Count : Unsigned_32 := 0;
    end record;
