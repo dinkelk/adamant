@@ -171,8 +171,9 @@ package body Component.Memory_Manager.Implementation is
          when Memory_Unavailable =>
             -- Throw event.
             Self.Event_T_Send_If_Connected (Self.Events.Memory_Unavailable (The_Time));
-            -- Return a null address with failure status.
-            return (Ided_Region => (Id => 0, Region => (Address => To_Address (Integer_Address (0)), Length => 0)), Status => Failure);
+            -- Return a null address with failure status. Use Unsigned_16'Last as sentinel
+            -- to avoid collision with the first valid ID (0).
+            return (Ided_Region => (Id => Unsigned_16'Last, Region => (Address => To_Address (Integer_Address (0)), Length => 0)), Status => Failure);
       end case;
    end Memory_Region_Request_T_Return;
 
