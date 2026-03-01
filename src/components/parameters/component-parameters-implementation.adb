@@ -712,6 +712,15 @@ package body Component.Parameters.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Dropped (Self.Sys_Time_T_Get, Arg));
    end Parameters_Memory_Region_T_Recv_Async_Dropped;
 
+   -- This procedure is called when a Parameters_Memory_Region_Release_T_Send message is dropped due to a full queue.
+   overriding procedure Parameters_Memory_Region_Release_T_Send_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T) is
+      use Parameter_Enums.Parameter_Table_Operation_Type;
+   begin
+      -- A dropped memory region release is critical — the memory will never be freed,
+      -- causing a resource leak. Attempt to send an event to alert operators.
+      Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Dropped (Self.Sys_Time_T_Get, (Region => Arg.Region, Operation => Get)));
+   end Parameters_Memory_Region_Release_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------
@@ -769,6 +778,17 @@ package body Component.Parameters.Implementation is
          Self.Event_T_Send_If_Connected (Self.Events.Parameter_Update_Id_Not_Recognized (Time, (Id => Arg.Header.Id)));
          return Failure;
       end if;
+
+      -- Validate all components that had parameters staged.
+      for Component_Id in Components_To_Update'Range loop
+         if Components_To_Update (Component_Id) then
+            if Self.Validate_Parameters (Component_Id => Component_Id) /= Success then
+               -- No need to throw an event, because an event is thrown in the function above
+               -- if something doesn't go well.
+               return Failure;
+            end if;
+         end if;
+      end loop;
 
       -- Now update all components that had parameters staged.
       for Component_Id in Components_To_Update'Range loop
