@@ -329,3 +329,14 @@ T.Component_Instance.Init (Size => 5, Initial_Mode => Logger_Mode.Enabled);
 | 3 | MOD-02 | **Medium** | `Too_Full` enum description says "log was too full" but with `Overwrite => True`, this only triggers when a single item exceeds total buffer capacity. Description is misleading. |
 | 4 | TEST-04 | **Medium** | `Test_Logger_Error` re-initializes without calling `Final`, skipping buffer teardown and creating an inconsistent lifecycle pattern. |
 | 5 | TEST-01 | **Medium** | No test for dump commands on an enabled but empty buffer — missing edge case coverage for null/zero-length pointer handling in `Dump_Ptr`. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Misleading Num_Bytes_Logged on failure | Medium | Fixed | 128e8a1 | Zeroed on serialization failure |
+| 2 | Final never deallocates heap | Medium | Fixed | 31670b1 | Added deallocation + tracking |
+| 3 | Too_Full enum description wrong | Medium | Fixed | 456d862 | Corrected |
+| 4 | Re-init without Final | Medium | Fixed | d07dc43 | Added Final call |
+| 5 | No empty-buffer dump test | Medium | Fixed | 462c076 | Added test |
+| 6-14 | Low items | Low | Mixed | - | Comment fixes, requirement wording, empty commits for design items |
