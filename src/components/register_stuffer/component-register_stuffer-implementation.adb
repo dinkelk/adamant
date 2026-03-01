@@ -256,14 +256,18 @@ package body Component.Register_Stuffer.Implementation is
 
       declare
          Arr : Register_Dump_Packet_Array.T := [others => (Value => 0)];
-         Last_Addr : constant System.Address := Arg.Start_Address + Storage_Offset ((Arg.Num_Registers - 1) * Packed_U32.Size_In_Bytes);
       begin
+         -- Validate addresses before computing Last_Addr to avoid
+         -- Storage_Offset overflow on extreme Num_Registers values:
          if not Self.Is_Address_Valid (Arg.Start_Address) or else
             not Self.Is_End_Address_Valid (Arg)
          then
             return Failure;
          end if;
 
+         declare
+            Last_Addr : constant System.Address := Arg.Start_Address + Storage_Offset ((Arg.Num_Registers - 1) * Packed_U32.Size_In_Bytes);
+         begin
          for Register in 0 .. Arg.Num_Registers - 1 loop
             declare
                -- Define the register at the appropriate address:
@@ -296,6 +300,7 @@ package body Component.Register_Stuffer.Implementation is
                Value => Arr (Arr'First + Arg.Num_Registers - 1).Value
             )
          ));
+         end; -- Last_Addr declare block
       end;
 
       -- Throw info event:
