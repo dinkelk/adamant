@@ -52,6 +52,12 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
       -- The current memory index:
       Memory_Index : Natural := 0;
    begin
+      -- If the memory dump has zero length, emit an event and return early:
+      if Memory_Length = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Zero_Length_Memory_Dump_Received (Self.Sys_Time_T_Get, (Id => Arg.Id)));
+         return;
+      end if;
+
       -- While there is data still left in memory dump:
       while Memory_Index < Memory_Length loop
          -- If the start of the next period is in the past, then update it to be in the
