@@ -84,6 +84,40 @@ package body Component.Queue_Monitor.Implementation is
       Self.Command_Response_T_Send_If_Connected ((Source_Id => Arg.Header.Source_Id, Registration_Id => Self.Command_Reg_Id, Command_Id => Arg.Header.Id, Status => Stat));
    end Command_T_Recv_Sync;
 
+   ---------------------------------------
+   -- Dropped message handlers:
+   ---------------------------------------
+   -- Emit an event when a queue usage packet is dropped. This is critical because
+   -- it means queue health telemetry is being silently lost — the very condition
+   -- this component is designed to detect.
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Packet_Send_Dropped (Self.Sys_Time_T_Get, Arg.Header));
+   end Packet_T_Send_Dropped;
+
+   -- Emit an event when a command response is dropped.
+   overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Command_Response_Send_Dropped (Self.Sys_Time_T_Get));
+   end Command_Response_T_Send_Dropped;
+
+   -- Emit an event when a data product is dropped.
+   overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Send_Dropped (Self.Sys_Time_T_Get));
+   end Data_Product_T_Send_Dropped;
+
+   -- Emit an event when an event message is dropped (note: if the event queue is also full, this will recurse once then stop).
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is
+      pragma Unreferenced (Arg);
+   begin
+      -- Note: If the event connector is also full, this will itself be dropped silently
+      -- (the base class will not recurse infinitely). This is an acceptable limitation.
+      Self.Event_T_Send_If_Connected (Self.Events.Event_Send_Dropped (Self.Sys_Time_T_Get));
+   end Event_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------
