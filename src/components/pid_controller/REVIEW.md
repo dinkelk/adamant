@@ -55,3 +55,16 @@
 | 3 | C3 | **High** | 32-bit `Short_Float` integral accumulator loses precision over long control runs, causing the integrator to "stick" and stop responding to small errors. |
 | 4 | C5 | Medium | No NaN/Inf detection on inputs or outputs. A failed sensor propagates NaN through the entire control chain silently. |
 | 5 | T1 | **High** | No unit test exercises the derivative filter stability boundary, leaving the critical C1 defect undetectable by the test suite. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Derivative filter stability validation | Critical | Fixed | 2a02256 | Added N*dt >= 2.0 check in Validate_Parameters |
+| 2 | Validate I_Min_Limit <= I_Max_Limit | High | Fixed | 33f0960 | Added validation in Validate_Parameters |
+| 3 | Document one-step I/D delay | High | Fixed | d08701e | Added comment documenting first-iteration behavior |
+| 4 | Use Long_Float for integral accumulator | High | Fixed | e49a5a8 | Changed accumulator from Short_Float to Long_Float |
+| 5 | Add stability/limits tests | High | Fixed | abd0258 | Added Test_Derivative_Filter_Stability and Test_Inverted_Integral_Limits |
+| 6 | Validate Moving_Average_Init_Samples | Medium | Fixed | 87b17ee | Added >= -1 validation |
+| 7 | Replace pragma Assert for Control_Frequency | Medium | Fixed | 9b08a09 | Explicit runtime check |
+| 8 | Add NaN/Inf guard on control inputs | Medium | Fixed | a8bff1d | Guard added to reject non-finite inputs |
