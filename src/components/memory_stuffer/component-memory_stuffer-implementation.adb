@@ -177,6 +177,10 @@ package body Component.Memory_Stuffer.Implementation is
       Was_Armed : Boolean := True;
    begin
       -- Unarm the system if we are armed.
+      -- Note: The get-then-act pattern below (Get_State followed by Unarm) is safe
+      -- because tick and command dispatch are serialized on the same active component
+      -- queue. If the architecture ever changes to allow concurrent dispatch, this
+      -- should be replaced with an atomic Get_And_Unarm operation on the protected object.
       declare
          use Command_Protector_Enums.Armed_State;
          -- Get the armed state:
