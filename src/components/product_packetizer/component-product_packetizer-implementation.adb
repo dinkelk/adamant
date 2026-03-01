@@ -144,7 +144,15 @@ package body Component.Product_Packetizer.Implementation is
             -- Check status and throw appropriate events:
             case D_Prod_Ret.The_Status is
                when Success =>
-                  null; -- Nothing to do here.
+                  -- Validate the length of the data product before any further processing.
+                  -- A length mismatch means the data product cannot be trusted, so we treat
+                  -- it the same as a failed fetch (Do_Copy := False). This prevents stale
+                  -- zero-filled gaps from being silently emitted and ensures on-change
+                  -- detection does not consider mismatched data products.
+                  if D_Prod_Ret.The_Data_Product.Header.Buffer_Length /= Item.Size then
+                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Length_Mismatch (Self.Sys_Time_T_Get, (Header => D_Prod_Ret.The_Data_Product.Header, Expected_Length => Item.Size)));
+                     Do_Copy := False;
+                  end if;
 
                when Not_Available =>
                   -- Throw event if configured to do so:
@@ -192,20 +200,14 @@ package body Component.Product_Packetizer.Implementation is
                   Changed := True;
                end if;
 
-               -- Check the length of the data product to make sure it what we expect:
-               if D_Prod_Ret.The_Data_Product.Header.Buffer_Length /= Item.Size then
-                  -- Throw event:
-                  Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Length_Mismatch (Self.Sys_Time_T_Get, (Header => D_Prod_Ret.The_Data_Product.Header, Expected_Length => Item.Size)));
-               else
-                  -- Copy data product buffer into the packet:
-                  The_Packet.Buffer (
-                     Curr_Index ..
-                     (Curr_Index + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1))
-                  := D_Prod_Ret.The_Data_Product.Buffer (
-                     D_Prod_Ret.The_Data_Product.Buffer'First ..
-                     (D_Prod_Ret.The_Data_Product.Buffer'First + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1)
-                  );
-               end if;
+               -- Copy data product buffer into the packet:
+               The_Packet.Buffer (
+                  Curr_Index ..
+                  (Curr_Index + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1))
+               := D_Prod_Ret.The_Data_Product.Buffer (
+                  D_Prod_Ret.The_Data_Product.Buffer'First ..
+                  (D_Prod_Ret.The_Data_Product.Buffer'First + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1)
+               );
             end if;
          end if;
 
