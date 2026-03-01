@@ -74,3 +74,13 @@ Tests are comprehensive, covering all five test cases: basic pet receipt, enable
 | 3 | **Medium** | Impl (I-6) | `Critical_Task_Not_Petting` event fires every tick during sustained failure, potentially flooding the event bus with no rate limiting. |
 | 4 | **Low** | Doc (D-3) | `watchdog_list.adb` has a completely wrong package comment referencing "binary tree", "apids", and "downsampler component" — copy-paste from another component. |
 | 5 | **Low** | Model (M-2) | Schema makes `action` field optional but model code accesses it unconditionally, causing an unhelpful `KeyError` if omitted. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Substring test bug in model | Medium | Fixed | 31c387c | `in` → `==` comparison |
+| 2 | Lower-bound connector index check | Medium | Fixed | d232070 | Added bounds validation |
+| 3 | Rate-limit Critical_Task_Not_Petting event | Low | Fixed | 6f1bfbc | Only emit on transition |
+| 4 | Copy-pasted package comment | Low | Fixed | 38517a9 | Corrected component name |
+| 5 | Action field required in schema | Medium | Fixed | 74a71d2 | Made required |
