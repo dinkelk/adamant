@@ -96,7 +96,13 @@ package body Component.Pid_Controller.Implementation is
       end if;
 
       --
-      -- Use the updated parameters to calculate the control angle we desire
+      -- Use the updated parameters to calculate the control output.
+      --
+      -- Note on discretization: The integral and derivative terms use backward-Euler
+      -- (rectangular) integration with the *previous* cycle's error. This means on the
+      -- very first iteration after First_Iteration=True, only P*error + feed_forward
+      -- contributes to the output; the I and D terms are effectively one step delayed.
+      -- This is a known and intentional property of this discretization scheme.
       --
       declare
          -- Pull out the timestamp from the input data for ease of use:
