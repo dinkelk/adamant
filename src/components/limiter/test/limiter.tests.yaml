@@ -13,3 +13,5 @@ tests:
     description: This unit test exercises that an invalid command throws the appropriate event.
   - name: Test_Invalid_Parameter
     description: This unit test exercises that an invalid parameter throws the appropriate event.
+  - name: Test_Command_Parameter_Interaction
+    description: This unit test verifies that a rate set by command persists across ticks and is not silently reverted by the parameter update mechanism.

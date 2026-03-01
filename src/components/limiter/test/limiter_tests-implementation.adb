@@ -350,4 +350,37 @@ package body Limiter_Tests.Implementation is
       Invalid_Parameter_Info_Assert.Eq (T.Invalid_Parameter_Received_History.Get (2), (Id => 1_001, Errant_Field_Number => Interfaces.Unsigned_32'Last - 1, Errant_Field => [0, 0, 0, 0, 0, 0, 16#03#, 16#E9#]));
    end Test_Invalid_Parameter;
 
+   overriding procedure Test_Command_Parameter_Interaction (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+      The_Tick : constant Tick.T := ((0, 0), 0);
+   begin
+      -- Set rate to 1 via command:
+      T.Command_T_Send (T.Commands.Sends_Per_Tick ((Value => 1)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Sends_Per_Tick_Id, Status => Success));
+
+      -- Enqueue 3 items:
+      T.T_Send (((0, 0), 1));
+      T.T_Send (((0, 0), 2));
+      T.T_Send (((0, 0), 3));
+
+      -- Tick — should send exactly 1 (commanded rate), not 3 (init) or
+      -- the parameter default. The tick calls Update_Parameters internally,
+      -- so this also verifies the command value is not reverted:
+      T.Tick_T_Send (The_Tick);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+
+      -- Second tick should send 1 more, confirming the rate persists:
+      T.Tick_T_Send (The_Tick);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 2);
+
+      -- Third tick drains the last item:
+      T.Tick_T_Send (The_Tick);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
+
+      -- Fourth tick — queue empty, no more sends:
+      T.Tick_T_Send (The_Tick);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
+   end Test_Command_Parameter_Interaction;
+
 end Limiter_Tests.Implementation;
