@@ -30,7 +30,7 @@ package body Component.Memory_Packetizer.Implementation is
    begin
       -- Allocate space to store the sequence number list:
       Self.Sequence_Count_List := new Sequence_Count_Tracker_List (1 .. Max_Packet_Ids);
-      -- Sent the maximum packet rate:
+      -- Set the maximum packet rate:
       Do_Set_Max_Packet_Rate (Self, Max_Packets_Per_Time_Period, Time_Period_In_Seconds);
    end Init;
 
