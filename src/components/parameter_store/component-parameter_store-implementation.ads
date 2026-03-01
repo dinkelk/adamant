@@ -6,7 +6,7 @@
 with Command;
 with Parameters_Memory_Region;
 
--- The Parameters Component is responsible for storing and managing access to a memory region holding a parameter table. The managed memory region is usually located in nonvolatile storage and can serve as the backup or the default parameter values to use at startup for the system.
+-- The Parameter Store component is responsible for storing and managing access to a memory region holding a parameter table. The managed memory region is usually located in nonvolatile storage and can serve as the backup or the default parameter values to use at startup for the system.
 package Component.Parameter_Store.Implementation is
 
    -- The component class instance record:
