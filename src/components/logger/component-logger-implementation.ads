@@ -10,7 +10,7 @@ with Circular_Buffer;
 with Circular_Buffer_Meta;
 with Logger_Enums; use Logger_Enums;
 
--- The Logger component receives data of generic type. This data is synchronously added to an internal circular buffer. By default, the logging of this data is disabled at component start and can be enabled via command. Commands also exist to dump the internal circular buffer.
+-- The Logger component receives data of generic statically-sized, or variable-sized type. This data is synchronously added to an internal circular buffer. By default, the logging of this data can be disabled at component start and can be enabled via command. Various commands also exist to dump the internal circular buffer.
 generic
 package Component.Logger.Implementation is
 
