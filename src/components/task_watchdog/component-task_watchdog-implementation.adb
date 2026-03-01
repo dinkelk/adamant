@@ -300,8 +300,8 @@ package body Component.Task_Watchdog.Implementation is
       Connector_Index : constant Connector_Types.Connector_Index_Type := Arg.Index;
       Updated_Limit : Missed_Pet_Limit_Type;
    begin
-      -- Check connector index to make sure its in range
-      if Connector_Index <= (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
+      -- Check connector index to make sure its in range (both lower and upper bounds)
+      if Connector_Index >= Pet_T_Recv_Sync_Index'First and then Connector_Index <= (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
          Self.Task_Watchdog_Entries.Set_Pet_Limit (Connector_Index, Arg.New_Limit);
          -- Once set, send an event and update the data product
          Updated_Limit := Self.Task_Watchdog_Entries.Get_Pet_Count_Limit (Connector_Index);
@@ -323,8 +323,8 @@ package body Component.Task_Watchdog.Implementation is
       Connector_Index : constant Connector_Types.Connector_Index_Type := Arg.Index;
       Updated_Action : Watchdog_Action_State.E;
    begin
-      -- Check connector index to make sure its in range
-      if Connector_Index > (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
+      -- Check connector index to make sure its in range (both lower and upper bounds)
+      if Connector_Index < Pet_T_Recv_Sync_Index'First or else Connector_Index > (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
          -- Out of range so send an error
          Self.Event_T_Send_If_Connected (Self.Events.Watchdog_Action_Change_Index_Out_Of_Range (Timestamp, (Index => Connector_Index)));
          return Failure;
