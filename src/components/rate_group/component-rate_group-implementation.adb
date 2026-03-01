@@ -140,7 +140,10 @@ package body Component.Rate_Group.Implementation is
       -- been put on our queue before we have finished executing the last Tick then
       -- our rate group has slipped. Sad day :(
       if Self.Queue.Num_Elements > 0 then
-         Self.Num_Cycle_Slips := @ + 1;
+         -- Use saturating arithmetic to prevent wrap-around on long-running missions:
+         if Self.Num_Cycle_Slips < Unsigned_16'Last then
+            Self.Num_Cycle_Slips := @ + 1;
+         end if;
          Self.Event_T_Send_If_Connected (Self.Events.Cycle_Slip (Stop_Wall_Time, (Slipped_Tick => Arg, Num_Slips => Self.Num_Cycle_Slips)));
       end if;
 
