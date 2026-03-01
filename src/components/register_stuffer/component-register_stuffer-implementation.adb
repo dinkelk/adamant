@@ -232,6 +232,11 @@ package body Component.Register_Stuffer.Implementation is
    overriding function Arm_Protected_Write (Self : in out Instance; Arg : in Packed_Arm_Timeout.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
+      -- Reject arming when register protection is not enabled:
+      if not Self.Protect_Registers then
+         return Failure;
+      end if;
+
       -- Transition to the armed state with the timeout:
       Self.Command_Arm_State.Arm (New_Timeout => Arg.Timeout);
 
