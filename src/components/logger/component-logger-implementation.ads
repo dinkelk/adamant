@@ -63,6 +63,8 @@ private
       Bytes : Basic_Types.Byte_Array_Access := null;
       -- A pointer to the meta data:
       Meta_Data : Circular_Buffer_Meta.T_Access := null;
+      -- True if Bytes and Meta_Data were heap-allocated by Init:
+      Heap_Allocated : Boolean := False;
    end record;
 
    ---------------------------------------
