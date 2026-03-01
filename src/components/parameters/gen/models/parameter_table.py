@@ -506,20 +506,12 @@ class parameter_table(assembly_submodel):
                 if not submodel.parameter_table_resolved:
                     continue
 
-                # Collect all parameters from this other table
+                # Collect all parameters from this other table.
+                # We only collect here — duplicate detection among other tables is handled
+                # when those tables run their own _check_duplicate_parameters_across_tables.
                 for table_entry in submodel.parameters.values():
                     for param in table_entry.parameters:
-                        param_name = param.name
-                        if param_name in other_table_parameters:
-                            # This parameter already exists in another table!
-                            prev_table_name, prev_entry_id = other_table_parameters[param_name]
-                            raise ModelException(
-                                f'Parameter "{param_name}" appears in multiple parameter tables. '
-                                f'It is present in parameter table "{prev_table_name}" (Entry_ID {prev_entry_id}) '
-                                f'and also in parameter table "{submodel.name}" (Entry_ID {table_entry.entry_id}). '
-                                f'Each parameter can only be managed by one Parameters component instance.'
-                            )
-                        other_table_parameters[param_name] = (submodel.name, table_entry.entry_id)
+                        other_table_parameters[param.name] = (submodel.name, table_entry.entry_id)
 
         # Now check if any of OUR parameters conflict with those in other tables
         for table_entry in self.parameters.values():
