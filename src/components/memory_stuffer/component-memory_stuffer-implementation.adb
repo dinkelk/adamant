@@ -218,6 +218,12 @@ package body Component.Memory_Stuffer.Implementation is
 
             -- If we are allowed to write the memory region then do so, otherwise throw an event:
             if Do_Write then
+               -- Defense-in-depth: validate Arg.Length does not exceed Arg.Data bounds
+               -- before slicing, since Arg.Length comes from external command input.
+               if Arg.Length > Arg.Data'Length then
+                  Self.Event_T_Send_If_Connected (Self.Events.Invalid_Memory_Region (Self.Sys_Time_T_Get, Region));
+                  return Failure;
+               end if;
                -- Perform actual memory stuff:
                Self.Event_T_Send_If_Connected (Self.Events.Writing_Memory (Self.Sys_Time_T_Get, Region));
                Copy_To (Ptr, Arg.Data (Arg.Data'First .. Arg.Data'First + Arg.Length - 1));
