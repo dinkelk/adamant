@@ -79,6 +79,12 @@ package body Component.Memory_Dumper.Implementation is
       end if;
    end Crc_Memory;
 
+   -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
+   overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Command_Dropped (Self.Sys_Time_T_Get, Arg.Header));
+   end Command_T_Recv_Async_Dropped;
+
    -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:
    overriding procedure Invalid_Command (Self : in out Instance; Cmd : in Command.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type) is
    begin
