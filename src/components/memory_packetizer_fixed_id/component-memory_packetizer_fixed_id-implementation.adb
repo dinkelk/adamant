@@ -26,6 +26,10 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1) is
    begin
+      -- Guard against zero rate which would cause an infinite busy-loop
+      -- in the Memory_Dump_Recv_Async handler:
+      pragma Assert (Max_Packets_Per_Time_Period > 0,
+         "Max_Packets_Per_Time_Period must be positive to avoid infinite busy-loop.");
       -- Set the maximum packet rate:
       Do_Set_Max_Packet_Rate (Self, Max_Packets_Per_Time_Period, Time_Period_In_Seconds);
    end Init;
@@ -135,6 +139,11 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
       use Command_Execution_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
+      -- Guard against zero rate which would cause an infinite busy-loop:
+      if Arg.Max_Packets = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (The_Time, (Id => Self.Commands.Get_Set_Max_Packet_Rate_Id, Errant_Field_Number => 1, Errant_Field => [others => 0])));
+         return Failure;
+      end if;
       -- Set the rate:
       Do_Set_Max_Packet_Rate (Self, Arg.Max_Packets, Arg.Period);
       -- Update data product:
