@@ -101,6 +101,9 @@ package body Tests.Implementation is
       Tick_Assert.Eq (T.Interrupt_Data_Type_Recv_Sync_History.Get (4), (T.System_Time, 4));
       Tick_Assert.Eq (T.Interrupt_Data_Type_Recv_Sync_History.Get (5), (T.System_Time, 5));
 
+      -- Make sure the time connector was called exactly 5 times:
+      Natural_Assert.Eq (T.Sys_Time_T_Return_History.Get_Count, 5);
+
       -- Terminate the task:
       Ada.Synchronous_Task_Control.Set_True (Component_Signal);
       Sleep_A_Bit;
