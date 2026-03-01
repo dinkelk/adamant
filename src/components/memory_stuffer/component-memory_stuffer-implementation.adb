@@ -88,16 +88,22 @@ package body Component.Memory_Stuffer.Implementation is
       Destination_Region : constant Memory_Region.T := (Arg.Destination_Address, Arg.Source_Region.Length);
       Status : Memory_Enums.Memory_Copy_Status.E := Success;
    begin
-      -- There is no protected region checking here, since this is a backdoor copy that
-      -- bypasses a direct stuff.
-
       -- Do copy memory if the destination region is valid. We do not necessarily manage the source
       -- region, so we don't check it.
       if Memory_Manager_Types.Is_Region_Valid (Destination_Region, Self.Regions, Ptr, Ignore) then
-         -- OK the memory region is valid. Perform actual memory copy:
-         Self.Event_T_Send_If_Connected (Self.Events.Copying_Memory (Self.Sys_Time_T_Get, Arg));
-         Copy (Ptr, Unpack (Arg.Source_Region));
-         Self.Event_T_Send_If_Connected (Self.Events.Memory_Copied (Self.Sys_Time_T_Get, Arg));
+         -- Check if the destination region is protected. If so, reject the copy
+         -- since there is no arm mechanism for the copy path.
+         if Self.Region_Protection_List /= null and then
+            Self.Region_Protection_List.all (Ignore) = Memory_Manager_Types.Protected_Region
+         then
+            Self.Event_T_Send_If_Connected (Self.Events.Protected_Write_Denied (Self.Sys_Time_T_Get, Destination_Region));
+            Status := Failure;
+         else
+            -- OK the memory region is valid and unprotected. Perform actual memory copy:
+            Self.Event_T_Send_If_Connected (Self.Events.Copying_Memory (Self.Sys_Time_T_Get, Arg));
+            Copy (Ptr, Unpack (Arg.Source_Region));
+            Self.Event_T_Send_If_Connected (Self.Events.Memory_Copied (Self.Sys_Time_T_Get, Arg));
+         end if;
       else
          -- Invalid, return failure status:
          Self.Event_T_Send_If_Connected (Self.Events.Invalid_Copy_Destination (Self.Sys_Time_T_Get, Destination_Region));
