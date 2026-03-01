@@ -42,7 +42,7 @@ package Component.Interrupt_Servicer.Implementation.Tester is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- The tick send connection.
+   -- The data send connection.
    overriding procedure Interrupt_Data_Type_Recv_Sync (Self : in out Instance; Arg : in Interrupt_Data_Type);
    -- The system time is retrieved via this connector.
    overriding function Sys_Time_T_Return (Self : in out Instance) return Sys_Time.T;
