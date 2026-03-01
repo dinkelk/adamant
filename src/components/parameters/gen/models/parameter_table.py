@@ -470,7 +470,18 @@ class parameter_table(assembly_submodel):
         # the parameter model at template render time, after the assembly has set them.
         for table_entry in self.parameters.values():
             for param in table_entry.parameters:
-                param.component_id = self.destinations[param.component.instance_name][0]
+                indexes = self.destinations[param.component.instance_name]
+                if len(indexes) > 1:
+                    raise ModelException(
+                        'Component "'
+                        + param.component.instance_name
+                        + '" is connected to "'
+                        + self.parameters_instance_name
+                        + '" on multiple indexes: '
+                        + str(indexes)
+                        + '. Each parameterized component must have exactly one connection.'
+                    )
+                param.component_id = indexes[0]
 
         # Remove duplicate dependencies
         self.dependencies = list(set(self.dependencies))
