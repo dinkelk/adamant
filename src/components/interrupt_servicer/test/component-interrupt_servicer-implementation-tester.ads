@@ -8,7 +8,7 @@ with Sys_Time;
 with System;
 with Ada.Interrupts.Names;
 
--- This is the Interrupt Servicer component. It is attached to an interrupt and sends out a Tick.T every time the interrupt is triggered. This component MUST be made active in order to function properly.
+-- Interrupt Servicer component tester. See component spec for description.
 generic
 package Component.Interrupt_Servicer.Implementation.Tester is
 
