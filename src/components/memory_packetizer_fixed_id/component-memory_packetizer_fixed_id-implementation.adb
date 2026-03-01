@@ -58,6 +58,11 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
          return;
       end if;
 
+      -- Note: The rate-limit state (Num_Packets_Sent, Next_Period_Start) persists
+      -- across separate Memory_Dump_Recv_Async invocations. This means the rate-limit
+      -- window can straddle independent dump requests. This is intentional: the rate
+      -- limit applies globally across all dumps, not per-dump.
+
       -- While there is data still left in memory dump:
       while Memory_Index < Memory_Length loop
          -- If the start of the next period is in the past, then update it to be in the
