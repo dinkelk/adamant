@@ -92,3 +92,11 @@ The test suite is thorough and covers:
 | 3 | T1 | **Medium** | Testing | No concurrency test exercises the protected object under contention between fetch (service) and store/activate (async) paths. |
 | 4 | D1 | **Low** | Documentation | Copy-paste error: command handler comments reference "Parameter Store" instead of "Sequence Store". |
 | 5 | I4 | **Low** | Robustness | Null drop handlers on send connectors (especially `Memory_Region_Release`) could silently lose resource release notifications. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Slot validity before data copy | Medium | Fixed | 8b34160 | Write validity after copy |
+| 2 | Clamp MRAM length | Medium | Fixed | eb08f35 | Added length bounds check |
+| 3 | Copy-paste "Parameter Store" | Low | Fixed | 21d76f2 | Changed to "Sequence Store" |
