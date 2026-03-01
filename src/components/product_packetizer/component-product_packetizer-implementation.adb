@@ -92,6 +92,10 @@ package body Component.Product_Packetizer.Implementation is
       Curr_Index : Natural := The_Packet.Buffer'First;
       Time_Set : Boolean := False;
       Do_Copy : Boolean;
+
+      -- Capture the current system time once to ensure consistent timestamps
+      -- across all events and data products within a single packet build cycle.
+      Current_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
       -- Initialize out parameter:
       Changed := False;
@@ -111,7 +115,7 @@ package body Component.Product_Packetizer.Implementation is
                   The_Status => Success,
                   The_Data_Product => (
                      Header => (
-                        Time => Self.Sys_Time_T_Get,
+                        Time => Current_Time,
                         Id => Item.Data_Product_Id,
                         Buffer_Length => Packed_Natural.Size_In_Bytes
                      ),
@@ -125,7 +129,7 @@ package body Component.Product_Packetizer.Implementation is
                   -- otherwise alert with an event.
                   if Packet_List_Index < Self.Packet_List.all'First or else Packet_List_Index > Self.Packet_List.all'Last then
                      -- Throw event:
-                     Self.Event_T_Send_If_Connected (Self.Events.Packet_Period_Item_Bad_Id (Self.Sys_Time_T_Get, (
+                     Self.Event_T_Send_If_Connected (Self.Events.Packet_Period_Item_Bad_Id (Current_Time, (
                         Packet_Id => Packet_Desc.Id,
                         Data_Product_Id => Item.Data_Product_Id)
                      ));
@@ -150,7 +154,7 @@ package body Component.Product_Packetizer.Implementation is
                   -- zero-filled gaps from being silently emitted and ensures on-change
                   -- detection does not consider mismatched data products.
                   if D_Prod_Ret.The_Data_Product.Header.Buffer_Length /= Item.Size then
-                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Length_Mismatch (Self.Sys_Time_T_Get, (Header => D_Prod_Ret.The_Data_Product.Header, Expected_Length => Item.Size)));
+                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Length_Mismatch (Current_Time, (Header => D_Prod_Ret.The_Data_Product.Header, Expected_Length => Item.Size)));
                      Do_Copy := False;
                   end if;
 
@@ -158,7 +162,7 @@ package body Component.Product_Packetizer.Implementation is
                   -- Throw event if configured to do so:
                   if Item.Event_On_Missing then
                      -- Throw event:
-                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Missing_On_Fetch (Self.Sys_Time_T_Get, (
+                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Missing_On_Fetch (Current_Time, (
                         Packet_Id => Packet_Desc.Id,
                         Data_Product_Id => Item.Data_Product_Id)
                      ));
@@ -218,7 +222,7 @@ package body Component.Product_Packetizer.Implementation is
       -- If the packet time has not been set, then set it:
       if not Time_Set then
          if not Packet_Desc.Use_Tick_Timestamp then
-            The_Packet.Header.Time := Self.Sys_Time_T_Get;
+            The_Packet.Header.Time := Current_Time;
          end if;
       end if;
 
