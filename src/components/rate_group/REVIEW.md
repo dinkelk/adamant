@@ -96,3 +96,12 @@ Clean — event issued with appropriate context. No issues.
 | 3 | **Medium** | `implementation.adb:Tick_T_Recv_Async` | `To_Delta_Time` return status silently discarded at 6 call sites. Conversion failures produce silently incorrect timing data. |
 | 4 | **Medium** | `tests-implementation.adb` | No test coverage for `Timing_Report_Delay_Ticks > 0`, `Ticks_Per_Timing_Report > 1`, or `Issue_Time_Exceeded_Events => False` — three of the component's four configurable behaviors. |
 | 5 | **Medium** | `implementation.adb:Tick_T_Recv_Async` | Wall clock stop time captured after pet send and CPU timer stop, slightly inflating reported cycle time and potentially causing spurious time-exceeded events. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Cycle slip counter overflow | High | Fixed | a69c37b | Saturating counter prevents wrap |
+| 2 | Timing test commented out | High | Not Fixed | - | Requires Ada.Real_Time test infrastructure |
+| 3 | Tick count 0 on Init | Medium | Not Fixed | - | Initial condition, acceptable |
+| 4 | Silent dropped sends | Medium | Not Fixed | - | Requires event YAML addition |
