@@ -1,5 +1,5 @@
 ---
-description: The requirements for the Last Chance Handler component.
+description: The requirements for the Last Chance Manager component.
 requirements:
   - text: The component shall provide a nonvolatile last chance handler memory region, where exception occurrence data can be stored by the last chance handler.
   - text: The component shall provide a command to dump the last chance handler memory region.
