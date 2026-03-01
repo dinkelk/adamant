@@ -73,7 +73,7 @@ private
    overriding procedure Command_T_Recv_Async (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T);
-   -- When a memory region is received on this connector it can either be a parameter table that is used to stage and update the parameters of all connected components, or it can be a memory region that is used to store the current value of the parameters stored within the component. The operation field determines which logic is run. For a "set" operation, the memory region length MUST match the length of the managed parameter table, otherwise the update will not be processed.
+   -- When a memory region is received on this connector it can either be a parameter table that is used to stage and update the parameters of all connected components, or it can be a memory region that is used to store the current value of the parameters stored within the component. The operation field determines which logic is run. For either operation, the memory region length MUST match the length of the managed parameter table, otherwise the operation will not be processed.
    overriding procedure Parameters_Memory_Region_T_Recv_Async (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
    -- This procedure is called when a Parameters_Memory_Region_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Parameters_Memory_Region_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
