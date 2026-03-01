@@ -125,7 +125,11 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
                Memory_Index := @ + Buffer_Length;
             end;
 
-            -- Increment the number of packets:
+            -- Increment the number of packets. Num_Packets_Sent is reset each period
+            -- and bounded by Max_Packets_Per_Time_Period, so overflow of Natural is
+            -- not possible under normal operation (Max_Packets_Per_Time_Period < Natural'Last).
+            pragma Assert (Self.Num_Packets_Sent < Natural'Last,
+               "Num_Packets_Sent about to overflow Natural.");
             Self.Num_Packets_Sent := @ + 1;
          end;
       end loop;
