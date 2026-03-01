@@ -68,6 +68,7 @@ package body Component.Logger.Implementation is
       begin
          -- Make sure source has a valid length:
          if Stat /= Success then
+            Num_Bytes_To_Store := 0;
             Status := Serialization_Failure;
          else
             -- Push the data onto the circular buffer:
