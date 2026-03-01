@@ -82,3 +82,13 @@ The Time of Tone Master is a passive component implementing the master side of a
 ## Verdict
 
 **Solid component.** Clean design, good use of Adamant patterns, thorough tests. The issues found are minor-to-medium and mostly relate to edge-case robustness and comment accuracy. No blocking defects.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Copy-paste "tone" → "time" | Low | Fixed | 7d9925f | Comment correction |
+| 2 | "enables" → "disables" | Low | Fixed | 1607244 | Comment correction |
+| 3 | First-tick sync undocumented | Low | Fixed | b2a0560 | Added inline comment |
+| 4 | Time messages when disabled | Medium | Fixed | 7ed4f9e | Gated on enabled state |
+| 5 | Thread-safety assumption | Medium | Fixed | 39511ca | Documented assumption |
