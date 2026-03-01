@@ -79,6 +79,22 @@ package body Component.Memory_Copier.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Command_Dropped (Self.Sys_Time_T_Get, Arg.Header));
    end Command_T_Recv_Async_Dropped;
 
+   -- This procedure is called when a Memory_Region_Copy_T_Send message is dropped due to a full queue.
+   -- Log the failure so the eventual timeout has root-cause context.
+   overriding procedure Memory_Region_Copy_T_Send_Dropped (Self : in out Instance; Arg : in Memory_Region_Copy.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Copy_Failure (Self.Sys_Time_T_Get,
+         (Region => Arg.Source_Region, Status => Memory_Enums.Memory_Copy_Status.Failure)));
+   end Memory_Region_Copy_T_Send_Dropped;
+
+   -- This procedure is called when a Memory_Region_Release message is dropped due to a full queue.
+   -- Log the leak so operators know scratch memory was not released.
+   overriding procedure Ided_Memory_Region_Release_Dropped (Self : in out Instance; Arg : in Ided_Memory_Region.T) is
+      Ignore : Ided_Memory_Region.T renames Arg;
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Unavailable (Self.Sys_Time_T_Get));
+   end Ided_Memory_Region_Release_Dropped;
+
    -- Helper which requests source memory region and does some basic error handling on it. The returned
    -- region from this function will have the address and length specified by the Virtual_Region parameter.
    function Request_Memory_Region (Self : in out Instance; Virtual_Region : in Virtual_Memory_Region.T; Returned_Physical_Region : out Ided_Memory_Region.T) return Boolean is
