@@ -327,7 +327,7 @@ package body Memory_Copier_Tests.Implementation is
       Natural_Assert.Eq (T.Starting_Copy_History.Get_Count, 2);
       Virtual_Memory_Region_Copy_Assert.Eq (T.Starting_Copy_History.Get (2), (Source_Address => 5, Source_Length => T.Scratch'Length - 4, Destination_Address => T'Address));
       Natural_Assert.Eq (T.Memory_Region_Length_Mismatch_History.Get_Count, 2);
-      Invalid_Memory_Region_Length_Assert.Eq (T.Memory_Region_Length_Mismatch_History.Get (2), (Region => (T.Scratch'Address, T.Scratch'Length), Expected_Length => T.Scratch'Length + 1));
+      Invalid_Memory_Region_Length_Assert.Eq (T.Memory_Region_Length_Mismatch_History.Get (2), (Region => (T.Scratch'Address, T.Scratch'Length), Expected_Length => 5 + (T.Scratch'Length - 4)));
 
       -- Check command response:
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
