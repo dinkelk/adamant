@@ -53,6 +53,9 @@ package body Component.Time_Of_Tone_Master.Implementation is
    begin
       -- If it is time to time sync based on the period or we were commanded
       -- to do so once, then perform the time at tone operation.
+      -- Note: On the very first tick (count = 0), Is_Count_At_Period returns
+      -- True, so a sync is sent immediately on startup. This is intentional
+      -- to establish initial synchronization without waiting a full period.
       if Self.Send_Counter.Is_Count_At_Period or else Do_Once then
 
          -- Increment the transaction count:
