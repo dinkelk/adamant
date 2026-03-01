@@ -55,7 +55,10 @@ private
 
       -- Previous integral and derivative values
       Control_Error_Prev : Short_Float := 0.0;
-      Control_Out_Prev_I : Short_Float := 0.0;
+      -- Use Long_Float (64-bit) for the integral accumulator to avoid
+      -- precision loss over long control runs (C3). Small I_Gain*dt*error
+      -- increments can be lost when added to a large Short_Float accumulator.
+      Control_Out_Prev_I : Long_Float := 0.0;
       Control_Out_Prev_D : Short_Float := 0.0;
 
       -- Diagnostic packet variables

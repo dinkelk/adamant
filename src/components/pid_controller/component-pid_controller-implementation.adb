@@ -115,19 +115,24 @@ package body Component.Pid_Controller.Implementation is
          Pid_Control_Error : constant Short_Float := Arg.Commanded_Value - Arg.Measured_Value;
          -- Proportional control
          Pid_Proportional_Output : constant Short_Float := Self.P_Gain.Value * Pid_Control_Error;
-         -- Integral control
-         Pid_Integral_Output : Short_Float := Self.Control_Out_Prev_I + Self.I_Gain.Value * Self.Time_Step * Self.Control_Error_Prev;
+         -- Integral control - accumulate in Long_Float to preserve precision (C3),
+         -- then convert to Short_Float for the control output computation.
+         Pid_Integral_Accum : Long_Float := Self.Control_Out_Prev_I + Long_Float (Self.I_Gain.Value * Self.Time_Step * Self.Control_Error_Prev);
+         Pid_Integral_Output : Short_Float;
          -- Derivative control
          Pid_Derivative_Output : constant Short_Float := Self.Control_Out_Prev_D * (1.0 - (Self.N_Filter.Value * Self.Time_Step)) + (Pid_Control_Error - Self.Control_Error_Prev) * Self.D_Gain.Value * Self.N_Filter.Value;
          -- Total control output
          Pid_Control_Output : Short_Float;
       begin
          -- Limit integral wind up based on our integral limit parameters:
-         if Pid_Integral_Output > Self.I_Max_Limit.Value then
-            Pid_Integral_Output := Self.I_Max_Limit.Value;
-         elsif Pid_Integral_Output < Self.I_Min_Limit.Value then
-            Pid_Integral_Output := Self.I_Min_Limit.Value;
+         if Pid_Integral_Accum > Long_Float (Self.I_Max_Limit.Value) then
+            Pid_Integral_Accum := Long_Float (Self.I_Max_Limit.Value);
+         elsif Pid_Integral_Accum < Long_Float (Self.I_Min_Limit.Value) then
+            Pid_Integral_Accum := Long_Float (Self.I_Min_Limit.Value);
          end if;
+
+         -- Convert accumulated integral to Short_Float for output:
+         Pid_Integral_Output := Short_Float (Pid_Integral_Accum);
 
          -- Set the control output after we limit the integral term
          Pid_Control_Output := Pid_Proportional_Output + Pid_Integral_Output + Pid_Derivative_Output + Arg.Feed_Forward_Value;
@@ -138,7 +143,7 @@ package body Component.Pid_Controller.Implementation is
          -- Update the previous values here
          Self.Control_Error_Prev := Pid_Control_Error;
          Self.Control_Out_Prev_D := Pid_Derivative_Output;
-         Self.Control_Out_Prev_I := Pid_Integral_Output;
+         Self.Control_Out_Prev_I := Pid_Integral_Accum;
 
          -- Calculate the new statistics for this cycle if the object was initialized
          if Self.Use_Ma_Stats then
