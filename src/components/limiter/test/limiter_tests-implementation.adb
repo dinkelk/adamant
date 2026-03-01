@@ -144,8 +144,8 @@ package body Limiter_Tests.Implementation is
 
       -- Check event.
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Max_Send_Per_Tick_Set_History.Get_Count, 1);
-      Packed_U16_Assert.Eq (T.Max_Send_Per_Tick_Set_History.Get (1), (Value => 0));
+      Natural_Assert.Eq (T.Max_Sends_Per_Tick_Set_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (T.Max_Sends_Per_Tick_Set_History.Get (1), (Value => 0));
 
       -- Check data product:
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
@@ -172,8 +172,8 @@ package body Limiter_Tests.Implementation is
 
       -- Check event.
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
-      Natural_Assert.Eq (T.Max_Send_Per_Tick_Set_History.Get_Count, 2);
-      Packed_U16_Assert.Eq (T.Max_Send_Per_Tick_Set_History.Get (2), (Value => 2));
+      Natural_Assert.Eq (T.Max_Sends_Per_Tick_Set_History.Get_Count, 2);
+      Packed_U16_Assert.Eq (T.Max_Sends_Per_Tick_Set_History.Get (2), (Value => 2));
 
       -- Check data product:
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
@@ -191,8 +191,8 @@ package body Limiter_Tests.Implementation is
 
       -- Check event.
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 3);
-      Natural_Assert.Eq (T.Max_Send_Per_Tick_Set_History.Get_Count, 3);
-      Packed_U16_Assert.Eq (T.Max_Send_Per_Tick_Set_History.Get (3), (Value => 1));
+      Natural_Assert.Eq (T.Max_Sends_Per_Tick_Set_History.Get_Count, 3);
+      Packed_U16_Assert.Eq (T.Max_Sends_Per_Tick_Set_History.Get (3), (Value => 1));
 
       -- Check data product:
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);

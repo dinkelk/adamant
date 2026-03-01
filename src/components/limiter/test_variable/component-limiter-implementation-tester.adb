@@ -24,7 +24,7 @@ package body Component.Limiter.Implementation.Tester is
       Self.Event_T_Recv_Sync_History.Init (Depth => 100);
       Self.Sys_Time_T_Return_History.Init (Depth => 100);
       -- Event histories:
-      Self.Max_Send_Per_Tick_Set_History.Init (Depth => 100);
+      Self.Max_Sends_Per_Tick_Set_History.Init (Depth => 100);
       Self.Data_Dropped_History.Init (Depth => 100);
       Self.Invalid_Command_Received_History.Init (Depth => 100);
       Self.Invalid_Parameter_Received_History.Init (Depth => 100);
@@ -42,7 +42,7 @@ package body Component.Limiter.Implementation.Tester is
       Self.Event_T_Recv_Sync_History.Destroy;
       Self.Sys_Time_T_Return_History.Destroy;
       -- Event histories:
-      Self.Max_Send_Per_Tick_Set_History.Destroy;
+      Self.Max_Sends_Per_Tick_Set_History.Destroy;
       Self.Data_Dropped_History.Destroy;
       Self.Invalid_Command_Received_History.Destroy;
       Self.Invalid_Parameter_Received_History.Destroy;
@@ -134,11 +134,11 @@ package body Component.Limiter.Implementation.Tester is
    -- Event handler primitive:
    -----------------------------------------------
    -- A new maximum sends per tick rate has been set for the limiter.
-   overriding procedure Max_Send_Per_Tick_Set (Self : in out Instance; Arg : in Packed_U16.T) is
+   overriding procedure Max_Sends_Per_Tick_Set (Self : in out Instance; Arg : in Packed_U16.T) is
    begin
       -- Push the argument onto the test history for looking at later:
-      Self.Max_Send_Per_Tick_Set_History.Push (Arg);
-   end Max_Send_Per_Tick_Set;
+      Self.Max_Sends_Per_Tick_Set_History.Push (Arg);
+   end Max_Sends_Per_Tick_Set;
 
    -- The queue for data overflowed and an incoming data was dropped.
    overriding procedure Data_Dropped (Self : in out Instance) is

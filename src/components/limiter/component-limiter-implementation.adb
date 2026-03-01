@@ -119,7 +119,7 @@ package body Component.Limiter.Implementation is
       -- Send data product:
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Max_Packet_Sends_Per_Tick (The_Time, (Value => Self.P_Max_Sends_Per_Tick.Get_Var)));
       -- Send event:
-      Self.Event_T_Send_If_Connected (Self.Events.Max_Send_Per_Tick_Set (The_Time, Arg));
+      Self.Event_T_Send_If_Connected (Self.Events.Max_Sends_Per_Tick_Set (The_Time, Arg));
       return Success;
    end Sends_Per_Tick;
 
