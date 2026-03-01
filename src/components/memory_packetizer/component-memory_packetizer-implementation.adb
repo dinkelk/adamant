@@ -208,6 +208,12 @@ package body Component.Memory_Packetizer.Implementation is
       use Command_Execution_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
+      -- Reject a zero packet rate, which would cause the packetization
+      -- loop to spin indefinitely in a sleep-wake cycle:
+      if Arg.Max_Packets = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (The_Time, (Id => Self.Commands.Get_Set_Max_Packet_Rate_Id, Errant_Field_Number => 1, Errant_Field => [others => 0])));
+         return Failure;
+      end if;
       -- Set the rate:
       Do_Set_Max_Packet_Rate (Self, Arg.Max_Packets, Arg.Period);
       -- Update data product:
