@@ -16,7 +16,7 @@ events:
     description: A parameter value could not be validated.
     param_type: Parameter_Operation_Status.T
   - name: Parameter_Fetch_Failed
-    description: A parameter value could not be updated.
+    description: A parameter value could not be fetched.
     param_type: Parameter_Operation_Status.T
   - name: Parameter_Fetch_Length_Mismatch
     description: A parameter was fetched but contained an unexpected length.
