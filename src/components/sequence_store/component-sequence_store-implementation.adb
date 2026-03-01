@@ -149,10 +149,14 @@ package body Component.Sequence_Store.Implementation is
       -- will not go over the end of the memory region, since we have checked the memory region's length
       -- in the Init, and ensured they are all at least as large as this header.
       Slot_Header : constant Sequence_Store_Slot_Header.T with Import, Convention => Ada, Address => Self.Slots.all (Slot_Index).Address;
+      -- Compute the maximum allowable length for the sequence data within this slot.
+      -- This guards against a corrupted MRAM Length field that could cause an out-of-bounds read.
+      Max_Sequence_Length : constant Natural := Self.Slots.all (Slot_Index).Length - Num_Slot_Meta_Bytes;
+      Clamped_Length : constant Natural := Natural'Min (Slot_Header.Seq_Header.Length, Max_Sequence_Length);
    begin
-      -- Return the address of the beginning of the sequence header and compute the length by using the memory
-      -- region length which includes the size of the sequence header itself.
-      return (Address => Slot_Header.Seq_Header'Address, Length => Slot_Header.Seq_Header.Length);
+      -- Return the address of the beginning of the sequence header and compute the length by using the
+      -- clamped memory region length which includes the size of the sequence header itself.
+      return (Address => Slot_Header.Seq_Header'Address, Length => Clamped_Length);
    end Get_Sequence_Memory_Region;
 
    -- Given a slot number return the maximum sized memory region that could store a   sequence header and sequence data at this slot.
