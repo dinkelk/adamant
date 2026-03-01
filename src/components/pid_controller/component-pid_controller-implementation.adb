@@ -302,4 +302,34 @@ package body Component.Pid_Controller.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Invalid_Parameter_Received (Self.Sys_Time_T_Get, (Id => Par.Header.Id, Errant_Field_Number => Errant_Field_Number, Errant_Field => Errant_Field)));
    end Invalid_Parameter;
 
+   -----------------------------------------------
+   -- Parameter validation:
+   -----------------------------------------------
+   overriding function Validate_Parameters (
+      Self : in out Instance;
+      P_Gain : in Packed_F32.U;
+      I_Gain : in Packed_F32.U;
+      D_Gain : in Packed_F32.U;
+      N_Filter : in Packed_F32.U;
+      I_Min_Limit : in Packed_F32.U;
+      I_Max_Limit : in Packed_F32.U
+   ) return Parameter_Validation_Status.E is
+      pragma Unreferenced (P_Gain, I_Gain, D_Gain);
+   begin
+      -- C1: Validate derivative filter stability. The forward-Euler discretization
+      -- of the derivative filter is unstable when N_Filter * Time_Step >= 2.0.
+      -- Reject parameters that would cause this condition.
+      if N_Filter.Value * Self.Time_Step >= 2.0 then
+         return Parameter_Validation_Status.Invalid;
+      end if;
+
+      -- M2: Validate that I_Min_Limit <= I_Max_Limit. Inverted limits would
+      -- silently disable integral windup protection.
+      if I_Min_Limit.Value > I_Max_Limit.Value then
+         return Parameter_Validation_Status.Invalid;
+      end if;
+
+      return Parameter_Validation_Status.Valid;
+   end Validate_Parameters;
+
 end Component.Pid_Controller.Implementation;

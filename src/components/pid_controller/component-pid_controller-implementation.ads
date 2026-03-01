@@ -147,6 +147,6 @@ private
       N_Filter : in Packed_F32.U;
       I_Min_Limit : in Packed_F32.U;
       I_Max_Limit : in Packed_F32.U
-   ) return Parameter_Validation_Status.E is (Parameter_Validation_Status.Valid);
+   ) return Parameter_Validation_Status.E;
 
 end Component.Pid_Controller.Implementation;
