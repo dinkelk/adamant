@@ -262,3 +262,19 @@ Task_Response : Memory_Enums.Memory_Copy_Status.E := Memory_Enums.Memory_Copy_St
 | 3 | IMPL-03 | **High** | Zero-length copy produces underflow in `End_Index` computation (`Address + 0 - 1`), not rejected anywhere. |
 | 4 | TEST-01 | **High** | Second length-mismatch assertion uses a coincidentally correct expected value; fragile to scratch size changes. |
 | 5 | MOD-01 | **Medium** | `Memory_Region_Copy_T_Send_Dropped` is silently null — a dropped copy request causes silent timeout with no diagnostic, and a dropped release leaks scratch memory. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | pragma Assert in prod | Critical | Fixed | ce34a05 | Runtime check + graceful failure |
+| 2 | Address+Length overflow | High | Fixed | d40cdad | Overflow guard |
+| 3 | Zero-length underflow | High | Fixed | 9fb213b | Early rejection |
+| 4 | Fragile test assertion | High | Fixed | 4db8d56 | Explicit expression |
+| 5 | Null dropped handlers | Medium | Fixed | 310958b | Event logging |
+| 6 | Spurious response acceptance | Medium | Fixed | 86aa8e8 | Is_Waiting guard |
+| 7 | Zero-length test missing | Medium | Not Fixed | 582e207 | Needs codegen |
+| 8 | Sleep-based sync | Medium | Not Fixed | fc27bc6 | Needs infra redesign |
+| 9 | Misleading comments | Low | Fixed | a6a0d1e | Corrected |
+| 10 | Insufficient requirements | Low | Fixed | 7bd249d | 5 added |
+| 11 | Unsynchronized globals | Low | Fixed | 9a05947 | Protected object |
