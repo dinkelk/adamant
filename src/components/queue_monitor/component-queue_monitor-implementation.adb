@@ -68,7 +68,12 @@ package body Component.Queue_Monitor.Implementation is
          -- Send packet;
          Self.Packet_To_Send.Header.Time := Self.Sys_Time_T_Get;
          Self.Packet_T_Send (Self.Packet_To_Send);
-         Self.Packet_To_Send.Header.Sequence_Count := @ + 1;
+         -- Wrap sequence count safely to avoid Constraint_Error if type is ranged:
+         if Self.Packet_To_Send.Header.Sequence_Count = Interfaces.Unsigned_16'Last then
+            Self.Packet_To_Send.Header.Sequence_Count := 0;
+         else
+            Self.Packet_To_Send.Header.Sequence_Count := @ + 1;
+         end if;
       end if;
 
       -- Increment the packet count:
