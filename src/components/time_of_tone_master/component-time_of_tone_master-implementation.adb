@@ -93,7 +93,7 @@ package body Component.Time_Of_Tone_Master.Implementation is
          -- Create the message:
          Message : constant Tick.T := (Time => Arg, Count => Self.Time_Message_Count);
       begin
-         -- Send the tone message:
+         -- Send the time message:
          Self.Time_Message_Send_If_Connected (Message);
 
          -- Send out data products:
