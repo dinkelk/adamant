@@ -21,6 +21,8 @@ private
    overriding procedure Test_Memory_Dump_Dropped (Self : in out Instance);
    -- This unit test tests what happens when more packet ids are sent to the component than the component can track sequence counts for.
    overriding procedure Test_Max_Packet_Id_Exceeded (Self : in out Instance);
+   -- This unit test verifies that setting Max_Packets_Per_Time_Period to 0 via command is rejected with a Failure status and appropriate event.
+   overriding procedure Test_Zero_Max_Packet_Rate (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Memory_Packetizer_Tests.Base_Instance with record

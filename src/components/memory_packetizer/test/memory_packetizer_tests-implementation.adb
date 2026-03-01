@@ -598,4 +598,28 @@ package body Memory_Packetizer_Tests.Implementation is
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (12).Header.Buffer_Length - 1), [0 .. Packet_Data_Length - 1 => 8]);
    end Test_Max_Packet_Id_Exceeded;
 
+   overriding procedure Test_Zero_Max_Packet_Rate (Self : in out Instance) is
+      T : Component.Memory_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Try to set max packet rate to zero via command:
+      T.Command_T_Send (T.Commands.Set_Max_Packet_Rate ((Max_Packets => 0, Period => 1)));
+
+      -- Make sure no events were thrown yet:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Empty the component queue:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- The command should have failed:
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Set_Max_Packet_Rate_Id, Status => Failure));
+
+      -- An invalid command event should have been emitted:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Invalid_Command_Received_History.Get_Count, 1);
+
+      -- No packets should have been produced:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Zero_Max_Packet_Rate;
+
 end Memory_Packetizer_Tests.Implementation;

@@ -11,3 +11,5 @@ tests:
     description: This unit test tests the behavior when the component's queue becomes full and must drop a memory dump request.
   - name: Test_Max_Packet_Id_Exceeded
     description: This unit test tests what happens when more packet ids are sent to the component than the component can track sequence counts for.
+  - name: Test_Zero_Max_Packet_Rate
+    description: This unit test verifies that setting Max_Packets_Per_Time_Period to 0 via command is rejected with a Failure status and appropriate event.
