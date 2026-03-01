@@ -2,7 +2,7 @@
 description: This is a unit test suite for the Memory Stuffer component
 tests:
   - name: Test_Invalid_Initialization
-    description: This unit test makes sure that an invalid initialization results in a runtime assertion.
+    description: This unit test exercises valid initialization, invalid initialization (assertion), and the Set_Up procedure.
   - name: Test_Unprotected_Stuffing
     description: This unit test exercises stuffing a region that is unprotected.
   - name: Test_Protected_Stuffing
