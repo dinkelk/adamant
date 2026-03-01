@@ -10,3 +10,4 @@ requirements:
   - text: The component shall reject parameter table requests to a memory region with an invalid length.
   - text: The component shall reject parameter table updates from a memory region with an invalid length.
   - text: The component shall reject parameter table updates from a memory region with an invalid CRC.
+  - text: The component shall reject parameter table validation requests as unsupported and return a parameter error status.
