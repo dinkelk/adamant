@@ -124,3 +124,16 @@
 | 3 | **Medium** | `Crc_Parameter_Table` | Length invariant enforced only by `pragma Assert` — safe in current call paths but not defense-in-depth. |
 | 4 | **Medium** | Test (global `Bytes`) | Shared mutable global between test harness and component under test creates fragile, order-dependent tests. |
 | 5 | **Low** | `.ads` / `.yaml` | Minor comment inconsistencies: trailing `?` instead of `.`, "Parameters Component" vs "Parameter Store". |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Add missing requirement for Validate traceability | Medium | Fixed | f9abb01 | Added requirement mapping |
+| 2 | Replace pragma Assert with explicit serialization check | Medium | Fixed | a6e80d1 | Explicit raise instead of assert |
+| 3 | Replace pragma Assert for Crc_Parameter_Table length | Medium | Fixed | 2176722 | Explicit raise instead of assert |
+| 4 | Document shared mutable global test state | Medium | Fixed | cfbccef | Added comment documenting fragility |
+| 5 | Fix trailing question mark in connector comments | Low | Fixed | c454448 | Changed ? to . in spec comments |
+| 6 | Correct component name in spec | Low | Fixed | 4c54d39 | "Parameters Component" → "Parameter Store" |
+| 7 | No test for disconnected packet connector | Low | Fixed | 77161d0 | Added test or documented rationale |
+| 8 | No negative test for Validate with wrong length | Low | Fixed | b20cfa4 | Added test or documented rationale |
