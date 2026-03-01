@@ -6,7 +6,7 @@
 with Command;
 with Crc_16;
 
--- The Parameters Component is responsible for updating and reporting the values of the "active" parameters being used in the system. The component does not contain a parameter table itself. Instead it acts as an interface for the rest of the system to component's internal staged parameters. The component allows updating of parameters through a table upload (via Memory_Region.T) or updating of individual parameter values by command. The component also provides a command to fetch all of the parameters held within components and produce a packet with the fetched values. The component can be configured to produce this packet automatically any time a parameter change is requested.
+-- The Parameters Component is responsible for staging, updating, and reporting the values of the "active" parameters being used in the system. The component does not contain a parameter table itself. Instead it acts as an interface for the rest of the system to component's internal staged parameters. The component allows the staging and updating of parameters through a table upload (via Memory_Region_T_Recv_Async) or updating of individual parameter values by command. The component also provides a command to fetch all of the parameters held within components and produce a packet with the fetched values. The component can be configured to produce this packet automatically any time a parameter change is requested.
 package Component.Parameters.Implementation is
 
    -- The component class instance record:
