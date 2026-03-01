@@ -76,3 +76,14 @@ Records are straightforward and correctly typed. No issues.
 | 3 | I1 | **High** | Duplicate-destination guard uses suppressible `pragma Assert`; in production builds with assertions off, invalid configurations are silently accepted. |
 | 4 | I5 | Medium | No null-check on `Self.Mappings` before dereference in `Tick_T_Recv_Sync`; a tick before init causes `Constraint_Error`. |
 | 5 | I6 | Medium | Dropped sends (full queue) are silently ignored — no event, no counter — risking undetected stale snapshots. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Destination_Id never applied | Critical | Fixed | 1e11a6e | Overwrites header ID with Destination_Id before send |
+| 2 | pragma Assert for duplicate check | High | Fixed | 1e11a6e | Replaced with explicit raise Program_Error |
+| 3 | Grammar in spec comment | Low | Fixed | da672d8 | "is" → "are" |
+| 4 | No test verifies Destination_Id | High | Not Fixed | - | Requires test harness changes |
+| 5 | Null mappings dereference | Medium | Not Fixed | - | Defensive check deferred |
+| 6 | Dropped sends silent | Medium | Not Fixed | - | Requires event/counter addition |
