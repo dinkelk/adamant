@@ -74,3 +74,12 @@ The test suite is comprehensive: 8 tests covering sync timing, follow-up, delay 
 | 3 | T1 | Medium | Test | No unit test coverage for counter rollover behavior. |
 | 4 | T2 | Medium | Test | No test validates Follow_Up behavior when PTP is disabled or before first Sync. |
 | 5 | C5 | Low | Implementation | Output-side message drops (`Ptp_Time_Message_T_Send_Dropped`) are silently ignored (null handler), unlike input-side drops which fire events. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Gate Follow_Up on enabled state | Medium | Fixed | c7ab2f2 | Added Enabled and Sync-sent gating |
+| 2 | Document Sync_Once when Enabled | Medium | Fixed | 85bae9a | Added comment |
+| 3 | Fire event on output drop | Low | Fixed | 2e861e9 | Added event notification |
+| 4 | Transaction_Count wrap | Medium | Not Fixed | - | Requires protocol design decision |
