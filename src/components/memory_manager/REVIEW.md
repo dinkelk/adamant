@@ -280,3 +280,17 @@ Self.Tester.Component_Instance.Init (Bytes => Memory'Unchecked_Access, Size => -
 | 3 | TEST-02 | **Medium** | No test covers the `Force_Release` → re-request → stale-release ID collision scenario described in IMPL-04. |
 | 4 | TEST-01 | **Medium** | No test exercises `Current_Id` wrap-around behavior across 65,536+ request/release cycles. |
 | 5 | IMPL-05 | **Low** | Failed request returns `Id => 0` which matches the first valid ID; using `Unsigned_16'Last` as a sentinel would be more defensive. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Force_Release resets Current_Id | Medium | Fixed | - | Removed reset to prevent collision |
+| 2 | Current_Id wraps at 65535 | Medium | Fixed | - | Wraps to 1, skips 0 |
+| 3 | Null drop handlers | Medium | Not Fixed | - | Framework convention |
+| 4 | No ID wrap test | Medium | Not Fixed | - | Needs codegen |
+| 5 | No collision test | Medium | Not Fixed | - | Bug fixed in item 1 |
+| 6 | Spec missing "write" | Low | Fixed | - | Updated |
+| 7 | Typo "parameters" | Low | Fixed | - | Corrected |
+| 8 | Failed request returns ID 0 | Low | Fixed | - | Changed to Unsigned_16'Last |
+| 9 | Test_Init enhancement | Low | Not Fixed | - | Needs model changes |
