@@ -1084,6 +1084,51 @@ package body Memory_Stuffer_Tests.Implementation is
       Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
    end Test_Memory_Region_Copy_Invalid_Address;
 
+   overriding procedure Test_Arm_Zero_Timeout (Self : in out Instance) is
+      use Command_Protector_Enums.Armed_State;
+      use Serializer_Types;
+      Region : Memory_Region.T;
+      T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
+      Cmd : Command.T;
+   begin
+      -- Reset memory regions:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init with protection:
+      T.Component_Instance.Init (Regions'Access, Protection_List'Access);
+
+      -- Send arm command with zero timeout:
+      T.Command_T_Send (T.Commands.Arm_Protected_Write ((Timeout => 0)));
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Arm_Protected_Write_Id, Status => Success));
+
+      -- Expect system to be armed:
+      Natural_Assert.Eq (T.Protected_Write_Enabled_History.Get_Count, 1);
+
+      -- Send a single tick — should immediately time out since timeout is 0:
+      T.Tick_T_Send (((90, 0), 0));
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Expect timeout event:
+      Natural_Assert.Eq (T.Protected_Write_Disabled_Timeout_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Armed_State_History.Get_Count, 2);
+      Packed_Arm_State_Assert.Eq (T.Armed_State_History.Get (2), (State => Unarmed));
+
+      -- Try to write to protected Region_2 — should be denied:
+      Region := (Address => Region_2_Address, Length => Region_2'Length);
+      Ser_Status_Assert.Eq (T.Commands.Write_Memory ((Region.Address, Region.Length, [others => 42]), Cmd), Success);
+      T.Command_T_Send (Cmd);
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Write_Memory_Id, Status => Failure));
+      Natural_Assert.Eq (T.Protected_Write_Denied_History.Get_Count, 1);
+
+      -- Memory unchanged:
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+   end Test_Arm_Zero_Timeout;
+
    overriding procedure Test_Memory_Region_Copy_Protected (Self : in out Instance) is
       use Memory_Enums.Memory_Copy_Status;
       Region : Memory_Region.T;

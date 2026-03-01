@@ -31,6 +31,8 @@ private
    overriding procedure Test_Memory_Region_Copy_Invalid_Address (Self : in out Instance);
    -- This unit test exercises memory region copy to a protected region, verifying it is rejected.
    overriding procedure Test_Memory_Region_Copy_Protected (Self : in out Instance);
+   -- This unit test exercises arming with a zero timeout, which should immediately expire on the next tick.
+   overriding procedure Test_Arm_Zero_Timeout (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Memory_Stuffer_Tests.Base_Instance with record
