@@ -130,13 +130,19 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
    -- Receives and forwards the PTP time for a follow-up message (if connected). The time received is an accurate time stamp of when the Sync message was sent. This time can be provided to this component by a lower level component which actually records the time the Sync message leaves the system.
    overriding procedure Follow_Up_Sys_Time_T_Recv_Async (Self : in out Instance; Arg : in Sys_Time.T) is
       use Ptp_Enums.Ptp_Message_Type;
+      use Ptp_State;
    begin
-      -- Send out follow up message with updated time:
-      Self.Ptp_Time_Message_T_Send ((Message_Type => Follow_Up, Transaction_Count => Self.Transaction_Count, Time_Stamp => Arg));
+      -- Only send a Follow_Up if PTP is enabled (or Sync_Once was used) and at least
+      -- one Sync has been sent (Transaction_Count > 0). This prevents spurious Follow_Up
+      -- messages from reaching slaves when no Sync has been issued or PTP is disabled.
+      if Self.State = Enabled and then Self.Transaction_Count > 0 then
+         -- Send out follow up message with updated time:
+         Self.Ptp_Time_Message_T_Send ((Message_Type => Follow_Up, Transaction_Count => Self.Transaction_Count, Time_Stamp => Arg));
 
-      -- Update data products:
-      Self.Follow_Up_Message_Count := @ + 1;
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Follow_Up_Messages_Sent (Arg, (Value => Self.Follow_Up_Message_Count)));
+         -- Update data products:
+         Self.Follow_Up_Message_Count := @ + 1;
+         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Follow_Up_Messages_Sent (Arg, (Value => Self.Follow_Up_Message_Count)));
+      end if;
    end Follow_Up_Sys_Time_T_Recv_Async;
 
    procedure Queue_Overflow_Event (Self : in out Instance) is
