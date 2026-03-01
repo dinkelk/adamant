@@ -274,4 +274,49 @@ package body Last_Chance_Manager_Tests.Implementation is
       Invalid_Command_Info_Assert.Eq (T.Invalid_Command_Received_History.Get (1), (Id => T.Commands.Get_Dump_Last_Chance_Handler_Region_Id, Errant_Field_Number => Interfaces.Unsigned_32'Last, Errant_Field => [0, 0, 0, 0, 0, 0, 0, 1]));
    end Test_Invalid_Command;
 
+   overriding procedure Test_Dump_At_Startup_Disabled (Self : in out Instance) is
+      T : Component.Last_Chance_Manager.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- The default Set_Up_Test fixture already ran with Dump_Exception_Data_At_Startup => True.
+      -- We need to re-init with False and call Set_Up again to test that path.
+      -- First, note counts from the fixture's Set_Up:
+      -- (1 packet, 1 data product, 0 events from the all-zeros region.)
+      -- Now reinitialize the component with startup dump disabled:
+      Self.Tester.Component_Instance.Init (Exception_Data => Exception_Data'Access, Dump_Exception_Data_At_Startup => False);
+
+      -- Populate the exception region with data indicating a prior crash:
+      Exception_Data := (
+         Exception_Name => [others => 55],
+         Exception_Message => [others => 66],
+         Stack_Trace_Depth => 4,
+         Stack_Trace => [others => (Address => To_Address (Integer_Address (42)))]
+      );
+
+      -- Call Set_Up with startup dump disabled:
+      Self.Tester.Component_Instance.Set_Up;
+
+      -- With the IMPL-01 fix, the data product and LCH event should still be sent,
+      -- but the packet dump should be suppressed.
+      -- Data product: fixture sent 1, this Set_Up should send another = 2
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Lch_Stack_Trace_Info_History.Get_Count, 2);
+
+      -- Verify the data product reflects the crash data:
+      Packed_Stack_Trace_Info_Assert.Eq (T.Lch_Stack_Trace_Info_History.Get (2), (
+         Stack_Trace_Depth => 4,
+         Stack_Trace_Bottom_Address => (Address => To_Address (Integer_Address (42)))
+      ));
+
+      -- The LCH-called event should fire since there's crash data:
+      Natural_Assert.Eq (T.Last_Chance_Handler_Called_History.Get_Count, 1);
+      Packed_Stack_Trace_Info_Assert.Eq (T.Last_Chance_Handler_Called_History.Get (1), (
+         Stack_Trace_Depth => 4,
+         Stack_Trace_Bottom_Address => (Address => To_Address (Integer_Address (42)))
+      ));
+
+      -- No additional packet dump should have been sent (still 1 from fixture):
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Lch_Memory_Region_Dump_History.Get_Count, 1);
+   end Test_Dump_At_Startup_Disabled;
+
 end Last_Chance_Manager_Tests.Implementation;
