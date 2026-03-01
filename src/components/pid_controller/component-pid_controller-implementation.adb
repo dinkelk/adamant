@@ -234,6 +234,12 @@ package body Component.Pid_Controller.Implementation is
                   Self.Diagnostic_Packet.Header.Time := Timestamp;
                end if;
 
+               -- C6: Defensive assertion to catch buffer overrun before it happens.
+               -- The overflow check above should prevent this, but an explicit assertion
+               -- makes the invariant clear and catches logic errors during development.
+               pragma Assert (Diagnostic_Packet_Index + Pid_Diagnostic_Subpacket.Max_Serialized_Length <= Self.Diagnostic_Packet.Buffer'Length,
+                  "Diagnostic packet buffer overrun: index would exceed buffer bounds");
+
                -- Fill the packet buffer with diagnostic data from this cycle:
                Self.Diagnostic_Packet.Buffer (Diagnostic_Packet_Index .. Diagnostic_Packet_Index + Pid_Diagnostic_Subpacket.Max_Serialized_Length - 1) :=
                   Pid_Diagnostic_Subpacket.Serialization.To_Byte_Array ((Measured_Angle => Arg.Measured_Value, Reference_Angle => Arg.Commanded_Value, Current_Out_Angle => Pid_Control_Output));
