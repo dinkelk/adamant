@@ -271,3 +271,17 @@ end Test_Command_Parameter_Interaction;
 | 3 | **Medium** | Model (2.1) | Parameter default (`1`) differs from typical init value (`3`) with no documented rationale |
 | 4 | **Low** | Documentation (1.1) | Data Products subsection missing from LaTeX design document |
 | 5 | **Low** | Model (1.2) | Inconsistent naming: `Max_Send_Per_Tick_Set` (singular) vs all other identifiers using plural "Sends" |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Command/parameter desync | High | Fixed | b413cb9 | Command now syncs param table |
+| 2 | Default mismatch | Medium | Fixed | 48695ea | Aligned to 3 |
+| 3 | No interaction test | Medium | Fixed | 64646f3 | Added command-then-tick test |
+| 4 | Missing Data Products in doc | Low | Fixed | a703ce9 | Added subsection |
+| 5 | Naming inconsistency | Low | Fixed | 004b6f3 | Renamed across all files |
+| 6 | Missing overflow requirement | Low | Fixed | 571afe4 | Added |
+| 7 | Items_Dispatched observability | Low | Not Fixed | 7d03e65 | Needs model changes |
+| 8 | Drop count unasserted | Low | Fixed | 87bdcb8 | Added assertion |
+| 9 | Boundary test | Low | Fixed | 3cc5157 | Added Unsigned_16'Last test |
