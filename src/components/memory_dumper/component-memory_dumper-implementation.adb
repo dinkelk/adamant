@@ -45,8 +45,12 @@ package body Component.Memory_Dumper.Implementation is
       Ignore : Natural;
    begin
       if Memory_Manager_Types.Is_Region_Valid (Arg, Self.Regions, Ptr, Ignore) then
-         Self.Event_T_Send_If_Connected (Self.Events.Dumping_Memory (Self.Sys_Time_T_Get, Arg));
-         Self.Memory_Dump_Send ((Id => Self.Packets.Get_Memory_Dump_Packet_Id, Memory_Pointer => Ptr));
+         declare
+            Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+         begin
+            Self.Event_T_Send_If_Connected (Self.Events.Dumping_Memory (Time, Arg));
+            Self.Memory_Dump_Send ((Id => Self.Packets.Get_Memory_Dump_Packet_Id, Memory_Pointer => Ptr));
+         end;
          return Success;
       else
          Self.Event_T_Send_If_Connected (Self.Events.Invalid_Memory_Region (Self.Sys_Time_T_Get, Arg));
