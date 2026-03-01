@@ -247,3 +247,14 @@
 | 3 | IMP-04 | **Medium** | `implementation.ads` | All outbound `*_Dropped` handlers are null — dropped memory dumps and command responses are silently lost. |
 | 4 | DOC-04 | **Medium** | `requirements.yaml` | Requirements lack unique IDs, hindering formal traceability in a safety-critical context. |
 | 5 | TST-01 | **Medium** | `test/` (missing) | No unit test exercises the queue-full / command-dropped scenario. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Null Command_Dropped handler | High | Fixed | - | Added event + handler |
+| 2 | Multiple Sys_Time calls | Medium | Fixed | - | Single timestamp |
+| 3 | All *_Dropped null | Medium | Not Fixed | - | Needs model regen |
+| 4 | No requirement IDs | Medium | Fixed | - | Added REQ-MD-001–003 |
+| 5 | No queue-full test | Medium | Not Fixed | - | Needs codegen |
+| 6-11 | Low items | Low | Mixed | - | Comments, descriptions, variable cleanup |
