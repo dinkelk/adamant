@@ -239,10 +239,15 @@ package body Component.Product_Packetizer.Implementation is
       Ignore : Tick.T renames Arg;
       Messages_Dispatched : Natural;
 
-      -- Helper to build a packet (without on-change evaluation) and immediately dispatch it.
+      -- Helper to build a packet and immediately dispatch it.
+      -- When Update_Emission_Time is False (e.g. for Send_Now), the
+      -- Last_Emission_Time is not updated, preserving the on-change
+      -- detection baseline so that a Send_Now command does not suppress
+      -- a legitimate on-change emission on the next period tick.
       procedure Build_And_Send (
          Packet_Desc : in out Product_Packet_Types.Packet_Description_Type;
-         Send_Only_On_Change : Boolean := False
+         Send_Only_On_Change : Boolean := False;
+         Update_Emission_Time : Boolean := True
       ) is
          Changed : Boolean;
          Built_Packet : constant Packet.T := Self.Build_Packet (
@@ -257,7 +262,9 @@ package body Component.Product_Packetizer.Implementation is
          -- actually changed.
          if not Send_Only_On_Change or else Changed then
             Self.Packet_T_Send_If_Connected (Built_Packet);
-            Packet_Desc.Last_Emission_Time := Arg.Time;
+            if Update_Emission_Time then
+               Packet_Desc.Last_Emission_Time := Arg.Time;
+            end if;
             Packet_Desc.Count := @ + 1;
          end if;
       end Build_And_Send;
@@ -270,7 +277,7 @@ package body Component.Product_Packetizer.Implementation is
       for Packet_Desc of Self.Packet_List.all loop
          -- See if send command was sent:
          if Packet_Desc.Send_Now then
-            Build_And_Send (Packet_Desc);
+            Build_And_Send (Packet_Desc, Update_Emission_Time => False);
             Packet_Desc.Send_Now := False;
          -- Check if packet is enabled or on change:
          elsif (Packet_Desc.Enabled = Product_Packet_Types.Enabled or else
