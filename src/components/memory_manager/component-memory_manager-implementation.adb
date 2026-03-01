@@ -111,7 +111,7 @@ package body Component.Memory_Manager.Implementation is
    --
    -- Init Parameters:
    -- bytes : Basic_Types.Byte_Array_Access - A pointer to an allocation of bytes to be used for the memory region. If this is set to null, then memory will be allocated on the heap using the "size" parameter instead. Note: This must be set to null if the "size" parameter is positive below.
-   -- size : Integer - The number of bytes to allocate on the heap for the memory region. Note: This must be set to a negative value if the "bytes" parameters is not null.
+   -- size : Integer - The number of bytes to allocate on the heap for the memory region. Note: This must be set to a negative value if the "bytes" parameter is not null.
    --
    overriding procedure Init (Self : in out Instance; Bytes : in Basic_Types.Byte_Array_Access := null; Size : in Integer := -1) is
       use Basic_Types;
