@@ -100,7 +100,7 @@ package body Logger_Tests.Implementation is
       Natural_Assert.Eq (T.Mode_History.Get_Count, 1);
       Logger_Mode_Assert.Eq (T.Mode_History.Get (1).Current_Mode, Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       The_Tick := ((1, 2), 3);
       T.T_Send (The_Tick);
       Bytes_To_Compare (Idx .. Idx + Tick_32.Serialization.Serialized_Length - 1) := Tick_32.Serialization.To_Byte_Array (The_Tick);
@@ -346,7 +346,7 @@ package body Logger_Tests.Implementation is
       Natural_Assert.Eq (T.Mode_History.Get_Count, 1);
       Logger_Mode_Assert.Eq (T.Mode_History.Get (1).Current_Mode, Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       The_Tick := ((1, 2), 3);
       T.T_Send (The_Tick);
       Bytes_To_Compare (Idx .. Idx + Tick_32.Serialization.Serialized_Length - 1) := Tick_32.Serialization.To_Byte_Array (The_Tick);
@@ -585,7 +585,7 @@ package body Logger_Tests.Implementation is
       Natural_Assert.Eq (T.Mode_History.Get_Count, 2);
       Logger_Mode_Assert.Eq (T.Mode_History.Get (2).Current_Mode, Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       The_Tick := ((1, 2), 3);
       T.T_Send (The_Tick);
       The_Tick := ((4, 5), 6);

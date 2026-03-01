@@ -97,7 +97,7 @@ package body Variable_Tests.Implementation is
       -- Initialize the component:
       T.Component_Instance.Init (Bytes => Log_Bytes'Unchecked_Access, Meta_Data => Meta_Data'Unchecked_Access, Initial_Mode => Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       Var := (0, [0 => 1, 1 => 2, 2 => 3, others => 9]);
       T.T_Send (Var);
       Put_Line (Basic_Types.Representation.Image (Log_Bytes));
