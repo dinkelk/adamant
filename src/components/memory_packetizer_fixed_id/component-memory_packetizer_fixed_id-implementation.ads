@@ -7,7 +7,7 @@ with Memory_Packetizer_Types;
 with Command;
 with Ada.Real_Time;
 
--- This active component receives memory pointer information on an asynchronous queue. It then reads the data that these pointers reference into packets, producing multiple maximum sized packets, if necessary, to packetize the entire memory region. This component is similar to the Memory Packetizer except that all packets produced have the same packet ID, assigned to this component at initialization. This component ignores the ID field found in the Memory_Dump_Recv_Sync connector.
+-- This active component receives memory pointer information on an asynchronous queue. It then reads the data that these pointers reference into packets, producing multiple maximum sized packets, if necessary, to packetize the entire memory region. This component is similar to the Memory Packetizer except that all packets produced have the same packet ID, assigned to this component at initialization. This component ignores the ID field found in the Memory_Dump_Recv_Async connector.
 package Component.Memory_Packetizer_Fixed_Id.Implementation is
 
    -- The component class instance record:
