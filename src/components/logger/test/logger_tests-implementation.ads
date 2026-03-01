@@ -25,6 +25,8 @@ private
    overriding procedure Test_Enable_Disable (Self : in out Instance);
    -- This unit test tests initializing the log with both valid and invalid values.
    overriding procedure Test_Init (Self : in out Instance);
+   -- This unit test tests dump commands on an enabled but empty log to exercise the zero-length buffer edge case.
+   overriding procedure Test_Dump_Empty_Enabled (Self : in out Instance);
    -- This unit test makes sure an invalid command is reported and ignored.
    overriding procedure Test_Invalid_Command (Self : in out Instance);
 
