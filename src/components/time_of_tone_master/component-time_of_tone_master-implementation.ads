@@ -87,7 +87,7 @@ private
    --    Commands for the Time of Tone Master component.
    -- This enables the sending of time at tone messages.
    overriding function Enable_Time_At_Tone (Self : in out Instance) return Command_Execution_Status.E;
-   -- This enables the sending of time at tone messages.
+   -- This disables the sending of time at tone messages.
    overriding function Disable_Time_At_Tone (Self : in out Instance) return Command_Execution_Status.E;
    -- This sends a time at tone message followed by a tone message at the next tick, regardless of the current sync period. This is useful during testing to send a sync one time.
    overriding function Sync_Once (Self : in out Instance) return Command_Execution_Status.E;
