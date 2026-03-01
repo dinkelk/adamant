@@ -78,8 +78,9 @@ package body Component.Memory_Manager.Implementation is
          use Memory_Manager_Enums.Memory_State;
       begin
          -- Make the memory available, no questions asked.
+         -- Do NOT reset Current_Id; let it continue incrementing to avoid
+         -- ID collisions with the force-released holder.
          Current_State := Available;
-         Current_Id := 0;
          -- Update the data product. This needs to be done inside the protected
          -- object in order to ensure a race condition does not make the data product
          -- invalid:
