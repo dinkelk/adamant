@@ -150,6 +150,13 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Queue_Overflowed (Self.Sys_Time_T_Get));
    end Queue_Overflow_Event;
 
+   -- This procedure is called when a Ptp_Time_Message_T_Send message is dropped due to a full queue.
+   overriding procedure Ptp_Time_Message_T_Send_Dropped (Self : in out Instance; Arg : in Ptp_Time_Message.T) is
+      Ignore : Ptp_Time_Message.T renames Arg;
+   begin
+      Self.Queue_Overflow_Event;
+   end Ptp_Time_Message_T_Send_Dropped;
+
    -- This procedure is called when a Tick_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Tick_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Tick.T) is
    begin
