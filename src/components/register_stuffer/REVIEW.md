@@ -123,3 +123,11 @@ Bytes_To_Add : constant Address_Mod_Type := Address_Mod_Type (Arg.Num_Registers 
 | 3 | 3.4 | **Medium** | `Read_Register` and `Dump_Registers` unconditionally call `Do_Unarm` when protection is enabled, emitting spurious "Unarmed" events/data products even when already unarmed. |
 | 4 | T5 | **Medium** | Endianness swap in `Dump_Registers` is not meaningfully tested because tests run on a little-endian host where the swap is a no-op. |
 | 5 | D1 | **Medium** | `requirements.yaml` covers only 4 of ~10+ implemented behaviors; arm/unarm, timeout, dump, address validation, and overflow detection are all untraced. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Integer overflow in Is_End_Address_Valid | High | Fixed | 11cad74 | Modular arithmetic for multiplication |
+| 2 | Last_Addr overflow before validation | High | Fixed | 3c35941 | Moved computation after check |
+| 3 | Unconditional Do_Unarm spurious events | Medium | Fixed | d6c99e4 | Check armed state before unarming |
