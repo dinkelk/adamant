@@ -170,12 +170,9 @@ package body Component.Memory_Packetizer.Implementation is
             -- Increment the number of packets:
             Self.Num_Packets_Sent := @ + 1;
 
-            -- Increment the sequence count, only if we are tracking this id's sequence count:
-            if Sequence_Count_Entry_Index >= Self.Sequence_Count_List'First and then
-                Sequence_Count_Entry_Index <= Self.Sequence_Count_List'Last
-            then
-               Sequence_Count := @ + 1;
-            end if;
+            -- Always increment the local sequence count so packets within
+            -- a single dump are distinguishable, even if the id is untracked:
+            Sequence_Count := @ + 1;
          end;
       end loop;
 
