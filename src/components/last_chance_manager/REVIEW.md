@@ -193,3 +193,18 @@ description: The second packet listed here is not actually produced by the Last 
 | 3 | IMPL-01 | **Medium** | Data product and LCH-called event are suppressed when startup dump is disabled, hiding prior crashes. |
 | 4 | MOD-02 | **Low** | Requirements do not cover data-product reporting, LCH-detected event, or startup-dump behaviour. |
 | 5 | DOC-01 | **Low** | Requirements description references "Last Chance Handler component" instead of "Last Chance Manager." |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Dump_At_Startup=False untested | High | Fixed | 9e22815 | Added test |
+| 2 | Events lack severity | Medium | Not Fixed | 266379b | No schema support |
+| 3 | Silent crash evidence hiding | Medium | Fixed | 0a0a952 | Always sends DP + event |
+| 4 | Wrong component name in reqs | Low | Fixed | a497de9 | Corrected |
+| 5 | LaTeX escapes in YAML | Low | Fixed | f401e47 | Removed |
+| 6 | Empty LaTeX sections | Low | Fixed | bec2791 | Removed |
+| 7 | Missing requirements | Low | Fixed | e2c9770 | Added 3 |
+| 8 | Unused time connector | Low | Fixed | b67a077 | Resolved by item 3 |
+| 9 | Null handlers | Low | Not Fixed | c14e53f | Can't test meaningfully |
+| 10 | Double Set_Up intent | Low | Fixed | 75fe90a | Added comment |
