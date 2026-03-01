@@ -203,6 +203,13 @@ package body Component.Memory_Copier.Implementation is
       use Command_Execution_Status;
       Ided_Region : Ided_Memory_Region.T;
    begin
+      -- Reject zero-length copy commands to prevent underflow in End_Index computation.
+      if Arg.Source_Length = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (Self.Sys_Time_T_Get,
+            (Id => 0, Errant_Field_Number => 1, Errant_Field => [others => 0])));
+         return Failure;
+      end if;
+
       -- Send informational event:
       Self.Event_T_Send_If_Connected (Self.Events.Starting_Copy (Self.Sys_Time_T_Get, Arg));
 
