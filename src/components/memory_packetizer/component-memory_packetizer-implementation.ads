@@ -45,7 +45,7 @@ private
       -- A list of sequence count trackers.
       Sequence_Count_List : Sequence_Count_Tracker_List_Access := null;
       -- The length of the time period.
-      Time_Period_S : Positive; -- in seconds
+      Time_Period_S : Positive := 1; -- in seconds
       Time_Period : Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (1_000);
       -- Time denoting the beginning of the next time period.
       Next_Period_Start : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
