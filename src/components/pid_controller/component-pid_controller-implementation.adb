@@ -62,7 +62,12 @@ package body Component.Pid_Controller.Implementation is
       Self.Diagnostic_Counter.Set_Count (0);
 
       -- Setup the moving average object if the max size is set to something other than 0
+      -- M1: Validate that Moving_Average_Init_Samples is >= -1 (where -1 means "use max").
+      -- Values less than -1 are not meaningful and could cause undefined behavior.
       if Moving_Average_Max_Samples > 0 then
+         if Moving_Average_Init_Samples < -1 then
+            raise Constraint_Error with "Moving_Average_Init_Samples must be >= -1, got" & Integer'Image (Moving_Average_Init_Samples);
+         end if;
          Self.Ma_Stats.Init (Sample_Storage_Size => Moving_Average_Max_Samples, Sample_Calculation_Size => Moving_Average_Init_Samples);
          Self.Use_Ma_Stats := True;
       else
