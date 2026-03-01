@@ -53,7 +53,11 @@ package body Component.Pid_Controller.Implementation is
    overriding procedure Init (Self : in out Instance; Control_Frequency : in Short_Float; Database_Update_Period : in Unsigned_16; Moving_Average_Max_Samples : in Natural; Moving_Average_Init_Samples : in Integer := -1) is
    begin
       -- Set the control time step (period):
-      pragma Assert (Control_Frequency > 0.0, "The control frequency must be a positive floating point value.");
+      -- C4: Use a proper runtime check instead of pragma Assert, which can be
+      -- disabled in production builds with -gnatp, silently producing Inf/NaN.
+      if not (Control_Frequency > 0.0) then
+         raise Constraint_Error with "The control frequency must be a positive floating point value.";
+      end if;
       Self.Time_Step := 1.0 / Control_Frequency;
 
       -- Set the database update period:
