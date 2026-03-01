@@ -289,10 +289,7 @@ class parameter_table(assembly_submodel):
             self.parameters[table_entry.name] = table_entry
             # Append to component dictionary for all parameters in this entry
             for param in table_entry.parameters:
-                try:
-                    self.components[param.component.instance_name] = param.component
-                except KeyError:
-                    pass
+                self.components[param.component.instance_name] = param.component
 
         # Track dependencies as we go
         dependencies = []
