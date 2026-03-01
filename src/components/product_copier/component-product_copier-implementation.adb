@@ -35,10 +35,9 @@ package body Component.Product_Copier.Implementation is
       -- make sure no two destinations have the same ID, otherwise raise an error
       for I in Products_To_Copy'Range loop
          for J in I + 1 .. Products_To_Copy'Last loop
-            pragma Assert (
-               Products_To_Copy (I).Destination_Id /= Products_To_Copy (J).Destination_Id
-            );
-            pragma Annotate (GNATSAS, Intentional, "assertion", "This assertion is intentionally designed to raise an exception if duplicate destination IDs are found during initialization validation.");
+            if Products_To_Copy (I).Destination_Id = Products_To_Copy (J).Destination_Id then
+               raise Program_Error with "Duplicate destination ID detected during Product_Copier initialization.";
+            end if;
          end loop;
       end loop;
 
@@ -89,9 +88,15 @@ package body Component.Product_Copier.Implementation is
                      );
                   end if;
 
-               -- send to dest
+               -- send to dest with destination ID applied
                when Fetch_Status.Success =>
-                  Self.Data_Product_T_Send (Dp_Return.The_Data_Product);
+                  declare
+                     Copied_Product : Data_Product.T := Dp_Return.The_Data_Product;
+                  begin
+                     -- Apply the destination ID to the copied product header
+                     Copied_Product.Header.Id := Mapping.Destination_Id;
+                     Self.Data_Product_T_Send (Copied_Product);
+                  end;
             end case;
          end;
       end loop;
