@@ -52,7 +52,7 @@ private
    overriding procedure Command_T_Recv_Async (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T);
-   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region?
+   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region.
    overriding procedure Parameters_Memory_Region_T_Recv_Async (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
    -- This procedure is called when a Parameters_Memory_Region_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Parameters_Memory_Region_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region.T);

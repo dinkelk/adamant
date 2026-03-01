@@ -93,7 +93,7 @@ package body Component.Parameter_Store.Implementation is
       Self.Command_Response_T_Send_If_Connected ((Source_Id => Arg.Header.Source_Id, Registration_Id => Self.Command_Reg_Id, Command_Id => Arg.Header.Id, Status => Stat));
    end Command_T_Recv_Async;
 
-   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region?
+   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region.
    overriding procedure Parameters_Memory_Region_T_Recv_Async (Self : in out Instance; Arg : in Parameters_Memory_Region.T) is
       use Parameter_Enums.Parameter_Table_Operation_Type;
       use Parameter_Enums.Parameter_Table_Update_Status;
