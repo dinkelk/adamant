@@ -35,7 +35,7 @@ mapping:
           action:
             type: str
             enum: ['disabled', 'warn', 'error_fault']
-            required: False
+            required: True
           # If the action has the potential for a fault, then an id must be provided
           fault_id:
             type: int
