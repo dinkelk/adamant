@@ -50,26 +50,19 @@ package body Component.Memory_Copier.Implementation is
    -- The memory region is returned synchronously on this connector. The component waits internally for this response, or times out if the response is not received in time.
    overriding procedure Memory_Region_Release_T_Recv_Sync (Self : in out Instance; Arg : in Memory_Region_Release.T) is
    begin
-      -- First set the protected response with the response from the component.
-      -- In this function we simply store whatever we get. The error handling based on the
-      -- contents of this response are done by this component's task (executing the command).
+      -- Guard against spurious or duplicate responses: only accept when we are actually waiting.
+      if not Self.Sync_Object.Is_Waiting then
+         -- Spurious response received while not waiting — ignore it.
+         return;
+      end if;
+
+      -- Set the protected response with the response from the component.
+      -- The error handling based on the contents of this response are done by this
+      -- component's task (executing the command).
       Self.Response.Set_Var (Arg);
 
-      -- Ok we have stored the response for the component to look at later. Now we signal
-      -- to the component that a response has been received and it can read it.
+      -- Signal to the component that a response has been received and it can read it.
       Self.Sync_Object.Release;
-
-      -- Note, there is a possible race condition here. Think, we could set the response
-      -- within the component, and then release it to allow reading of this data. Before
-      -- the component reads the data, however, we may receive another response, overwriting
-      -- the data the component receives before it can read the old data. This sounds serious,
-      -- but this behavior should never occur, since the downstream components should not ever
-      -- return a response to this component unprovoked.
-      --
-      -- Note, the protected buffer and the sync object are both protected objects, so there
-      -- is no risk of data corruption (which would be a serious problem), there is just risk of
-      -- out of order synchronization, which should not occur if the assembly is designed
-      -- correctly, as described above.
    end Memory_Region_Release_T_Recv_Sync;
 
    -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
