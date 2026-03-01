@@ -107,6 +107,19 @@ package body Component.Pid_Controller.Implementation is
       --
       -- Use the updated parameters to calculate the control output.
       --
+      -- C5: Guard against NaN/Inf inputs from failed sensors. If either input
+      -- is non-finite, skip control computation and output the feed-forward value
+      -- as a safe fallback to avoid propagating NaN through the control chain.
+      if not (Arg.Commanded_Value'Valid and then Arg.Measured_Value'Valid and then Arg.Feed_Forward_Value'Valid) then
+         -- Output only the feed-forward if it is valid, otherwise output 0.0
+         if Arg.Feed_Forward_Value'Valid then
+            Self.Control_Output_U_Send_If_Connected ((Time => Arg.Time, Output_Value => Arg.Feed_Forward_Value, Error => 0.0));
+         else
+            Self.Control_Output_U_Send_If_Connected ((Time => Arg.Time, Output_Value => 0.0, Error => 0.0));
+         end if;
+         return;
+      end if;
+
       -- Note on discretization: The integral and derivative terms use backward-Euler
       -- (rectangular) integration with the *previous* cycle's error. This means on the
       -- very first iteration after First_Iteration=True, only P*error + feed_forward
