@@ -11,4 +11,5 @@ requirements:
   - text: The component shall reject copy requests whose destination falls outside configured memory regions.
   - text: The component shall reject copy requests whose destination is a protected memory region.
   - text: The component shall release the source memory region after a copy operation completes (success or failure).
+  - text: The memory region copy and release connectors may be left disconnected if the copy feature is not needed.
 
