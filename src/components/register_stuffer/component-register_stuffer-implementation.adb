@@ -196,9 +196,17 @@ package body Component.Register_Stuffer.Implementation is
       -- Get the time:
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Unarm if armed:
+      -- Unarm only if currently armed, to avoid spurious Unarmed events:
       if Self.Protect_Registers then
-         Do_Unarm (Self);
+         declare
+            use Command_Protector_Enums.Armed_State;
+            Ignore_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
+            State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Ignore_Timeout);
+         begin
+            if State = Armed then
+               Do_Unarm (Self);
+            end if;
+         end;
       end if;
 
       -- Make sure the register address is on a 32-bit boundary:
@@ -249,9 +257,17 @@ package body Component.Register_Stuffer.Implementation is
       -- Get the time:
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Unarm if armed:
+      -- Unarm only if currently armed, to avoid spurious Unarmed events:
       if Self.Protect_Registers then
-         Do_Unarm (Self);
+         declare
+            use Command_Protector_Enums.Armed_State;
+            Ignore_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
+            State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Ignore_Timeout);
+         begin
+            if State = Armed then
+               Do_Unarm (Self);
+            end if;
+         end;
       end if;
 
       declare
