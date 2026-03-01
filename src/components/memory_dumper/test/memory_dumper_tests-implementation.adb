@@ -352,7 +352,7 @@ package body Memory_Dumper_Tests.Implementation is
       Natural_Assert.Eq (T.Invalid_Memory_Region_History.Get_Count, 2);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (2), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with address out of range:
       Region := (Address => Region_1_Address - Storage_Offset (1), Length => Region_1'Length);
       Put_Line ("Sending region with address out of range:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -373,7 +373,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (3), Region);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (4), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with everything out of range:
       Region := (Address => Region_2_Address - Storage_Offset (1), Length => Region_1'Length + 2);
       Put_Line ("Sending region with everything out of range:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -394,7 +394,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (5), Region);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (6), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with region extending past boundary:
       Region := (Address => Region_2_Address + Storage_Offset (5), Length => 16);
       Put_Line ("Sending region with everything out of range:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -436,7 +436,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (9), Region);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (10), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with valid sub-region of region 2:
       Region := (Address => Region_2_Address + Storage_Offset (5), Length => 15);
       Put_Line ("Sending valid region:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
