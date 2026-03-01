@@ -11,7 +11,6 @@ with Memory_Region_Positive.Assertion; use Memory_Region_Positive.Assertion;
 with Memory_Region_Positive.Representation;
 with Memory_Region_Crc.Assertion; use Memory_Region_Crc.Assertion;
 with Memory_Region_Crc.Representation;
-with Memory_Dumper_Packets;
 with Byte_Array_Pointer.Assertion; use Byte_Array_Pointer.Assertion;
 with Packet_Types;
 with Smart_Assert;
@@ -63,7 +62,6 @@ package body Memory_Dumper_Tests.Implementation is
       use System;
       T : Component.Memory_Dumper.Implementation.Tester.Instance_Access renames Self.Tester;
       Region : Memory_Region_Positive.T;
-      Packets : Memory_Dumper_Packets.Instance;
    begin
       -- Make sure no events are thrown at start up:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
@@ -94,7 +92,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (1), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (1).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (1).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (1).Memory_Pointer, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Send command to dump entire second region:
@@ -123,7 +121,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (2), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (2).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (2).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (2).Memory_Pointer, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
 
       -- Send command to dump partial first region:
@@ -146,7 +144,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (3), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (3).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (3).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (3).Memory_Pointer, [1, 2, 3, 4, 5]);
 
       -- Send command to dump partial second region:
@@ -169,7 +167,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (4), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (4).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (4).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (4).Memory_Pointer, [86, 85, 84, 83, 82, 81]);
    end Test_Nominal_Dumping;
 
