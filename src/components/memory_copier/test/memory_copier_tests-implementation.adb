@@ -179,7 +179,7 @@ package body Memory_Copier_Tests.Implementation is
       Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
       Dest : Basic_Types.Byte_Array (0 .. 99) := [others => 44];
    begin
-      -- Send command to copy region 1 byte too large:
+      -- Send command to copy region (will return failure status):
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => 5, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
@@ -215,7 +215,7 @@ package body Memory_Copier_Tests.Implementation is
       Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
       Dest : Basic_Types.Byte_Array (0 .. 99) := [others => 44];
    begin
-      -- Send command to copy region 1 byte too large:
+      -- Send command to copy region (will time out):
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => T.Scratch'Length, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
@@ -252,7 +252,7 @@ package body Memory_Copier_Tests.Implementation is
       -- Set scratch return status:
       T.Scratch_Return_Status := Memory_Manager_Enums.Memory_Request_Status.Failure;
 
-      -- Send command to copy region 1 byte too large:
+      -- Send command to copy region (memory will be unavailable):
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => T.Scratch'Length, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
