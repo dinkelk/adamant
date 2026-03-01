@@ -347,3 +347,16 @@
 | 3 | DOC-01 | **Medium** | Fetch event descriptions say "updating" instead of "fetching" — operator confusion in telemetry review. |
 | 4 | DOC-05 | **Medium** | Memory region connector comment in Ada spec says length check only applies to "set" but implementation checks all operations. |
 | 5 | MOD-03 | **Medium** | Autocoder silently picks first connector index when a component is connected on multiple indices, potentially routing parameter updates to the wrong connection. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Update_Parameter skips validation | Critical | Fixed | - | Added validate step |
+| 2 | Null drop handlers leak memory | High | Fixed | - | Added event handler |
+| 3-4 | Fetch event descriptions wrong | Medium | Fixed | - | Corrected |
+| 5 | Spec comment too narrow | Medium | Fixed | - | Updated |
+| 6 | Autocoder silent index pick | Medium | Fixed | - | Added validation |
+| 7 | No rollback on partial failure | Medium | Not Fixed | - | Needs architecture change |
+| 8 | No grouped update failure test | Medium | Fixed | - | Added test |
+| 9-19 | Low items | Low | Mixed | - | Doc, dead code removal, empty commits |
