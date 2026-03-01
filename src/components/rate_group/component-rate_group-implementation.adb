@@ -39,7 +39,7 @@ package body Component.Rate_Group.Implementation is
       Execution_Time : Time_Span;
       Stop_Wall_Time : Sys_Time.T;
       Event_Time : Delta_Time.T;
-      Ignore : Sys_Time_Status;
+      Dt_Status : Sys_Time_Status;
       Sw : Stopwatch.Wall_Timer_Instance;
       Sw_Cpu : Stopwatch.Cpu_Timer_Instance;
    begin
@@ -89,14 +89,16 @@ package body Component.Rate_Group.Implementation is
          if Cycle_Time > Self.Max_Cycle_Time then
             Self.Max_Cycle_Time := Cycle_Time;
             if Self.Issue_Time_Exceeded_Events then
-               Ignore := To_Delta_Time (Self.Max_Cycle_Time, Event_Time);
+               Dt_Status := To_Delta_Time (Self.Max_Cycle_Time, Event_Time);
+               pragma Assert (Dt_Status = Success, "To_Delta_Time conversion failed for Max_Cycle_Time");
                Self.Event_T_Send_If_Connected (Self.Events.Max_Cycle_Time_Exceeded (Stop_Wall_Time, (Time_Delta => Event_Time, Count => Arg.Count)));
             end if;
          end if;
          if Execution_Time > Self.Max_Execution_Time then
             Self.Max_Execution_Time := Execution_Time;
             if Self.Issue_Time_Exceeded_Events then
-               Ignore := To_Delta_Time (Self.Max_Execution_Time, Event_Time);
+               Dt_Status := To_Delta_Time (Self.Max_Execution_Time, Event_Time);
+               pragma Assert (Dt_Status = Success, "To_Delta_Time conversion failed for Max_Execution_Time");
                Self.Event_T_Send_If_Connected (Self.Events.Max_Execution_Time_Exceeded (Stop_Wall_Time, (Time_Delta => Event_Time, Count => Arg.Count)));
             end if;
          end if;
@@ -113,10 +115,14 @@ package body Component.Rate_Group.Implementation is
                   Timing_Report : Task_Timing_Report.T;
                begin
                   -- Convert Time_Spans to the Delta_Time.T's stored in the data product type:
-                  Ignore := To_Delta_Time (Self.Max_Cycle_Time, Timing_Report.Max.Wall_Time);
-                  Ignore := To_Delta_Time (Self.Max_Execution_Time, Timing_Report.Max.Execution_Time);
-                  Ignore := To_Delta_Time (Self.Recent_Max_Cycle_Time, Timing_Report.Recent_Max.Wall_Time);
-                  Ignore := To_Delta_Time (Self.Recent_Max_Execution_Time, Timing_Report.Recent_Max.Execution_Time);
+                  Dt_Status := To_Delta_Time (Self.Max_Cycle_Time, Timing_Report.Max.Wall_Time);
+                  pragma Assert (Dt_Status = Success, "To_Delta_Time conversion failed for Max_Cycle_Time DP");
+                  Dt_Status := To_Delta_Time (Self.Max_Execution_Time, Timing_Report.Max.Execution_Time);
+                  pragma Assert (Dt_Status = Success, "To_Delta_Time conversion failed for Max_Execution_Time DP");
+                  Dt_Status := To_Delta_Time (Self.Recent_Max_Cycle_Time, Timing_Report.Recent_Max.Wall_Time);
+                  pragma Assert (Dt_Status = Success, "To_Delta_Time conversion failed for Recent_Max_Cycle_Time DP");
+                  Dt_Status := To_Delta_Time (Self.Recent_Max_Execution_Time, Timing_Report.Recent_Max.Execution_Time);
+                  pragma Assert (Dt_Status = Success, "To_Delta_Time conversion failed for Recent_Max_Execution_Time DP");
 
                   -- Send the data product:
                   Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Timing_Report (Stop_Wall_Time, Timing_Report));
