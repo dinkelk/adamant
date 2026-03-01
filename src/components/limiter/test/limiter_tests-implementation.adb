@@ -299,6 +299,8 @@ package body Limiter_Tests.Implementation is
       -- Make sure event thrown:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Data_Dropped_History.Get_Count, 1);
+      -- Verify the tester's drop counter as well:
+      Natural_Assert.Eq (T.T_Send_Dropped_Count, 1);
    end Test_Queue_Overflow;
 
    overriding procedure Test_Invalid_Command (Self : in out Instance) is
