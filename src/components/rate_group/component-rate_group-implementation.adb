@@ -55,12 +55,15 @@ package body Component.Rate_Group.Implementation is
          end if;
       end loop;
 
+      -- Capture wall clock time immediately after rate group execution completes,
+      -- before pet send and CPU timer stop, to avoid inflating the reported cycle time:
+      Stop_Wall_Time := Self.Sys_Time_T_Get;
+
       -- Pet the watchdog to indicate this subprogram is executing.
       Self.Pet_T_Send_If_Connected ((Count => Arg.Count));
 
       -- Stop execution timer:
       Sw_Cpu.Stop;
-      Stop_Wall_Time := Self.Sys_Time_T_Get;
 
       if Self.Ticks_Since_Startup >= Self.Timing_Report_Delay_Ticks then
          -- Compute time differences for execution timer
