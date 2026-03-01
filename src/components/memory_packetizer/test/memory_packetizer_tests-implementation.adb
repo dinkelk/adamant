@@ -577,10 +577,12 @@ package body Memory_Packetizer_Tests.Implementation is
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (6).Header.Sequence_Count, 2);
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (7).Header.Sequence_Count, 1);
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (8).Header.Sequence_Count, 2);
+      -- After IMPL-01 fix, untracked IDs now have incrementing sequence counts
+      -- within each dump (starting from 0 each time since they are untracked):
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (9).Header.Sequence_Count, 0);
-      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (10).Header.Sequence_Count, 0);
+      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (10).Header.Sequence_Count, 1);
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (11).Header.Sequence_Count, 0);
-      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Header.Sequence_Count, 0);
+      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Header.Sequence_Count, 1);
 
       -- Check packet lengths, all should be max:
       for Idx in 5 .. 12 loop
