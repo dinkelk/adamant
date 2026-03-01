@@ -84,7 +84,9 @@ private
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Parameters_Memory_Region_Release_T_Send message is dropped due to a full queue.
-   overriding procedure Parameters_Memory_Region_Release_T_Send_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T) is null;
+   -- A dropped memory region release means the memory will never be freed, causing a resource leak.
+   -- We attempt to send an event to alert operators, acknowledging the event itself could also be dropped.
+   overriding procedure Parameters_Memory_Region_Release_T_Send_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T);
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
    overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
    -- This procedure is called when a Event_T_Send message is dropped due to a full queue.

@@ -712,6 +712,15 @@ package body Component.Parameters.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Dropped (Self.Sys_Time_T_Get, Arg));
    end Parameters_Memory_Region_T_Recv_Async_Dropped;
 
+   -- This procedure is called when a Parameters_Memory_Region_Release_T_Send message is dropped due to a full queue.
+   overriding procedure Parameters_Memory_Region_Release_T_Send_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T) is
+      use Parameter_Enums.Parameter_Table_Operation_Type;
+   begin
+      -- A dropped memory region release is critical — the memory will never be freed,
+      -- causing a resource leak. Attempt to send an event to alert operators.
+      Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Dropped (Self.Sys_Time_T_Get, (Region => Arg.Region, Operation => Get)));
+   end Parameters_Memory_Region_Release_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------
