@@ -385,4 +385,27 @@ package body Limiter_Tests.Implementation is
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
    end Test_Command_Parameter_Interaction;
 
+   overriding procedure Test_Max_Sends_Boundary (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+      The_Tick : constant Tick.T := ((0, 0), 0);
+   begin
+      -- Set rate to Unsigned_16'Last via command:
+      T.Command_T_Send (T.Commands.Sends_Per_Tick ((Value => Interfaces.Unsigned_16'Last)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Sends_Per_Tick_Id, Status => Success));
+
+      -- Enqueue 4 items (queue max) and tick — all should drain since
+      -- 65535 > 4:
+      T.T_Send (((0, 0), 1));
+      T.T_Send (((0, 0), 2));
+      T.T_Send (((0, 0), 3));
+      T.T_Send (((0, 0), 4));
+      T.Tick_T_Send (The_Tick);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 4);
+
+      -- Next tick should produce nothing:
+      T.Tick_T_Send (The_Tick);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 4);
+   end Test_Max_Sends_Boundary;
+
 end Limiter_Tests.Implementation;

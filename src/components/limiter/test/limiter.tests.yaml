@@ -15,3 +15,5 @@ tests:
     description: This unit test exercises that an invalid parameter throws the appropriate event.
   - name: Test_Command_Parameter_Interaction
     description: This unit test verifies that a rate set by command persists across ticks and is not silently reverted by the parameter update mechanism.
+  - name: Test_Max_Sends_Boundary
+    description: This unit test exercises the boundary condition where Max_Sends_Per_Tick is set to Unsigned_16'Last (65535).
