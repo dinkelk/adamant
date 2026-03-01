@@ -216,3 +216,15 @@ The `component.yaml` model is well-structured. Connector types and kinds are cor
 | 3 | IMPL-04 | **Medium** | `Packet_T_Send_Dropped` is null — downstream packet drops are silently lost with no telemetry. |
 | 4 | TEST-01 | **Medium** | Copy-paste error: packet 12/16 content checks reference packet 4/8's buffer length instead of their own. Passes by coincidence. |
 | 5 | TEST-03 | **Medium** | No test for `Max_Packets_Per_Time_Period = 0`, leaving the infinite-loop bug (IMPL-02) undetected. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Zero rate infinite loop | High | Fixed | fd40e21 | Returns Failure + event |
+| 2 | Sequence count stuck at 0 | Medium | Fixed | a48eb15 | Always increment |
+| 3 | Null Packet_T_Send_Dropped | Medium | Fixed | b4c5016 | Added event handler |
+| 4 | Copy-paste test error | Medium | Fixed | 8c04859 | Corrected refs |
+| 5 | No zero-rate test | Medium | Fixed | 3c2384e | Added test |
+| 6 | Untracked ID assertions | Medium | Fixed | 91339ef | Updated expectations |
+| 7-14 | Low items | Low | Mixed | - | Doc fixes, defaults, zero-length test |
