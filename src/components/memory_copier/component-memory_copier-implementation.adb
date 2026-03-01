@@ -202,7 +202,11 @@ package body Component.Memory_Copier.Implementation is
       if not Self.Request_Memory_Region (Virtual_Region => (Address => Arg.Source_Address, Length => Arg.Source_Length), Returned_Physical_Region => Ided_Region) then
          return Failure;
       end if;
-      pragma Assert (Ided_Region.Region.Length = Arg.Source_Length, "We assume it is this length after the function call.");
+      -- Verify the returned region matches the expected length. If not, fail gracefully.
+      if Ided_Region.Region.Length /= Arg.Source_Length then
+         Self.Ided_Memory_Region_Release (Ided_Region);
+         return Failure;
+      end if;
 
       -- Send Region to the destination
       if not Self.Copy_To_Destination ((Source_Region => Ided_Region.Region, Destination_Address => Arg.Destination_Address)) then
