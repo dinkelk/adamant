@@ -288,6 +288,8 @@ package body Variable_Tests.Implementation is
       -- Make sure no data was logged:
       Logger_Info_Assert.Eq (T.Log_Info_Update_History.Get (1), ((Head => 0, Count => 4, Size => 50), Current_Mode => Logger_Mode.Enabled));
 
+      -- Finalize before reinitializing to properly tear down the previous instance:
+      T.Component_Instance.Final;
       -- Reinitialize the component to have tiny log:
       T.Component_Instance.Init (Size => 5, Initial_Mode => Logger_Mode.Enabled);
 
