@@ -34,9 +34,11 @@ package body Component.Parameter_Store.Implementation is
    -- Crc the parameter table bytes. The table bytes passed in MUST be the exact size as the parameter table:
    function Crc_Parameter_Table (Self : in Instance; Table_Bytes : in Basic_Types.Byte_Array) return Crc_16.Crc_16_Type is
    begin
-      -- This function assumes that the provided data is the exact length of the parameter table. Length
-      -- checks should be performed before calling this function:
-      pragma Assert (Table_Bytes'Length = Self.Bytes.all'Length);
+      -- Verify that the provided data is the exact length of the parameter table. Using an explicit
+      -- check rather than pragma Assert ensures defense-in-depth even if assertions are disabled.
+      if Table_Bytes'Length /= Self.Bytes.all'Length then
+         raise Program_Error with "Crc_Parameter_Table called with incorrect table length";
+      end if;
 
       -- Some checks to make sure parameter table header constants make sense. This will fail if the
       -- header packed record and constants are malformed.
