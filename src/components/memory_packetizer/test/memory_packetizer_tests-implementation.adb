@@ -225,11 +225,11 @@ package body Memory_Packetizer_Tests.Implementation is
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (9).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 7]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (10).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 6]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (11).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 5]);
-      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (4).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
+      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (12).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (13).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 7]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (14).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 6]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (15).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 5]);
-      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (16).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (8).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
+      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (16).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (16).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
 
       -- Check packet address and length headers:
       Memory_Region_Assert.Eq (Memory_Region.Serialization.From_Byte_Array (T.Packet_T_Recv_Sync_History.Get (9).Buffer (0 .. Mem_Region_Length - 1)), (Bytes'Address, Packet_Data_Length));
