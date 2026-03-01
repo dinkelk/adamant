@@ -449,7 +449,7 @@ package body Memory_Dumper_Tests.Implementation is
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (11), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Crc_Memory_Id, Status => Success));
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (12), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Memory_Id, Status => Success));
 
-      -- One error event should have been returned.
+      -- Success events should have been returned (no additional error events).
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 13);
       Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
