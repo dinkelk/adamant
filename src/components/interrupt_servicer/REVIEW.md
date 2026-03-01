@@ -146,3 +146,15 @@ No resource leaks, no unprotected shared state, no race conditions. The `Interru
 | 5 | **Low** | `tester.ads:28`, `tester.adb` | Connector comment says "tick send" instead of "data send" — stale from Tick-specific usage. |
 
 **Overall Assessment:** This is a clean, minimal, well-designed component. The implementation is concise and correct. The primary concerns are documentation accuracy (stale Tick.T references) and the potential for users to misunderstand when the timestamp is captured. Test coverage is functional but narrow for a safety-critical component.
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Timestamp timing misleading | Medium | Fixed | e6690bb | Added clarifying note |
+| 2 | Stale "Tick.T" in impl spec | Medium | Fixed | 982107c | Updated |
+| 3 | Narrow test coverage | Medium | Fixed | 2169d4e | Added burst interrupt test |
+| 4 | Stale "Tick.T" in tester | Low | Fixed | 97ca5fe | Updated |
+| 5-6 | "tick send" comments | Low | Fixed | 4041ea3/341b9be | Corrected |
+| 7 | Sys_Time history unasserted | Low | Fixed | cc6d29a | Added assertion |
+| 8 | Sleep-based sync | Low | Not Fixed | b1f78f4 | Acceptable |
