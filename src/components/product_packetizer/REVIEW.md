@@ -110,3 +110,13 @@ Good coverage of the on-change feature:
 | 3 | **Medium** | `Build_Packet` | Multiple `Sys_Time_T_Get` calls per packet build can yield inconsistent timestamps within a single packet. |
 | 4 | **Medium** | `Init` | Common multiple computation can overflow `Positive` with no guard; crash at startup for adversarial period configurations. |
 | 5 | **Medium** | `Packet_T_Send_Dropped` | Null body silently discards packets with no telemetry or error indication; observability gap for a telemetry component. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | Build_Packet length mismatch zero-fill | High | Fixed | b8b6d33 | Set Do_Copy := False on mismatch |
+| 2 | Send_Now resets Last_Emission_Time | High | Fixed | 7c02b6c | Removed time reset from Send_Now path |
+| 3 | Redundant Sys_Time_T_Get calls | Medium | Not Fixed | - | Minor optimization, deferred |
+| 4 | Init overflow on Max_Id - Min_Id + 1 | Medium | Not Fixed | - | Requires type widening |
+| 5 | Dropped sends silent | Medium | Not Fixed | - | Requires event YAML addition |
