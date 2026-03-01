@@ -99,7 +99,8 @@ package body Component.Register_Stuffer.Implementation is
       -- Convert the address to an unsigned 64-bit integer for arithmetic operations
       Start_Address : constant Address_Mod_Type := Address_To_Mod_Type (Arg.Start_Address);
       -- Calculate the bytes to add (4 bytes per element)
-      Bytes_To_Add : constant Address_Mod_Type := Address_Mod_Type (Arg.Num_Registers * Packed_U32.Size_In_Bytes);
+      -- Perform multiplication in modular arithmetic to avoid signed integer overflow:
+      Bytes_To_Add : constant Address_Mod_Type := Address_Mod_Type (Arg.Num_Registers) * Address_Mod_Type (Packed_U32.Size_In_Bytes);
 
       Max_Address : constant Address_Mod_Type := Address_Mod_Type'Last;
 
