@@ -78,3 +78,11 @@ This is the most critical gap. An active, timing-sensitive component with no tes
 | 3 | **Medium** | **No overrun detection** — if the cycle exceeds the period, ticks will bunch up with no warning, potentially flooding downstream queues. |
 | 4 | **Medium** | **No runtime observability** — no data products (tick count, period) or events; the component is a black box at runtime. |
 | 5 | **Low** | **Inadequate documentation** — the YAML description is generic ("This is the ticker component") and does not describe behavior, timing semantics, or first-tick policy. |
+
+## Resolution Notes
+
+| # | Issue | Severity | Status | Commit | Notes |
+|---|-------|----------|--------|--------|-------|
+| 1 | No unit tests | High | Not Fixed | - | Requires test infrastructure |
+| 2 | Silent tick drops | High | Fixed | 01cd66d | Added overrun detection |
+| 3 | YAML description | Low | Fixed | 5541ed9 | Expanded documentation |
