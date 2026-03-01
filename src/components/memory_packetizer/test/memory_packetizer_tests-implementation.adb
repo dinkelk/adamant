@@ -600,6 +600,26 @@ package body Memory_Packetizer_Tests.Implementation is
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (12).Header.Buffer_Length - 1), [0 .. Packet_Data_Length - 1 => 8]);
    end Test_Max_Packet_Id_Exceeded;
 
+   overriding procedure Test_Zero_Length_Memory_Dump (Self : in out Instance) is
+      use Byte_Array_Pointer;
+      T : Component.Memory_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+      Bytes : aliased Basic_Types.Byte_Array := [0 .. 0 => 0];
+      -- Create a zero-length memory dump by using length 0:
+      Dump : constant Memory_Packetizer_Types.Memory_Dump := (Id => 42, Memory_Pointer => From_Address (Bytes'Address, 0));
+   begin
+      -- Send a zero-length memory dump:
+      T.Memory_Dump_Send (Dump);
+
+      -- Dispatch:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- No packets should have been produced:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- No events should have been thrown:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Zero_Length_Memory_Dump;
+
    overriding procedure Test_Zero_Max_Packet_Rate (Self : in out Instance) is
       T : Component.Memory_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
    begin
