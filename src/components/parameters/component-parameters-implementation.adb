@@ -770,6 +770,17 @@ package body Component.Parameters.Implementation is
          return Failure;
       end if;
 
+      -- Validate all components that had parameters staged.
+      for Component_Id in Components_To_Update'Range loop
+         if Components_To_Update (Component_Id) then
+            if Self.Validate_Parameters (Component_Id => Component_Id) /= Success then
+               -- No need to throw an event, because an event is thrown in the function above
+               -- if something doesn't go well.
+               return Failure;
+            end if;
+         end if;
+      end loop;
+
       -- Now update all components that had parameters staged.
       for Component_Id in Components_To_Update'Range loop
          if Components_To_Update (Component_Id) then
