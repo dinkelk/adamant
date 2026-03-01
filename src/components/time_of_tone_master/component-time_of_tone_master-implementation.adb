@@ -87,21 +87,27 @@ package body Component.Time_Of_Tone_Master.Implementation is
    -- This connector triggers the sending of the time message. The time received here is assumed to be an accurate time stamp of when the tone message was sent. This time can be provided to this component by a lower level component which actually records the time the tone message leaves the system.
    overriding procedure Tone_Message_Sys_Time_T_Recv_Sync (Self : in out Instance; Arg : in Sys_Time.T) is
    begin
-      -- Increment the transaction count:
-      Self.Time_Message_Count := @ + 1;
+      -- Only send time messages when TaT is enabled (period > 0) or a
+      -- sync-once is pending. This prevents emitting stale/spurious time
+      -- messages when an external driver sends a timestamp while TaT is
+      -- disabled.
+      if Self.Send_Counter.Get_Period > 0 or else Self.Do_Sync_Once.Get_Var then
+         -- Increment the transaction count:
+         Self.Time_Message_Count := @ + 1;
 
-      declare
-         -- Grab the current time:
-         Current_Sys_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
-         -- Create the message:
-         Message : constant Tick.T := (Time => Arg, Count => Self.Time_Message_Count);
-      begin
-         -- Send the time message:
-         Self.Time_Message_Send_If_Connected (Message);
+         declare
+            -- Grab the current time:
+            Current_Sys_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+            -- Create the message:
+            Message : constant Tick.T := (Time => Arg, Count => Self.Time_Message_Count);
+         begin
+            -- Send the time message:
+            Self.Time_Message_Send_If_Connected (Message);
 
-         -- Send out data products:
-         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Time_Messages_Sent (Current_Sys_Time, (Value => Self.Time_Message_Count)));
-      end;
+            -- Send out data products:
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Time_Messages_Sent (Current_Sys_Time, (Value => Self.Time_Message_Count)));
+         end;
+      end if;
    end Tone_Message_Sys_Time_T_Recv_Sync;
 
    -- The command receive connector.
