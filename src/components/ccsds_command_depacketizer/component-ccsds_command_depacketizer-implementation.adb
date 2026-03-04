@@ -96,47 +96,47 @@ package body Component.Ccsds_Command_Depacketizer.Implementation is
                            Expected_Checksum => Secondary_Header.Checksum
                      )));
                   else
-                  declare
-                     Num_Pad_Bytes : constant Natural := Natural (Secondary_Header.Function_Code);
-                     Command_Id_Length : constant Natural := Command_Id.Serialization.Serialized_Length;
-                     Meta_Data_Length : constant Natural := Ccsds_Command_Secondary_Header_Length + Command_Id_Length;
-                     Adjusted_Data_Length : constant Integer := Data_Length - Num_Pad_Bytes;
-                     Argument_Data_Length : constant Integer := Adjusted_Data_Length - Meta_Data_Length;
-                  begin
-                     -- Make sure that the buffer is big enough to contain a CCSDS command secondary header and
-                     -- a command identifier.
-                     if Adjusted_Data_Length < Meta_Data_Length then
-                        Self.Drop_Packet (Arg, Self.Events.Packet_Too_Small (Self.Sys_Time_T_Get, (Arg.Header, Length => Adjusted_Data_Length, Length_Bound => Meta_Data_Length)));
-                     else
-                        -- Make sure that the argument data length is not too big to fit into a command:
-                        if Argument_Data_Length > The_Command.Arg_Buffer'Length then
-                           Self.Drop_Packet (Arg, Self.Events.Packet_Too_Large (Self.Sys_Time_T_Get, (Arg.Header, Length => Argument_Data_Length, Length_Bound => The_Command.Arg_Buffer'Length)));
+                     declare
+                        Num_Pad_Bytes : constant Natural := Natural (Secondary_Header.Function_Code);
+                        Command_Id_Length : constant Natural := Command_Id.Serialization.Serialized_Length;
+                        Meta_Data_Length : constant Natural := Ccsds_Command_Secondary_Header_Length + Command_Id_Length;
+                        Adjusted_Data_Length : constant Integer := Data_Length - Num_Pad_Bytes;
+                        Argument_Data_Length : constant Integer := Adjusted_Data_Length - Meta_Data_Length;
+                     begin
+                        -- Make sure that the buffer is big enough to contain a CCSDS command secondary header and
+                        -- a command identifier.
+                        if Adjusted_Data_Length < Meta_Data_Length then
+                           Self.Drop_Packet (Arg, Self.Events.Packet_Too_Small (Self.Sys_Time_T_Get, (Arg.Header, Length => Adjusted_Data_Length, Length_Bound => Meta_Data_Length)));
                         else
-                           -- We don't need anything else out of the secondary header, unless an error
-                           -- occurs, so just skip right over it.
-                           Next_Index := @ + Ccsds_Command_Secondary_Header_Length;
+                           -- Make sure that the argument data length is not too big to fit into a command:
+                           if Argument_Data_Length > The_Command.Arg_Buffer'Length then
+                              Self.Drop_Packet (Arg, Self.Events.Packet_Too_Large (Self.Sys_Time_T_Get, (Arg.Header, Length => Argument_Data_Length, Length_Bound => The_Command.Arg_Buffer'Length)));
+                           else
+                              -- We don't need anything else out of the secondary header, unless an error
+                              -- occurs, so just skip right over it.
+                              Next_Index := @ + Ccsds_Command_Secondary_Header_Length;
 
-                           -- Set the command header arg buffer length:
-                           The_Command.Header.Arg_Buffer_Length := Argument_Data_Length;
+                              -- Set the command header arg buffer length:
+                              The_Command.Header.Arg_Buffer_Length := Argument_Data_Length;
 
-                           -- Extract command id:
-                           The_Command.Header.Id := Command_Id.Serialization.From_Byte_Array (Arg.Data (Next_Index .. Next_Index + Command_Id_Length - 1)).Id;
-                           Next_Index := @ + Command_Id_Length;
+                              -- Extract command id:
+                              The_Command.Header.Id := Command_Id.Serialization.From_Byte_Array (Arg.Data (Next_Index .. Next_Index + Command_Id_Length - 1)).Id;
+                              Next_Index := @ + Command_Id_Length;
 
-                           -- Copy argument buffer:
-                           The_Command.Arg_Buffer (The_Command.Arg_Buffer'First .. The_Command.Arg_Buffer'First + Argument_Data_Length - 1) := Arg.Data (Next_Index .. Next_Index + Argument_Data_Length - 1);
+                              -- Copy argument buffer:
+                              The_Command.Arg_Buffer (The_Command.Arg_Buffer'First .. The_Command.Arg_Buffer'First + Argument_Data_Length - 1) := Arg.Data (Next_Index .. Next_Index + Argument_Data_Length - 1);
 
-                           -- Send out the command:
-                           Self.Command_T_Send (The_Command);
+                              -- Send out the command:
+                              Self.Command_T_Send (The_Command);
 
-                           -- Send out updated packet accept count:
-                           if Self.Is_Data_Product_T_Send_Connected then
-                              Self.Accepted_Packet_Count.Increment_Count;
-                              Self.Data_Product_T_Send (Self.Data_Products.Accepted_Packet_Count (Self.Sys_Time_T_Get, (Value => Self.Accepted_Packet_Count.Get_Count)));
+                              -- Send out updated packet accept count:
+                              if Self.Is_Data_Product_T_Send_Connected then
+                                 Self.Accepted_Packet_Count.Increment_Count;
+                                 Self.Data_Product_T_Send (Self.Data_Products.Accepted_Packet_Count (Self.Sys_Time_T_Get, (Value => Self.Accepted_Packet_Count.Get_Count)));
+                              end if;
                            end if;
                         end if;
-                     end if;
-                  end;
+                     end;
                   end if;
                end;
             end if;
