@@ -6,7 +6,7 @@
 -- Invokee Connector Includes:
 with Sys_Time;
 
--- The System Time component is a servicing component which provides the system time in GPS format to any component who requests it. Internally, the system time is provided by the Ada.Real_Time library.
+-- The GPS Time component is a passive component which provides the system time in GPS format to any component that requests it. Internally, the system time is provided by the Ada.Real_Time library.
 package Component.Gps_Time.Implementation is
 
    -- The component class instance record:
