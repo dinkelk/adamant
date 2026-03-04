@@ -45,7 +45,7 @@ package body Seq_Config is
       while I in S'First .. End_Idx loop
          -- Parse the next token
          Find_Token (
-            Source   => S,
+            Source   => S (S'First .. End_Idx),
             Set       => Whitespace,
             From      => I,
             Test      => Outside,
@@ -71,6 +71,9 @@ package body Seq_Config is
 
    function Seq_Str_Cmp (L : in Seq_String; R : in String) return Boolean is
    begin
+      if R'Length > L'Length then
+         return False;
+      end if;
       return L (1 .. R'Length) = R;
    end Seq_Str_Cmp;
 
@@ -142,31 +145,35 @@ package body Seq_Config is
 
                         -- Insert command definition into our commands data structure.
                         if Self.Commands.Contains (The_Command.Header.Id) then
-                           -- Put_Line (Standard_Error, "Duplicate command found with ID: '" & Command_Types.Command_Id'Image (The_Command.Header.Id) & "'");
-                           -- raise Program_Error;
-                           exit;
+                           Put_Line (Standard_Error, "Duplicate command found with ID: '" & Command_Types.Command_Id'Image (The_Command.Header.Id) & "', skipping.");
                         else
                            Self.Commands.Include (The_Command.Header.Id, (
                               Name => Name,
-                              Parameters => null, -- TODO
                               Command_Def => The_Command
                            ));
                         end if;
                      end;
                   end if;
                elsif Seq_Str_Cmp (Parsed_Line (0), "userTlm") then
-                  if Words_Parsed < 4 then
-                     Put_Line (Standard_Error, "Malformed telem: '" & A_Line & "'");
+                  if Words_Parsed < 6 then
+                     Put_Line (Standard_Error, "Malformed telem (need 6 fields): '" & A_Line & "'");
                      raise Program_Error;
                   end if;
 
                   if Seq_Str_Cmp (Parsed_Line (2), "details") then
                      declare
                         Name : constant Seq_String := Parsed_Line (1);
-                        Id_Str : constant String := Parsed_Line (3);
-                        -- Extract ID and offset
-                        Id : constant Data_Product_Types.Data_Product_Id := Data_Product_Types.Data_Product_Id'Value ("16#" & Strip_Nul (Id_Str (Id_Str'First + 3 .. Id_Str'Last)) & "#");
-                        Offset : constant Interfaces.Unsigned_16 := Interfaces.Unsigned_16'Value (Strip_Nul (Parsed_Line (5))); -- Need to slice this.
+                        Id_Str : constant String := Strip_Nul (Parsed_Line (3));
+                     begin
+                        -- Validate hex prefix (expect "0x_" or similar 3-char prefix)
+                        if Id_Str'Length < 4 or else Id_Str (Id_Str'First .. Id_Str'First + 1) /= "0x" then
+                           Put_Line (Standard_Error, "Malformed telemetry ID (expected '0x' prefix): '" & Id_Str & "'");
+                           raise Program_Error;
+                        end if;
+                        declare
+                           -- Extract ID and offset
+                           Id : constant Data_Product_Types.Data_Product_Id := Data_Product_Types.Data_Product_Id'Value ("16#" & Id_Str (Id_Str'First + 3 .. Id_Str'Last) & "#");
+                           Offset : constant Interfaces.Unsigned_16 := Interfaces.Unsigned_16'Value (Strip_Nul (Parsed_Line (5)));
                         Key_To_Store : constant Interfaces.Unsigned_32 := Get_Telemetry_Key (Id, Offset);
                      begin
                         -- Store telemetry definition in telem data structure.
@@ -179,6 +186,7 @@ package body Seq_Config is
                               Id => Id
                            ));
                         end if;
+                        end;
                      end;
                   end if;
                elsif Seq_Str_Cmp (Parsed_Line (0), "sigFile") then
