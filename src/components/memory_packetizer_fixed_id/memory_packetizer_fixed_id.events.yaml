@@ -9,3 +9,6 @@ events:
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
+  - name: Zero_Length_Memory_Dump_Received
+    description: A memory dump request with zero length was received and ignored.
+    param_type: Packet_Id.T
