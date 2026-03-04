@@ -1,5 +1,5 @@
 ---
-description: This record contains information for changing the limit of a specific watchdog connector.
+description: This record contains information for changing the action of a specific watchdog connector.
 fields:
   - name: Index
     description: The index of the connector that the command wants to change the limit of
