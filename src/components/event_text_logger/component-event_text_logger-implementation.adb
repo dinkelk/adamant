@@ -20,6 +20,7 @@ package body Component.Event_Text_Logger.Implementation is
    end Event_T_Recv_Async;
 
    overriding procedure Event_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Event.T) is
+      pragma Unreferenced (Self);
    begin
       Put_Line (Standard_Error, "Event with ID: " & Event_Types.Event_Id'Image (Arg.Header.Id) & " was dropped due to full queue!");
    end Event_T_Recv_Async_Dropped;
