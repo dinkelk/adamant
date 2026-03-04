@@ -15,10 +15,12 @@ private
    -- invocation.
    protected type Protected_Connector is
       -- Procedures requiring full mutual exclusion:
-      procedure Call (Self : in out Instance; Arg : in T);
+      procedure Call (Inst : in out Instance; Arg : in T);
 
    private
-   -- No data to protect.
+      -- Guard against reentrant/recursive calls which would be a bounded
+      -- error (ARM 9.5.1) leading to deadlock or Program_Error.
+      In_Call : Boolean := False;
    end Protected_Connector;
 
    -- The component class instance record:
@@ -48,6 +50,6 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a T_Send message is dropped due to a full queue.
-   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T) is null;
+   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T);
 
 end Component.Connector_Protector.Implementation;
