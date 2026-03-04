@@ -294,32 +294,32 @@ package body Component.Sequence_Store.Implementation is
       for Idx in Self.Slots.all'First .. Self.Slots.all'Last - 1 loop
          for Jdx in Idx + 1 .. Self.Slots.all'Last loop
             declare
-                  use System.Storage_Elements;
-                  A : Memory_Region.T renames Self.Slots.all (Idx);
-                  B : Memory_Region.T renames Self.Slots.all (Jdx);
-                  A_Start : System.Address renames A.Address;
-                  A_Stop : constant System.Address := A.Address + Storage_Offset (A.Length - 1);
-                  B_Start : System.Address renames B.Address;
-                  B_Stop : constant System.Address := B.Address + Storage_Offset (B.Length - 1);
-                  -- Calculate offset between start addresses. Note: that there is no
-                  -- > or < operators supplied for System.Address, so we use subtraction
-                  -- instead to convert the offset to a Storage_Offset which supports these
-                  -- comparison operators.
-                  Offset : constant Storage_Offset := A_Start - B_Start;
-               begin
-                  -- Check assumptions, make sure regions are not zero length:
-                  pragma Assert ((A_Stop - A_Start) > 0, "Bug in init.");
-                  pragma Assert ((B_Stop - B_Start) > 0, "Bug in init.");
+               use System.Storage_Elements;
+               A : Memory_Region.T renames Self.Slots.all (Idx);
+               B : Memory_Region.T renames Self.Slots.all (Jdx);
+               A_Start : System.Address renames A.Address;
+               A_Stop : constant System.Address := A.Address + Storage_Offset (A.Length - 1);
+               B_Start : System.Address renames B.Address;
+               B_Stop : constant System.Address := B.Address + Storage_Offset (B.Length - 1);
+               -- Calculate offset between start addresses. Note: that there is no
+               -- > or < operators supplied for System.Address, so we use subtraction
+               -- instead to convert the offset to a Storage_Offset which supports these
+               -- comparison operators.
+               Offset : constant Storage_Offset := A_Start - B_Start;
+            begin
+               -- Check assumptions, make sure regions are not zero length:
+               pragma Assert ((A_Stop - A_Start) > 0, "Bug in init.");
+               pragma Assert ((B_Stop - B_Start) > 0, "Bug in init.");
 
-                  -- Check for overlap:
-                  if Offset > 0 then
-                     -- "a" region must be after "b" region.
-                     pragma Assert ((A_Start - B_Stop) > 0, "Regions overlap.");
-                  else
-                     -- "a" region must be before "b" region.
-                     pragma Assert ((B_Start - A_Stop) > 0, "Regions overlap.");
-                  end if;
-               end;
+               -- Check for overlap:
+               if Offset > 0 then
+                  -- "a" region must be after "b" region.
+                  pragma Assert ((A_Start - B_Stop) > 0, "Regions overlap.");
+               else
+                  -- "a" region must be before "b" region.
+                  pragma Assert ((B_Start - A_Stop) > 0, "Regions overlap.");
+               end if;
+            end;
          end loop;
       end loop;
 
