@@ -125,7 +125,7 @@ private
    -- Command handler primitives:
    -----------------------------------------------
    -- Description:
-   --    These are the commands for the Parameter Store component.
+   --    These are the commands for the Sequence Store component.
    -- Activate a sequence slot so that its contents can be fetched.
    overriding function Activate_Slot (Self : in out Instance; Arg : in Packed_Slot_Number.T) return Command_Execution_Status.E;
    -- Deactivate a sequence slot so that its contents can no longer be fetched.
