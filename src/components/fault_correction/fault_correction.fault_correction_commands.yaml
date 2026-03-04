@@ -2,7 +2,7 @@
 description: These are the commands for the Fault Correction component.
 commands:
   - name: Enable_Fault_Response
-    description: Enable a fault response for the provided ID. This will only succeed if another response with the same Fault ID is not already enabled.
+    description: Enable a fault response for the provided ID. If the response is currently disabled, it transitions to nominal. If already in any other state, no change is made.
     arg_type: Packed_Fault_Id.T
   - name: Disable_Fault_Response
     description: Disable a fault response for the provided ID.
