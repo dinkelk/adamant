@@ -7,7 +7,7 @@ with Command;
 with Protected_Variables;
 with Basic_Enums;
 
--- This is a generic component that can be used to forward a single connector of any type. The component that synchronously forwards any type that it receives. It includes commands to enable or disable this forwarding, so can be effectively used as a stream on/off switch.
+-- This generic component synchronously forwards data received on a single connector of any type. It includes commands to enable or disable forwarding, effectively acting as a stream on/off switch.
 generic
 package Component.Forwarder.Implementation is
 
