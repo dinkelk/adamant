@@ -30,7 +30,7 @@ package Component.Limiter.Implementation.Tester is
    package Sys_Time_T_Return_History_Package is new Printable_History (Sys_Time.T, Sys_Time.Representation.Image);
 
    -- Event history packages:
-   package Max_Send_Per_Tick_Set_History_Package is new Printable_History (Packed_U16.T, Packed_U16.Representation.Image);
+   package Max_Sends_Per_Tick_Set_History_Package is new Printable_History (Packed_U16.T, Packed_U16.Representation.Image);
    package Data_Dropped_History_Package is new Printable_History (Natural, Natural'Image);
    package Invalid_Command_Received_History_Package is new Printable_History (Invalid_Command_Info.T, Invalid_Command_Info.Representation.Image);
    package Invalid_Parameter_Received_History_Package is new Printable_History (Invalid_Parameter_Info.T, Invalid_Parameter_Info.Representation.Image);
@@ -49,7 +49,7 @@ package Component.Limiter.Implementation.Tester is
       Event_T_Recv_Sync_History : Event_T_Recv_Sync_History_Package.Instance;
       Sys_Time_T_Return_History : Sys_Time_T_Return_History_Package.Instance;
       -- Event histories:
-      Max_Send_Per_Tick_Set_History : Max_Send_Per_Tick_Set_History_Package.Instance;
+      Max_Sends_Per_Tick_Set_History : Max_Sends_Per_Tick_Set_History_Package.Instance;
       Data_Dropped_History : Data_Dropped_History_Package.Instance;
       Invalid_Command_Received_History : Invalid_Command_Received_History_Package.Instance;
       Invalid_Parameter_Received_History : Invalid_Parameter_Received_History_Package.Instance;
@@ -96,7 +96,7 @@ package Component.Limiter.Implementation.Tester is
    -- Event handler primitive:
    -----------------------------------------------
    -- A new maximum sends per tick rate has been set for the limiter.
-   overriding procedure Max_Send_Per_Tick_Set (Self : in out Instance; Arg : in Packed_U16.T);
+   overriding procedure Max_Sends_Per_Tick_Set (Self : in out Instance; Arg : in Packed_U16.T);
    -- The queue for data overflowed and an incoming data was dropped.
    overriding procedure Data_Dropped (Self : in out Instance);
    -- A command was received with invalid parameters.
