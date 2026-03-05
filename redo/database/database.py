@@ -176,6 +176,8 @@ class database(object):
             )
         self._open_duration = time.monotonic() - self._open_start
         self._closed = False
+        # In-memory cache for deserialized fetch results (read-only mode only)
+        self._fetch_cache = {} if mode == DATABASE_MODE.READ_ONLY else None
 
     def close(self):
         """
@@ -265,11 +267,12 @@ class database(object):
         key. If the key does not exist, throw a KeyError
         exception.
         """
+        # Check in-memory cache first
+        if self._fetch_cache is not None:
+            if key in self._fetch_cache:
+                return self._fetch_cache[key]
+
         def _do_fetch():
-            """
-            Extract data from database and deserialize it into
-            a python data structure:
-            """
             try:
                 sdata = self.db[key]
                 return pickle.loads(sdata)
@@ -278,25 +281,32 @@ class database(object):
                     "No key '" + key + "' exists in database. fetch() failed."
                 )
 
-        return _try_try_again(_do_fetch)
+        result = _try_try_again(_do_fetch)
+        if self._fetch_cache is not None:
+            self._fetch_cache[key] = result
+        return result
 
     def try_fetch(self, key):
         """
         Extract data from the database for a specific string
         key. If the key does not exist, None is returned.
         """
+        # Check in-memory cache first
+        if self._fetch_cache is not None:
+            if key in self._fetch_cache:
+                return self._fetch_cache[key]
+
         def _do_try_fetch():
-            """
-            Extract data from database and deserialize it into
-            a python data structure:
-            """
             try:
                 sdata = self.db[key]
                 return pickle.loads(sdata)
             except KeyError:
                 return None
 
-        return _try_try_again(_do_try_fetch)
+        result = _try_try_again(_do_try_fetch)
+        if self._fetch_cache is not None:
+            self._fetch_cache[key] = result
+        return result
 
     def keys(self):
         """Return a list of all the keys that exist in the database."""
