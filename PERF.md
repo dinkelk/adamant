@@ -137,3 +137,15 @@
 **Analysis:** The Docker container has minimal user site-packages, so `PYTHONNOUSERSITE` saves negligible time. `PYTHONDONTWRITEBYTECODE` avoids .pyc writes but .pyc files are already cached from previous runs, so the overhead of checking/writing them is minimal. These are good hygiene settings but don't move the needle in this environment.
 
 **Verdict:** KEEP (zero risk, good practice) but no performance impact.
+
+---
+
+## perf/09-lazy-pickle-import — Defer pickle/unqlite Imports
+
+**Change:** Lazy-import `pickle` (~10ms) and `unqlite` (~4ms) in database.py, deferring them until the first actual database open or fetch call. Also moves `sys.setrecursionlimit(5000)` into the pickle init path.
+
+**Result:** ~60.1s (2 runs: 60.2s, 60.0s) — **no improvement over perf/07**
+
+**Analysis:** Nearly every redo subprocess accesses at least one database, so the imports are merely deferred, not avoided. The total import cost is the same — it just happens slightly later in each process. This would only help if there were subprocesses that don't touch any database (there aren't many).
+
+**Verdict:** KEEP (cleaner lazy-loading pattern, no regression) but no wall-time impact.
