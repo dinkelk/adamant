@@ -83,8 +83,36 @@ def _create(filename):
     return db, lock
 
 
+# Module-level cache for read-only database connections.
+# Within a single redo subprocess, databases are opened many times via
+# context managers. Caching avoids repeated open/close overhead.
+_ro_cache = {}  # filename -> unqlite.UnQLite instance
+_ro_refcount = {}  # filename -> int (number of active references)
+
+
 def _open_ro(filename):
-    return unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READONLY), None
+    if filename in _ro_cache:
+        _ro_refcount[filename] = _ro_refcount.get(filename, 0) + 1
+        return _ro_cache[filename], None
+    db = unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READONLY)
+    _ro_cache[filename] = db
+    _ro_refcount[filename] = 1
+    return db, None
+
+
+def _close_ro_cached(filename):
+    """Decrement refcount; only actually close when no references remain."""
+    if filename not in _ro_cache:
+        return False
+    _ro_refcount[filename] -= 1
+    if _ro_refcount[filename] <= 0:
+        try:
+            _ro_cache[filename].close()
+        except Exception:
+            pass
+        del _ro_cache[filename]
+        del _ro_refcount[filename]
+    return True
 
 
 def _open_rw(filename):
@@ -134,6 +162,7 @@ class database(object):
         a new one.
         """
         self.filename = filename
+        self._mode = mode
         self._open_start = time.monotonic()
         if mode == DATABASE_MODE.READ_ONLY:
             self.db, self.lock = _open_ro(filename)
@@ -146,6 +175,7 @@ class database(object):
                 "mode must be set to either READ_ONLY, READ_WRITE, or CREATE."
             )
         self._open_duration = time.monotonic() - self._open_start
+        self._closed = False
 
     def close(self):
         """
@@ -154,10 +184,17 @@ class database(object):
         statement with the database should be preferred to calling
         this close method manually.
         """
-        try:
-            self.db.close()
-        except BaseException:
-            pass
+        if getattr(self, '_closed', False):
+            return
+        self._closed = True
+        # For read-only cached connections, just decrement refcount
+        if getattr(self, '_mode', None) == DATABASE_MODE.READ_ONLY:
+            _close_ro_cached(self.filename)
+        else:
+            try:
+                self.db.close()
+            except BaseException:
+                pass
         # Write profiling data if enabled
         if os.environ.get("BUILD_PROFILE", "0") == "1" and hasattr(self, '_open_start'):
             try:
@@ -176,7 +213,17 @@ class database(object):
 
     def destroy(self):
         """Completely remove the database from the filesystem."""
-        self.close()
+        # Force-close cached connection if any
+        if self.filename in _ro_cache:
+            try:
+                _ro_cache[self.filename].close()
+            except Exception:
+                pass
+            _ro_cache.pop(self.filename, None)
+            _ro_refcount.pop(self.filename, None)
+            self._closed = True
+        else:
+            self.close()
         _destroy(self.filename)
 
     def __del__(self):
