@@ -1,9 +1,29 @@
-import unqlite
-import pickle
 import os
 import time
 from enum import Enum
 import json as _json
+
+# Lazy-load pickle and unqlite to reduce per-subprocess import overhead.
+# pickle costs ~10ms, unqlite ~4ms. With 1500+ subprocesses, deferring
+# these until actual DB access saves significant cumulative time.
+_pickle = None
+_unqlite = None
+
+
+def _ensure_pickle():
+    global _pickle
+    if _pickle is None:
+        import pickle
+        import sys
+        sys.setrecursionlimit(5000)
+        _pickle = pickle
+
+
+def _ensure_unqlite():
+    global _unqlite
+    if _unqlite is None:
+        import unqlite
+        _unqlite = unqlite
 
 # Lazy-load filelock to avoid importing asyncio (~54ms) in read-only subprocesses
 FileLock = None
@@ -17,12 +37,8 @@ def _ensure_filelock():
         FileLock = _FL
         Timeout = _TO
 
-# Large recursive items sometimes fail to pickle due to reaching the
-# recursion limit. Let's increase that to something more reasonable
-# here.
-import sys
-
-sys.setrecursionlimit(5000)
+# Recursion limit increase moved into _ensure_pickle() to avoid
+# importing sys at module level for subprocesses that don't use pickle.
 
 # This module provides a thin wrapper around an unqlite
 # database. Because unqlite can only store textual values,
@@ -85,9 +101,10 @@ def _create(filename):
     _destroy(filename)
     lock = _get_flock(filename)
     db = None
+    _ensure_unqlite()
     try:
         with lock:
-            db = unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_CREATE)
+            db = _unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_CREATE)
     except Timeout:
         raise Exception(
             "(create) Failed to grab lock for the database file: " + filename
@@ -98,7 +115,7 @@ def _create(filename):
 # Module-level cache for read-only database connections.
 # Within a single redo subprocess, databases are opened many times via
 # context managers. Caching avoids repeated open/close overhead.
-_ro_cache = {}  # filename -> unqlite.UnQLite instance
+_ro_cache = {}  # filename -> _unqlite.UnQLite instance
 _ro_refcount = {}  # filename -> int (number of active references)
 
 
@@ -106,7 +123,8 @@ def _open_ro(filename):
     if filename in _ro_cache:
         _ro_refcount[filename] = _ro_refcount.get(filename, 0) + 1
         return _ro_cache[filename], None
-    db = unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READONLY)
+    _ensure_unqlite()
+    db = _unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READONLY)
     _ro_cache[filename] = db
     _ro_refcount[filename] = 1
     return db, None
@@ -130,9 +148,10 @@ def _close_ro_cached(filename):
 def _open_rw(filename):
     lock = _get_flock(filename)
     db = None
+    _ensure_unqlite()
     try:
         with lock:
-            db = unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READWRITE)
+            db = _unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READWRITE)
     except Timeout:
         raise Exception(
             "(open_rw) Failed to grab lock for the database file: " + filename
@@ -151,7 +170,7 @@ def _try_try_again(func):
     while True:
         try:
             return func()
-        except unqlite.UnQLiteError as e:
+        except _unqlite.UnQLiteError as e:
             if count >= 10:
                 raise e
             count += 1
@@ -257,6 +276,7 @@ class database(object):
 
     def store(self, key, data):
         """Store data in the database for a specific string key"""
+        _ensure_pickle()
         def _do_store():
             try:
                 # We must have mutual exclusion on writes, so we use an external
@@ -264,7 +284,7 @@ class database(object):
                 # itself.
                 with self.lock:
                     # Serialize the data and store it in the database:
-                    sdata = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+                    sdata = _pickle.dumps(data, protocol=_pickle.HIGHEST_PROTOCOL)
                     self.db[key] = sdata
             except Timeout:
                 raise Exception(
@@ -287,7 +307,8 @@ class database(object):
         def _do_fetch():
             try:
                 sdata = self.db[key]
-                return pickle.loads(sdata)
+                _ensure_pickle()
+                return _pickle.loads(sdata)
             except KeyError:
                 raise KeyError(
                     "No key '" + key + "' exists in database. fetch() failed."
@@ -311,7 +332,8 @@ class database(object):
         def _do_try_fetch():
             try:
                 sdata = self.db[key]
-                return pickle.loads(sdata)
+                _ensure_pickle()
+                return _pickle.loads(sdata)
             except KeyError:
                 return None
 
@@ -346,7 +368,8 @@ class database(object):
         """
         string = ""
         for key, value in self.db.items():
-            data = pickle.loads(value)
+            _ensure_pickle()
+            data = _pickle.loads(value)
             string += str(key) + " : " + str(data) + "\n"
         return string
 
