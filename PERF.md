@@ -89,3 +89,39 @@
 **Analysis:** Pickle deserialization per call was already fast (~5-9ms for models.db/model_cache.db). The cache helps with repeated same-key lookups within a process, but most lookups are unique keys (different package names). The 262 redo subprocesses each build their own cache from scratch.
 
 **Verdict:** Minimal impact. Keep for correctness/future use but this isn't the bottleneck.
+
+---
+
+## perf/04-bulk-preload — Bulk Preload Database Into Memory (REGRESSION)
+
+**Change:** At database open, iterate all entries and deserialize them into a Python dict, eliminating per-key UnQLite lookups entirely.
+
+**Result:** ~84.9s (baseline: ~65.5s) — **29% REGRESSION**
+
+**Analysis:** The databases contain many entries (all packages across the entire Adamant project), but each build only accesses a small subset. Bulk-deserializing everything wastes time on unused entries. With 262 subprocesses, each paying this upfront cost, the overhead is massive.
+
+**Verdict:** REVERTED. Branched off perf/03 for future work.
+
+---
+
+## perf/05-lazy-filelock — Lazy-Import filelock Module
+
+**Change:** Defer `from filelock import FileLock, Timeout` until actually needed (write operations only). The `filelock` module imports `asyncio` (~54ms), which is wasted overhead in the many read-only redo subprocesses that never acquire file locks.
+
+**Result:** ~60.0s (2 runs: 60.0s, 59.9s) — **8.4% improvement over baseline**
+
+**Analysis:** This is the first optimization to produce a meaningful wall-time reduction. The filelock/asyncio import was happening in every single redo subprocess (262 of them), adding ~54ms × 262 ≈ 14s of cumulative import time. Since redo runs 8 parallel jobs, this translates to ~1.8s wall-time per parallel slot, totaling ~5-6s real improvement. Read-only subprocesses (majority of the 262) never need filelock.
+
+**Verdict:** KEEP. Significant win with zero risk — lazy import is semantically identical.
+
+---
+
+## perf/06-combined-redo-ifchange — Combine Object + Non-Object redo_ifchange Calls
+
+**Change:** In `build_all.py`, instead of two separate `redo_ifchange` calls (one for objects, one for generated files), combine all targets into a single `redo_ifchange` call. This gives the redo scheduler better visibility into all work, improving parallelism.
+
+**Result:** ~59.5s (2 runs: 59.7s, 59.2s) — **marginal improvement over perf/05**
+
+**Analysis:** The two separate `redo_ifchange` calls were already somewhat parallel, but combining them eliminates the serialization point between object compilation and code generation. The improvement is small (~0.5s) because most generated files were already being built in parallel with compilation via the precompile step.
+
+**Verdict:** KEEP. Small but consistent improvement with cleaner code.
