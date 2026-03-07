@@ -133,6 +133,12 @@ COPY --from=install_libadalang /root/libadalang/* $BIN_DIR
 COPY --from=install_alire /root/alire/bin/alr $BIN_DIR
 COPY --from=install_sequence_builder /root/adamant_seq/bin/* $BIN_DIR
 
+# Install uv for fast Python package management:
+ADD https://astral.sh/uv/install.sh /tmp/uv-install.sh
+RUN chmod +x /tmp/uv-install.sh && /tmp/uv-install.sh && rm /tmp/uv-install.sh \
+    && cp /root/.local/bin/uv $BIN_DIR/uv \
+    && cp /root/.local/bin/uvx $BIN_DIR/uvx
+
 # Enable directory colors for redo tab completion:
 RUN echo "set colored-stats on" > $HOME/.inputrc
 

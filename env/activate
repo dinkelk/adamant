@@ -83,27 +83,53 @@ then
     . $py_activate
 else
     echo "Setting up python environment in $ADAMANT_PYTHON_ENV..."
-    python3 -m venv $ADAMANT_PYTHON_ENV
-    . $py_activate
-    pip3 install --upgrade pip
-    pip3 install wheel
 
-    # Install all packages in env/requirements*.txt files in adamant/
-    # and any project dirs in the paths
-    for path in "${paths[@]}"; do
-        # Install any python dependencies.
-        files=$(find "$path/env" -name 'requirements*.txt' 2>/dev/null)
+    # Use uv if available (much faster), otherwise fall back to pip
+    if command -v uv &> /dev/null; then
+        uv venv $ADAMANT_PYTHON_ENV
+        . $py_activate
 
-        # Check if find returned any files
-        if [ -n "$files" ]; then
-            for file in $files; do
-                echo "Installing python dependencies from $file"
-                pip3 install -r "$file"
-            done
-        else
-            echo "No python requirements files found in $path/env"
+        # Collect all requirements files from all paths
+        all_req_files=""
+        for path in "${paths[@]}"; do
+            files=$(find "$path/env" -name 'requirements*.txt' 2>/dev/null)
+            if [ -n "$files" ]; then
+                for file in $files; do
+                    echo "Installing python dependencies from $file"
+                    all_req_files="$all_req_files -r $file"
+                done
+            else
+                echo "No python requirements files found in $path/env"
+            fi
+        done
+
+        # Install all requirements in a single uv invocation (faster resolution)
+        if [ -n "$all_req_files" ]; then
+            uv pip install $all_req_files
         fi
-    done
+    else
+        python3 -m venv $ADAMANT_PYTHON_ENV
+        . $py_activate
+        pip3 install --upgrade pip
+        pip3 install wheel
+
+        # Install all packages in env/requirements*.txt files in adamant/
+        # and any project dirs in the paths
+        for path in "${paths[@]}"; do
+            # Install any python dependencies.
+            files=$(find "$path/env" -name 'requirements*.txt' 2>/dev/null)
+
+            # Check if find returned any files
+            if [ -n "$files" ]; then
+                for file in $files; do
+                    echo "Installing python dependencies from $file"
+                    pip3 install -r "$file"
+                done
+            else
+                echo "No python requirements files found in $path/env"
+            fi
+        done
+    fi
 
     echo "Done."
 fi
