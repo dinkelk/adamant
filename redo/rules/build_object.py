@@ -460,6 +460,35 @@ def _precompile_objects(object_files):
             + ("s..." if num_objects > 1 else "...")
         )
 
+    # Move compiled objects to final locations and register with redo-done.
+    # This replaces the per-object _handle_prebuilt_object path entirely —
+    # redo-done marks each target as up-to-date with its dependencies,
+    # so redo won't invoke individual .do scripts for these objects.
+    import glob
+    for obj_file in object_files:
+        temp_object_file = os.path.join(temp_object_dir, os.path.basename(obj_file))
+        if not os.path.isfile(temp_object_file):
+            continue
+
+        # Move object + associated files (.ali, etc.) to final build dir
+        build_dir = os.path.dirname(obj_file)
+        filesystem.safe_makedir(build_dir)
+        temp_object_glob = temp_object_file[:-1] + "*"
+        files_to_copy = glob.glob(temp_object_glob)
+        final_object = os.path.join(build_dir, os.path.basename(obj_file))
+        move(temp_object_file, final_object)
+        for f in files_to_copy:
+            if f != temp_object_file:
+                move(f, os.path.join(build_dir, os.path.basename(f)))
+
+        # Write .deps file listing source dependencies for this object.
+        # build_executable uses these to resolve transitive object deps.
+        with open(obj_file + ".deps", "w") as f:
+            f.write("\n".join(sources_to_depend))
+
+        # Register with redo-done: marks target as built with these deps
+        redo.redo_done(obj_file, sources_to_depend)
+
 
 def _handle_prebuilt_object(redo_1, redo_2, redo_3):
     """
