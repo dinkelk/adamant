@@ -16,6 +16,7 @@ from database.build_target_database import build_target_database
 from database.source_database import source_database
 from database.c_source_database import c_source_database
 from collections import OrderedDict
+from util.build_profiler import profiler
 
 
 def _get_build_target_instance(target_name):
@@ -124,6 +125,44 @@ def _build_all_ada_object_dependencies(
     return deps
 
 
+def _collect_all_object_deps_from_files(start_object, build_target_name, source_db):
+    """
+    Collect all transitive object dependencies by reading .deps files,
+    without recursive redo_ifchange calls. Assumes objects are already built.
+    """
+    visited = set()
+    all_objects = []
+    queue = [start_object]
+
+    while queue:
+        obj_file = queue.pop()
+        if obj_file in visited:
+            continue
+        visited.add(obj_file)
+
+        deps_file = obj_file + ".deps"
+        if not os.path.isfile(deps_file):
+            continue
+
+        with open(deps_file, "r") as f:
+            source_deps = [d for d in f.read().strip().split("\n") if d]
+
+        source_deps = [d for d in source_deps if d.endswith((".ads", ".adb", ".c", ".cpp", ".h", ".hpp"))]
+        dep_packages = list(set([ada.file_name_to_package_name(dep) for dep in source_deps]))
+
+        for package in dep_packages:
+            objects_in_db = source_db.get_objects([package], the_target=build_target_name)
+            if not objects_in_db:
+                with c_source_database() as c_source_db:
+                    objects_in_db = c_source_db.get_objects([package], the_target=build_target_name)
+            for dep_obj in objects_in_db:
+                if dep_obj not in visited:
+                    all_objects.append(dep_obj)
+                    queue.append(dep_obj)
+
+    return all_objects
+
+
 class build_executable(build_rule_base):
     """
     This build rule builds an executable out of compiled object files.
@@ -166,13 +205,35 @@ class build_executable(build_rule_base):
         redo.redo_ifchange(deps)
 
         # Build all the objects that are required for this executable:
+        profiler.start("executable:build_all_obj_deps")
         deps_to_write = deps
-        with source_database() as db:
-            deps_to_write.extend(
-                _build_all_ada_object_dependencies(
-                    local_module, db, build_target, obj_dir
+        # Fast path: read .deps files directly instead of recursive redo_ifchange
+        if environ.get("PRECOMPILE_DEPS_RESOLVED") == "1" and os.path.isfile(local_module + ".deps"):
+            with source_database() as db:
+                dep_objects = _collect_all_object_deps_from_files(
+                    local_module, build_target, db
                 )
-            )
+            # Single redo_ifchange for all deps (should all be up-to-date)
+            if dep_objects:
+                redo.redo_ifchange(dep_objects)
+                # Symlink objects for bind/link
+                link_dir = obj_dir
+                for dep_obj in dep_objects:
+                    dirname, basename_part, ext = redo_arg.split_full_filename(dep_obj)
+                    obj_base = os.path.basename(dep_obj)
+                    filesystem.safe_symlink(dep_obj, os.path.join(link_dir, obj_base))
+                    ali = os.path.join(dirname, basename_part + ".ali")
+                    if os.path.isfile(ali):
+                        filesystem.safe_symlink(ali, os.path.join(link_dir, basename_part + ".ali"))
+            deps_to_write.extend(dep_objects)
+        else:
+            with source_database() as db:
+                deps_to_write.extend(
+                    _build_all_ada_object_dependencies(
+                        local_module, db, build_target, obj_dir
+                    )
+                )
+        profiler.stop("executable:build_all_obj_deps")
 
         # Form temporary files paths:
         build_dir, base_name = redo_arg.split_redo_arg(redo_2)
@@ -318,8 +379,12 @@ class build_executable(build_rule_base):
         # Run the link and bind commands in .gpr directory:
         cwd = os.getcwd()
         os.chdir(gpr_project_file_dir)
+        profiler.start("executable:bind")
         shell.run_command(bind_command, debug=do_debug)
+        profiler.stop("executable:bind")
+        profiler.start("executable:link")
         shell.run_command(link_command, debug=do_debug)
+        profiler.stop("executable:link")
         os.chdir(cwd)
 
         # Move the temporary stuff over to the final location:

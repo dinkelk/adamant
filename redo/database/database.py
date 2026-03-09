@@ -3,7 +3,19 @@ import pickle
 import os
 import time
 from enum import Enum
-from filelock import FileLock, Timeout
+import json as _json
+
+# Lazy-load filelock to avoid importing asyncio (~54ms) in read-only subprocesses
+FileLock = None
+Timeout = None
+
+
+def _ensure_filelock():
+    global FileLock, Timeout
+    if FileLock is None:
+        from filelock import FileLock as _FL, Timeout as _TO
+        FileLock = _FL
+        Timeout = _TO
 
 # Large recursive items sometimes fail to pickle due to reaching the
 # recursion limit. Let's increase that to something more reasonable
@@ -51,6 +63,7 @@ def _get_flock_filename(filename):
 
 
 def _get_flock(filename):
+    _ensure_filelock()
     return FileLock(_get_flock_filename(filename), timeout=10)
 
 
@@ -133,6 +146,7 @@ class database(object):
         a new one.
         """
         self.filename = filename
+        self._open_start = time.monotonic()
         if mode == DATABASE_MODE.READ_ONLY:
             self.db, self.lock = _open_ro(filename)
         elif mode == DATABASE_MODE.READ_WRITE:
@@ -143,6 +157,7 @@ class database(object):
             raise ValueError(
                 "mode must be set to either READ_ONLY, READ_WRITE, or CREATE."
             )
+        self._open_duration = time.monotonic() - self._open_start
 
     def close(self):
         """
@@ -155,6 +170,21 @@ class database(object):
             self.db.close()
         except BaseException:
             pass
+        # Write profiling data if enabled
+        if os.environ.get("BUILD_PROFILE", "0") == "1" and hasattr(self, '_open_start'):
+            try:
+                total = time.monotonic() - self._open_start
+                record = {
+                    "name": "db:" + os.path.basename(self.filename),
+                    "duration": total,
+                    "open_duration": getattr(self, '_open_duration', 0),
+                    "pid": os.getpid(),
+                    "wall_time": time.time(),
+                }
+                with open(os.environ.get("BUILD_PROFILE_FILE", "/tmp/adamant_build_profile.jsonl"), "a") as f:
+                    f.write(_json.dumps(record) + "\n")
+            except Exception:
+                pass
 
     def destroy(self):
         """Completely remove the database from the filesystem."""
