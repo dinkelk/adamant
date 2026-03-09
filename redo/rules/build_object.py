@@ -15,6 +15,7 @@ from base_classes.build_target_base import build_target
 from database.source_database import source_database
 from database.c_source_database import c_source_database
 from database.build_target_database import build_target_database
+from util.build_profiler import profiler
 
 
 # Private helper functions:
@@ -435,8 +436,10 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
 
 
 def _precompile_objects(object_files):
+    profiler.start("precompile:resolve_deps")
     # Get and build all source files dependencies for these object files
     sources_to_compile, sources_to_depend, build_target_instance = _build_all_ada_and_c_dependencies_for_object(object_files)
+    profiler.stop("precompile:resolve_deps")
 
     # Info print if we are compiling a lot of objects, so the user is informed what is going on.
     num_objects = len(object_files)
@@ -450,7 +453,9 @@ def _precompile_objects(object_files):
 
     # Run gprbuild to compile the sources:
     temp_object_dir = os.environ["OBJECT_PRE_BUILD_DIR"]
+    profiler.start("precompile:gprbuild")
     _run_gprbuild_command(build_target_instance, sources_to_compile, source_dependencies=sources_to_depend, object_dir=temp_object_dir)
+    profiler.stop("precompile:gprbuild")
 
     if num_objects >= 10:
         redo.info_print(
@@ -459,6 +464,32 @@ def _precompile_objects(object_files):
             + " object"
             + ("s..." if num_objects > 1 else "...")
         )
+
+    # Move compiled objects to final locations and register with redo-done.
+    # This replaces the per-object _handle_prebuilt_object path entirely —
+    # redo-done marks each target as up-to-date with its dependencies,
+    # so redo won't invoke individual .do scripts for these objects.
+    import glob
+    profiler.start("precompile:redo_done")
+    for obj_file in object_files:
+        temp_object_file = os.path.join(temp_object_dir, os.path.basename(obj_file))
+        if not os.path.isfile(temp_object_file):
+            continue
+
+        # Move object + associated files (.ali, etc.) to final build dir
+        build_dir = os.path.dirname(obj_file)
+        filesystem.safe_makedir(build_dir)
+        temp_object_glob = temp_object_file[:-1] + "*"
+        files_to_copy = glob.glob(temp_object_glob)
+        final_object = os.path.join(build_dir, os.path.basename(obj_file))
+        move(temp_object_file, final_object)
+        for f in files_to_copy:
+            if f != temp_object_file:
+                move(f, os.path.join(build_dir, os.path.basename(f)))
+
+        # Register with redo-done: marks target as built with these deps
+        redo.redo_done(obj_file, sources_to_depend)
+    profiler.stop("precompile:redo_done")
 
 
 def _handle_prebuilt_object(redo_1, redo_2, redo_3):

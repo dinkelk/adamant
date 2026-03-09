@@ -132,3 +132,8 @@ if __name__ == "__main__":
 
     print("Usage: redo <redo|redo-ifchange|redo-ifcreate|redo-always|redo-ood> args")
     sys.exit(1)
+
+
+def redo_done(target, deps=[]):
+    """Call redo-done to register a pre-built target with its dependencies."""
+    __invoke_redo_subprocess("redo-done", [target] + deps)
