@@ -1,8 +1,8 @@
 import os.path
 from shutil import move
-from shutil import rmtree
 from os import environ
 from util import redo
+from util.codegen_cache import pregenerate_and_ifchange
 from util import error
 from util import ada
 from util import target
@@ -11,17 +11,79 @@ from util import redo_arg
 from util import shell
 from util import debug
 from base_classes.build_rule_base import build_rule_base
-from base_classes.build_target_base import build_target
-from database.source_database import source_database
-from database.c_source_database import c_source_database
-from database.build_target_database import build_target_database
+from util.build_profiler import profiler
+
+# Lazy imports - these are heavy (DB modules, etc.) and not needed for the
+# prebuilt object fast-path. Deferred to first use.
+_source_database = None
+_c_source_database = None
+_build_target_database = None
+_build_target_base = None
+_rmtree = None
+
+
+_prebuilt_manifest_cache = None
+
+
+def _get_prebuilt_manifest(temp_object_dir):
+    """Load and cache the prebuilt deps manifest."""
+    global _prebuilt_manifest_cache
+    if _prebuilt_manifest_cache is None:
+        import json
+        manifest_path = os.path.join(temp_object_dir, "_prebuilt_deps_manifest.json")
+        if os.path.isfile(manifest_path):
+            with open(manifest_path, "r") as f:
+                _prebuilt_manifest_cache = json.load(f)
+        else:
+            _prebuilt_manifest_cache = {}
+    return _prebuilt_manifest_cache
+
+
+def _lazy_source_database():
+    global _source_database
+    if _source_database is None:
+        from database.source_database import source_database
+        _source_database = source_database
+    return _source_database
+
+
+def _lazy_c_source_database():
+    global _c_source_database
+    if _c_source_database is None:
+        from database.c_source_database import c_source_database
+        _c_source_database = c_source_database
+    return _c_source_database
+
+
+def _lazy_build_target_database():
+    global _build_target_database
+    if _build_target_database is None:
+        from database.build_target_database import build_target_database
+        _build_target_database = build_target_database
+    return _build_target_database
+
+
+def _lazy_build_target():
+    global _build_target_base
+    if _build_target_base is None:
+        from base_classes.build_target_base import build_target
+        _build_target_base = build_target
+    return _build_target_base
+
+
+def _lazy_rmtree():
+    global _rmtree
+    if _rmtree is None:
+        from shutil import rmtree
+        _rmtree = rmtree
+    return _rmtree
 
 
 # Private helper functions:
 def _get_build_target_instance(target_name):
     """Get the build target object instance."""
     try:
-        with build_target_database() as db:
+        with _lazy_build_target_database()() as db:
             instance, filename = db.get_build_target_instance(target_name)
     except KeyError:
         error.error_abort(
@@ -29,7 +91,7 @@ def _get_build_target_instance(target_name):
         )
     try:
         instance.ada_compiler_depends_on()
-        return build_target(instance), filename
+        return _lazy_build_target()(instance), filename
     except AttributeError:
         return instance, filename
 
@@ -120,12 +182,12 @@ def _build_all_ada_dependencies(ada_source_files, source_db, dry_run=False):
         c_sources = []
         for source in new_ads_sources:
             if source.endswith("_h.ads"):
-                with c_source_database() as db:
+                with _lazy_c_source_database()() as db:
                     binded_sources = db.try_get_sources([os.path.basename(source[:-6])])
                     if binded_sources:
                         c_sources.extend(binded_sources)
             if source.endswith("_hpp.ads"):
-                with c_source_database() as db:
+                with _lazy_c_source_database()() as db:
                     binded_sources = db.try_get_sources([os.path.basename(source[:-8])])
                     if binded_sources:
                         c_sources.extend(binded_sources)
@@ -136,9 +198,9 @@ def _build_all_ada_dependencies(ada_source_files, source_db, dry_run=False):
 
         if new_ads_sources:
             if fast_compile:
-                # Depend on new sources:
+                # Depend on new sources (pre-generate codegen in-process):
                 if not dry_run:
-                    redo.redo_ifchange(new_ads_sources)
+                    pregenerate_and_ifchange(new_ads_sources)
 
                 # Add them to the overall dependency list:
                 deps.extend(new_ads_sources)
@@ -162,9 +224,9 @@ def _build_all_ada_dependencies(ada_source_files, source_db, dry_run=False):
                             if adb_source.endswith(adb_basename):
                                 required_adb_sources.append(adb_source)
 
-                # Depend on adb sources:
+                # Depend on adb sources (pre-generate codegen in-process):
                 if not dry_run:
-                    redo.redo_ifchange(required_adb_sources)
+                    pregenerate_and_ifchange(required_adb_sources)
 
                 # Add them to the overall dependency list:
                 deps.extend(required_adb_sources)
@@ -177,9 +239,9 @@ def _build_all_ada_dependencies(ada_source_files, source_db, dry_run=False):
                 # and all adb files
                 new_sources = new_ads_sources + new_adb_sources
 
-                # Depend on new sources:
+                # Depend on new sources (pre-generate codegen in-process):
                 if not dry_run:
-                    redo.redo_ifchange(new_sources)
+                    pregenerate_and_ifchange(new_sources)
 
                 # Add them to the overall dependency list:
                 deps.extend(new_sources)
@@ -222,7 +284,7 @@ def get_c_source_dependencies(source_file, build_target_instance, c_source_db=No
     if c_source_db:
         includes = "-I" + " -I".join(c_source_db.get_all_source_dirs())
     else:
-        with c_source_database() as db:
+        with _lazy_c_source_database()() as db:
             includes = "-I" + " -I".join(db.get_all_source_dirs())
 
     # Run g++ -MM to generate dependencies for a source file in a .d output:
@@ -340,7 +402,7 @@ def _get_object_sources(object_file):
     # source code.
     package_name = ada.file_name_to_package_name(object_file)
     source_files = None
-    with source_database() as db:
+    with _lazy_source_database()() as db:
         source_files = db.try_get_sources(package_name)
 
     if source_files:
@@ -358,8 +420,7 @@ def _get_object_sources(object_file):
 
     else:
         # No Ada source found, let's look for C/C++ source
-        from database.c_source_database import c_source_database
-        with c_source_database() as db:
+        with _lazy_c_source_database()() as db:
             source_files = db.try_get_sources(package_name)
 
         # GCC wants an c or cpp file if it exists, since we cannot
@@ -403,7 +464,7 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
 
     # Depend on and build immediate source files dependencies:
     if not dry_run:
-        redo.redo_ifchange(sources_to_depend)
+        pregenerate_and_ifchange(sources_to_depend)
 
     # Sort sources by Ada and C/C++
     ada_sources_to_depend = [dep for dep in sources_to_depend if dep.endswith('.ads') or dep.endswith('.adb')]
@@ -412,7 +473,7 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
 
     # Discover and build all Ada dependencies for this object recursively.
     if ada_sources_to_depend:
-        with source_database() as db:
+        with _lazy_source_database()() as db:
             sources_to_depend.extend(
                 _build_all_ada_dependencies(
                     ada_sources_to_depend, db, dry_run=dry_run
@@ -421,8 +482,7 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
 
     # Discover and build all C/C++ dependencies for this object recursively.
     if c_sources_to_depend:
-        from database.c_source_database import c_source_database
-        with c_source_database() as db:
+        with _lazy_c_source_database()() as db:
             sources_to_depend.extend(
                 _build_all_c_dependencies(
                     c_sources_to_depend, db, build_target_instance, dry_run=dry_run
@@ -435,8 +495,13 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
 
 
 def _precompile_objects(object_files):
+    # Signal prebuilt object handlers that dependency resolution was already done.
+    os.environ["PRECOMPILE_DEPS_RESOLVED"] = "1"
+
+    profiler.start("precompile:resolve_deps")
     # Get and build all source files dependencies for these object files
     sources_to_compile, sources_to_depend, build_target_instance = _build_all_ada_and_c_dependencies_for_object(object_files)
+    profiler.stop("precompile:resolve_deps")
 
     # Info print if we are compiling a lot of objects, so the user is informed what is going on.
     num_objects = len(object_files)
@@ -450,7 +515,25 @@ def _precompile_objects(object_files):
 
     # Run gprbuild to compile the sources:
     temp_object_dir = os.environ["OBJECT_PRE_BUILD_DIR"]
+    profiler.start("precompile:gprbuild")
     _run_gprbuild_command(build_target_instance, sources_to_compile, source_dependencies=sources_to_depend, object_dir=temp_object_dir)
+    profiler.stop("precompile:gprbuild")
+
+    # Write a single manifest file with deps for all prebuilt objects.
+    # Each subprocess reads this once (cached via module-level var).
+    import json
+    manifest_path = os.path.join(temp_object_dir, "_prebuilt_deps_manifest.json")
+    manifest = {}
+    for obj_file in object_files:
+        manifest[os.path.basename(obj_file)] = sources_to_depend
+    # Merge with existing manifest if present (from other precompile batches)
+    if os.path.isfile(manifest_path):
+        with open(manifest_path, "r") as f:
+            existing = json.load(f)
+        existing.update(manifest)
+        manifest = existing
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f)
 
     if num_objects >= 10:
         redo.info_print(
@@ -487,11 +570,13 @@ def _handle_prebuilt_object(redo_1, redo_2, redo_3):
             if f != temp_object_file:
                 move(f, os.path.join(build_dir, os.path.basename(f)))
 
-        # Discover all Ada and C dependencies for this object recursively. We already built
-        # these dependencies in the precompile, so they should all exist already,
-        # thus we can optimize by setting dry_run=True, which will ensure that no
-        # calls to redo are made.
-        _, sources_to_depend, _ = _build_all_ada_and_c_dependencies_for_object([redo_1], dry_run=True)
+        # Read pre-computed deps from manifest written by _precompile_objects,
+        # avoiding the expensive _build_all_ada_and_c_dependencies_for_object call.
+        manifest = _get_prebuilt_manifest(temp_object_dir)
+        sources_to_depend = manifest.get(os.path.basename(redo_1))
+        if sources_to_depend is None:
+            # Fallback for objects precompiled in a different batch
+            _, sources_to_depend, _ = _build_all_ada_and_c_dependencies_for_object([redo_1], dry_run=True)
 
         # Write deps file out to save computed object dependencies
         with open(
@@ -499,9 +584,16 @@ def _handle_prebuilt_object(redo_1, redo_2, redo_3):
         ) as f:
             f.write("\n".join(sources_to_depend))
 
-        # Finally, tell redo to depend on these dependencies. Again
-        # all of these should be built already, so this should be fast.
-        redo.redo_ifchange(sources_to_depend)
+        # Finally, tell redo to depend on deps unless precompile already resolved
+        # everything for this process.
+        if os.environ.get("PRECOMPILE_DEPS_RESOLVED") != "1":
+            # Depend on non-source dependencies only.
+            non_source_deps = [
+                dep for dep in sources_to_depend
+                if not dep.endswith((".ads", ".adb", ".c", ".cpp", ".h", ".hpp", ".s", ".S"))
+            ]
+            if non_source_deps:
+                pregenerate_and_ifchange(non_source_deps)
 
         # Exit early, we are done, no need to compile...
         return True
@@ -528,7 +620,7 @@ def _compile_single_object(redo_1, redo_2, redo_3, build_target_instance, source
     move(temp_file, redo_3)
     for f in os.listdir(temp_dir):
         move(os.path.join(temp_dir, f), os.path.join(build_dir, f))
-    rmtree(temp_dir)
+    _lazy_rmtree()(temp_dir)
 
     # Write a file with the object's full dependencies:
     with open(redo_1 + ".deps", "w") as f:
@@ -642,7 +734,7 @@ class build_object(build_rule_base):
         # source code.
         package_name = ada.file_name_to_package_name(redo_2)
         source_files = None
-        with source_database() as db:
+        with _lazy_source_database()() as db:
             source_files = db.try_get_sources(package_name)
 
             # Indeed this is Ada source, compile it.
@@ -656,10 +748,9 @@ class build_object(build_rule_base):
         # Try to grab C or C++ source files based on the
         # basename.
         basename = redo_arg.get_base_no_ext(redo_2)
-        from database.c_source_database import c_source_database
         import unqlite
 
-        with c_source_database() as db:
+        with _lazy_c_source_database()() as db:
             # A lot of the time a c database won't even exist, so we but a try/except
             # block to catch this case and display the appropriate error message.
             try:

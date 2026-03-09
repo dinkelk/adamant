@@ -1,16 +1,44 @@
-import unqlite
-import pickle
 import os
 import time
 from enum import Enum
-from filelock import FileLock, Timeout
+import json as _json
 
-# Large recursive items sometimes fail to pickle due to reaching the
-# recursion limit. Let's increase that to something more reasonable
-# here.
-import sys
+# Lazy-load pickle and unqlite to reduce per-subprocess import overhead.
+# pickle costs ~10ms, unqlite ~4ms. With 1500+ subprocesses, deferring
+# these until actual DB access saves significant cumulative time.
+_pickle = None
+_unqlite = None
 
-sys.setrecursionlimit(5000)
+
+def _ensure_pickle():
+    global _pickle
+    if _pickle is None:
+        import pickle
+        import sys
+        sys.setrecursionlimit(5000)
+        _pickle = pickle
+
+
+def _ensure_unqlite():
+    global _unqlite
+    if _unqlite is None:
+        import unqlite
+        _unqlite = unqlite
+
+# Lazy-load filelock to avoid importing asyncio (~54ms) in read-only subprocesses
+FileLock = None
+Timeout = None
+
+
+def _ensure_filelock():
+    global FileLock, Timeout
+    if FileLock is None:
+        from filelock import FileLock as _FL, Timeout as _TO
+        FileLock = _FL
+        Timeout = _TO
+
+# Recursion limit increase moved into _ensure_pickle() to avoid
+# importing sys at module level for subprocesses that don't use pickle.
 
 # This module provides a thin wrapper around an unqlite
 # database. Because unqlite can only store textual values,
@@ -51,6 +79,7 @@ def _get_flock_filename(filename):
 
 
 def _get_flock(filename):
+    _ensure_filelock()
     return FileLock(_get_flock_filename(filename), timeout=10)
 
 
@@ -72,9 +101,10 @@ def _create(filename):
     _destroy(filename)
     lock = _get_flock(filename)
     db = None
+    _ensure_unqlite()
     try:
         with lock:
-            db = unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_CREATE)
+            db = _unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_CREATE)
     except Timeout:
         raise Exception(
             "(create) Failed to grab lock for the database file: " + filename
@@ -82,16 +112,46 @@ def _create(filename):
     return db, lock
 
 
+# Module-level cache for read-only database connections.
+# Within a single redo subprocess, databases are opened many times via
+# context managers. Caching avoids repeated open/close overhead.
+_ro_cache = {}  # filename -> _unqlite.UnQLite instance
+_ro_refcount = {}  # filename -> int (number of active references)
+
+
 def _open_ro(filename):
-    return unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READONLY), None
+    if filename in _ro_cache:
+        _ro_refcount[filename] = _ro_refcount.get(filename, 0) + 1
+        return _ro_cache[filename], None
+    _ensure_unqlite()
+    db = _unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READONLY)
+    _ro_cache[filename] = db
+    _ro_refcount[filename] = 1
+    return db, None
+
+
+def _close_ro_cached(filename):
+    """Decrement refcount; only actually close when no references remain."""
+    if filename not in _ro_cache:
+        return False
+    _ro_refcount[filename] -= 1
+    if _ro_refcount[filename] <= 0:
+        try:
+            _ro_cache[filename].close()
+        except Exception:
+            pass
+        del _ro_cache[filename]
+        del _ro_refcount[filename]
+    return True
 
 
 def _open_rw(filename):
     lock = _get_flock(filename)
     db = None
+    _ensure_unqlite()
     try:
         with lock:
-            db = unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READWRITE)
+            db = _unqlite.UnQLite(filename, flags=_UNQLITE_OPEN_READWRITE)
     except Timeout:
         raise Exception(
             "(open_rw) Failed to grab lock for the database file: " + filename
@@ -110,7 +170,7 @@ def _try_try_again(func):
     while True:
         try:
             return func()
-        except unqlite.UnQLiteError as e:
+        except _unqlite.UnQLiteError as e:
             if count >= 10:
                 raise e
             count += 1
@@ -133,6 +193,8 @@ class database(object):
         a new one.
         """
         self.filename = filename
+        self._mode = mode
+        self._open_start = time.monotonic()
         if mode == DATABASE_MODE.READ_ONLY:
             self.db, self.lock = _open_ro(filename)
         elif mode == DATABASE_MODE.READ_WRITE:
@@ -143,6 +205,10 @@ class database(object):
             raise ValueError(
                 "mode must be set to either READ_ONLY, READ_WRITE, or CREATE."
             )
+        self._open_duration = time.monotonic() - self._open_start
+        self._closed = False
+        # In-memory cache for deserialized fetch results (read-only mode only)
+        self._fetch_cache = {} if mode == DATABASE_MODE.READ_ONLY else None
 
     def close(self):
         """
@@ -151,14 +217,46 @@ class database(object):
         statement with the database should be preferred to calling
         this close method manually.
         """
-        try:
-            self.db.close()
-        except BaseException:
-            pass
+        if getattr(self, '_closed', False):
+            return
+        self._closed = True
+        # For read-only cached connections, just decrement refcount
+        if getattr(self, '_mode', None) == DATABASE_MODE.READ_ONLY:
+            _close_ro_cached(self.filename)
+        else:
+            try:
+                self.db.close()
+            except BaseException:
+                pass
+        # Write profiling data if enabled
+        if os.environ.get("BUILD_PROFILE", "0") == "1" and hasattr(self, '_open_start'):
+            try:
+                total = time.monotonic() - self._open_start
+                record = {
+                    "name": "db:" + os.path.basename(self.filename),
+                    "duration": total,
+                    "open_duration": getattr(self, '_open_duration', 0),
+                    "pid": os.getpid(),
+                    "wall_time": time.time(),
+                }
+                with open(os.environ.get("BUILD_PROFILE_FILE", "/tmp/adamant_build_profile.jsonl"), "a") as f:
+                    f.write(_json.dumps(record) + "\n")
+            except Exception:
+                pass
 
     def destroy(self):
         """Completely remove the database from the filesystem."""
-        self.close()
+        # Force-close cached connection if any
+        if self.filename in _ro_cache:
+            try:
+                _ro_cache[self.filename].close()
+            except Exception:
+                pass
+            _ro_cache.pop(self.filename, None)
+            _ro_refcount.pop(self.filename, None)
+            self._closed = True
+        else:
+            self.close()
         _destroy(self.filename)
 
     def __del__(self):
@@ -178,6 +276,7 @@ class database(object):
 
     def store(self, key, data):
         """Store data in the database for a specific string key"""
+        _ensure_pickle()
         def _do_store():
             try:
                 # We must have mutual exclusion on writes, so we use an external
@@ -185,7 +284,7 @@ class database(object):
                 # itself.
                 with self.lock:
                     # Serialize the data and store it in the database:
-                    sdata = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+                    sdata = _pickle.dumps(data, protocol=_pickle.HIGHEST_PROTOCOL)
                     self.db[key] = sdata
             except Timeout:
                 raise Exception(
@@ -200,38 +299,48 @@ class database(object):
         key. If the key does not exist, throw a KeyError
         exception.
         """
+        # Check in-memory cache first
+        if self._fetch_cache is not None:
+            if key in self._fetch_cache:
+                return self._fetch_cache[key]
+
         def _do_fetch():
-            """
-            Extract data from database and deserialize it into
-            a python data structure:
-            """
             try:
                 sdata = self.db[key]
-                return pickle.loads(sdata)
+                _ensure_pickle()
+                return _pickle.loads(sdata)
             except KeyError:
                 raise KeyError(
                     "No key '" + key + "' exists in database. fetch() failed."
                 )
 
-        return _try_try_again(_do_fetch)
+        result = _try_try_again(_do_fetch)
+        if self._fetch_cache is not None:
+            self._fetch_cache[key] = result
+        return result
 
     def try_fetch(self, key):
         """
         Extract data from the database for a specific string
         key. If the key does not exist, None is returned.
         """
+        # Check in-memory cache first
+        if self._fetch_cache is not None:
+            if key in self._fetch_cache:
+                return self._fetch_cache[key]
+
         def _do_try_fetch():
-            """
-            Extract data from database and deserialize it into
-            a python data structure:
-            """
             try:
                 sdata = self.db[key]
-                return pickle.loads(sdata)
+                _ensure_pickle()
+                return _pickle.loads(sdata)
             except KeyError:
                 return None
 
-        return _try_try_again(_do_try_fetch)
+        result = _try_try_again(_do_try_fetch)
+        if self._fetch_cache is not None:
+            self._fetch_cache[key] = result
+        return result
 
     def keys(self):
         """Return a list of all the keys that exist in the database."""
@@ -259,7 +368,8 @@ class database(object):
         """
         string = ""
         for key, value in self.db.items():
-            data = pickle.loads(value)
+            _ensure_pickle()
+            data = _pickle.loads(value)
             string += str(key) + " : " + str(data) + "\n"
         return string
 
