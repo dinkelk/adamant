@@ -395,11 +395,13 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
     # use to compile these objects.
     sources_to_compile = []
     sources_to_depend = []
+    per_object_sources = {}
     for object_file in object_files:
         # Get immediate sources for object:
         source_to_compile, obj_srcs_to_depend = _get_object_sources(object_file)
         sources_to_compile.append(source_to_compile)
         sources_to_depend.extend(obj_srcs_to_depend)
+        per_object_sources[object_file] = list(obj_srcs_to_depend)
 
     # Depend on and build immediate source files dependencies:
     if not dry_run:
@@ -431,12 +433,12 @@ def _build_all_ada_and_c_dependencies_for_object(object_files, dry_run=False):
 
     # Uniquify the dependency list for this object and return them.
     sources_to_depend = list(set(sources_to_depend))
-    return sources_to_compile, [build_target_file, __file__] + sources_to_depend, build_target_instance
+    return sources_to_compile, [build_target_file, __file__] + sources_to_depend, build_target_instance, per_object_sources
 
 
 def _precompile_objects(object_files):
     # Get and build all source files dependencies for these object files
-    sources_to_compile, sources_to_depend, build_target_instance = _build_all_ada_and_c_dependencies_for_object(object_files)
+    sources_to_compile, sources_to_depend, build_target_instance, per_object_sources = _build_all_ada_and_c_dependencies_for_object(object_files)
 
     # Info print if we are compiling a lot of objects, so the user is informed what is going on.
     num_objects = len(object_files)
@@ -486,8 +488,10 @@ def _precompile_objects(object_files):
         with open(obj_file + ".deps", "w") as f:
             f.write("\n".join(sources_to_depend))
 
-        # Register with redo-done: marks target as built with these deps
-        redo.redo_done(obj_file, sources_to_depend)
+        # Register with redo-done using per-object deps only.
+        # Redo recursively checks transitive deps through each source.
+        obj_deps = per_object_sources.get(obj_file, [])
+        redo.redo_done(obj_file, obj_deps)
 
 
 def _handle_prebuilt_object(redo_1, redo_2, redo_3):
@@ -520,7 +524,7 @@ def _handle_prebuilt_object(redo_1, redo_2, redo_3):
         # these dependencies in the precompile, so they should all exist already,
         # thus we can optimize by setting dry_run=True, which will ensure that no
         # calls to redo are made.
-        _, sources_to_depend, _ = _build_all_ada_and_c_dependencies_for_object([redo_1], dry_run=True)
+        _, sources_to_depend, _, _ = _build_all_ada_and_c_dependencies_for_object([redo_1], dry_run=True)
 
         # Write deps file out to save computed object dependencies
         with open(
