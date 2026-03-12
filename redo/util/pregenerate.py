@@ -65,8 +65,6 @@ def pregenerate_codegen_targets(source_files):
                 # If the file already exists on disk, don't regenerate it.
                 # Instead, let it fall through to redo-ifchange in the caller
                 # so redo can check whether it's stale and rebuild if needed.
-                # If it is already up to date, the redo-ifchange call will be
-                # lightning fast.
                 if os.path.isfile(source):
                     continue
 
@@ -82,30 +80,21 @@ def pregenerate_codegen_targets(source_files):
                     continue
 
                 try:
-                    # Grab the generator for this file.
                     generator = _get_generator_instance(module_name, class_name, file_name)
+                    filesystem.safe_makedir(os.path.dirname(source))
 
-                    # Resolve the generator's declared dependencies (model
-                    # files, submodels, etc.). If any dependency is missing,
-                    # we can't safely generate in-process — fall through to
-                    # redo-ifchange which will build the missing deps first.
+                    # Resolve the generator's declared dependencies first,
+                    # matching the order in build_via_generator.py.
                     try:
                         dependencies = generator.depends_on(input_filename)
                     except Exception:
-                        continue
-                    if dependencies:
-                        if isinstance(dependencies, str):
-                            dependencies = [dependencies]
-                        if not all(os.path.isfile(dep) for dep in dependencies):
-                            continue
-
-                    filesystem.safe_makedir(os.path.dirname(source))
+                        dependencies = None
+                    if dependencies and isinstance(dependencies, str):
+                        dependencies = [dependencies]
 
                     # Generators write to stdout (matching how build_via_generator
                     # works with redo's output capture). Capture stdout and write
-                    # the content to the output file ourselves. Stderr is not
-                    # captured and thus will be printed to the screen as it
-                    # normally would.
+                    # the content to the output file ourselves.
                     old_stdout = sys.stdout
                     sys.stdout = captured = io.StringIO()
                     try:
@@ -131,7 +120,6 @@ def pregenerate_codegen_targets(source_files):
                         all_deps.extend(dependencies)
                     redo.redo_done(source, all_deps)
 
-                    # Track this file as pre-generated.
                     pregenerated.append(source)
                 except Exception:
                     # Generation failed. Clean up any partial output and let
