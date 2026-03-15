@@ -430,13 +430,17 @@ def _delayed_cleanup(redo_1, redo_2, redo_3):
     """
     # Save the target database to a persistent location before cleanup.
     # This allows 'redo what' to read it directly without rebuilding.
-    try:
-        from database.persistent_target_cache import save_persistent_db
-        session_dir = _get_session_dir()
-        session_db = os.path.join(session_dir, "db", "redo_target.db")
-        save_persistent_db(session_db)
-    except Exception:
-        pass  # Don't let cache save failures break cleanup
+    # Only save when BUILD_PATH was not manually set (i.e., full build).
+    # Partial builds (e.g., 'redo what' with a limited BUILD_PATH) should
+    # not overwrite the persistent DB with incomplete data.
+    if "BUILD_PATH" not in os.environ:
+        try:
+            from database.persistent_target_cache import save_persistent_db
+            session_dir = _get_session_dir()
+            session_db = os.path.join(session_dir, "db", "redo_target.db")
+            save_persistent_db(session_db)
+        except Exception:
+            pass  # Don't let cache save failures break cleanup
 
     if not os.environ.get("ADAMANT_DISABLE_SESSION_CLEANUP"):
         # First remove our .running file to signify to other processes that we are no

@@ -100,9 +100,66 @@ After: Build once → persist DB → tab reads persistent DB directly
 The persistent DB is automatically refreshed on every build via `_delayed_cleanup()`.
 No manual cache management needed.
 
+## Fix #4: Lazy import filelock (commit 5)
+
+**Change:** Move `from filelock import FileLock, Timeout` from module-level in
+`database.py` to inside the functions that need it (`_get_flock`, `_create`,
+`_open_rw`, `store`). Read-only operations never import filelock.
+
+**Files changed:** `redo/database/database.py`
+
+`import filelock` costs ~59ms — over 60% of `redo what` time with the persistent
+DB. Read-only access (the common case for tab completion) doesn't need locking.
+
+| Scenario | Before | After | Speedup |
+|----------|--------|-------|---------|
+| `redo what` | 95ms | **42ms** | **2.3×** |
+| `redo <TAB>` | 108ms | **58ms** | **1.9×** |
+| `redo src/components/oscillator/` | 151ms | **100ms** | **1.5×** |
+
+---
+
+## Final Results
+
+| Scenario | Baseline | Final | Speedup |
+|----------|----------|-------|---------|
+| `redo what` (any directory) | **292-432ms** | **42ms** | **7.0-10.3×** |
+| `redo <TAB>` | **345ms** | **58ms** | **5.9×** |
+| `redo src/components/oscill` | **240ms** | **~70ms** | **3.4×** |
+| `redo src/components/oscillator/` | **~400ms** | **100ms** | **4.0×** |
+
+### Architecture
+
+Before: Every tab → spawn redo → rebuild DB from scratch → query → throw away DB
+After: Build once → persist DB → tab reads persistent DB directly (no filelock)
+
+The persistent DB is automatically refreshed on every build via `_delayed_cleanup()`.
+No manual cache management needed.
+
+## Fix #5: Pre-warm on env/activate (commit 6)
+
+If no persistent DB exists yet, `redo templates` runs in the background
+during environment activation. First tab after fresh activation is fast.
+
+## Fix #6: Staleness detection (commit 7)
+
+When `redo what` reads from the persistent DB, it checks if any `.do` or
+`.yaml` files in the queried directory are newer than the DB. If stale:
+1. Falls back to the slow path for that one call (~300ms)
+2. Merges the fresh targets into the persistent DB
+3. Subsequent calls are fast again (~42ms)
+
+Only the stale directory triggers a refresh. Other directories keep their
+cached entries. Partial builds (like `redo what`) don't overwrite the
+persistent DB — only full builds do.
+
 ### Branch: `perf/completion-persistent-db`
 
 Commits:
 1. `perf: inline what_predefined in tab completion`
 2. `perf: persistent target DB for fast 'redo what'`
 3. `refactor: remove per-directory text caches from tab completion`
+4. `docs: add tab completion performance benchmarks`
+5. `perf: lazy import filelock in database module`
+6. `perf: pre-warm persistent target cache on env/activate`
+7. `perf: staleness detection for persistent target cache`
