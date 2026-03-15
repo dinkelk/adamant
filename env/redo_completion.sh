@@ -30,6 +30,10 @@ __redo_completion () {
     # functions used in redo_completion_helper
     ##########################################
 
+    # Predefined targets — these are always available in any redo directory.
+    # Inlined here to avoid spawning a subprocess for `redo what_predefined`.
+    local PREDEF_TARGETS="all analyze analyze_all clean clean_all clear_cache coverage_all pretty prove publish style style_all targets templates test_all what"
+
     # takes in an argument, likely `what` or `what_predefined`
     redo_cmd_parsed () {
         redo "$1" 2>&1 | tail +2 | sed 's/^redo //' | sed 's/\n/ /' | echo "$(cat -)
@@ -45,9 +49,29 @@ what" | grep -v "^$"
         redo_cmd_parsed "$path/what"
     }
 
+    # Check if a directory is redo-capable by looking for a default.do
+    # file in the directory or any ancestor. This replaces the old
+    # `redo what_predefined` subprocess call.
+    is_redo_dir () {
+        local path=$1
+        [ "$path" = "." ] && path=$(pwd)
+        # Walk up looking for default.do (redo's entry point)
+        local check_dir
+        check_dir=$(cd "$path" 2>/dev/null && pwd) || return 1
+        while [ "$check_dir" != "/" ]; do
+            [ -f "$check_dir/default.do" ] && return 0
+            check_dir=$(dirname "$check_dir")
+        done
+        return 1
+    }
+
     what_predef_parsed () {
         local path=$1
-        redo_cmd_parsed "$path/what_predefined"
+        if is_redo_dir "$path"; then
+            echo "$PREDEF_TARGETS" | tr ' ' '\n'
+            return 0
+        fi
+        return 1
     }
 
     # main cache: stores output of previous runs of `redo what`
@@ -287,9 +311,9 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
             compgen_arg=$(cat "$path"/build/redo/what_cache.txt)
             dbg '> cache ok'
         else
-            # fallback to `redo what_predefined`
-            compgen_arg=$(what_predef_parsed "$path")
-            dbg '> cache fallback to what_predef'
+            # fallback to inlined predefined targets (no subprocess)
+            compgen_arg="$PREDEF_TARGETS"
+            dbg '> cache fallback to predefined'
         fi
 
         # generate completions
