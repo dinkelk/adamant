@@ -1,4 +1,5 @@
 from database.redo_target_database import redo_target_database
+from database.persistent_target_cache import get_persistent_db_path
 import os.path
 import sys
 from base_classes.build_rule_base import build_rule_base
@@ -20,10 +21,40 @@ class build_what(build_rule_base):
         we just need to build path to include the directory pointed to by
         redo_1. So set that in the environment for speed, then call the
         normal implementation of build.
+
+        If a persistent target database exists from a previous build,
+        we use it directly — skipping the expensive _setup() entirely.
         """
         directory = os.path.dirname(os.path.abspath(redo_1))
-        environ["BUILD_PATH"] = directory + os.pathsep + directory + os.sep + ".."
-        super(build_what, self).build(redo_1, redo_2, redo_3)
+        persistent_db = get_persistent_db_path()
+        if persistent_db and os.path.isfile(persistent_db):
+            # Fast path: read from persistent DB, no setup needed
+            self._build_from_persistent(redo_1, directory, persistent_db)
+        else:
+            # Slow path: full setup + ephemeral DB
+            environ["BUILD_PATH"] = directory + os.pathsep + directory + os.sep + ".."
+            super(build_what, self).build(redo_1, redo_2, redo_3)
+
+    def _build_from_persistent(self, redo_1, directory, persistent_db):
+        """Read targets from the persistent DB without running setup."""
+        def uniquify_preserve_order(lst):
+            return sorted(set(lst), key=lambda x: lst.index(x))
+
+        redo_targets = get_predefined_targets()
+        from database.database import database, DATABASE_MODE
+        with database(persistent_db, DATABASE_MODE.READ_ONLY) as db:
+            try:
+                targets = list(db.fetch(directory))
+            except BaseException:
+                targets = []
+        if targets:
+            targets.sort()
+            for target in targets:
+                rel_target = os.path.relpath(target, directory)
+                redo_targets.append(rel_target)
+        sys.stderr.write(
+            "redo " + "\nredo ".join(uniquify_preserve_order(redo_targets)) + "\n"
+        )
 
     def _build(self, redo_1, redo_2, redo_3):
         # https://stackoverflow.com/questions/1549509/remove-duplicates-in-a-list-while-keeping-its-order-python

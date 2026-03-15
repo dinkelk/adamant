@@ -74,40 +74,12 @@ what" | grep -v "^$"
         return 1
     }
 
-    # main cache: stores output of previous runs of `redo what`
-    words_cache_ok () {
+    # Get targets for a directory via 'redo what' (fast with persistent DB).
+    # No longer caches to per-directory text files since the persistent DB
+    # makes 'redo what' fast enough (~95ms).
+    words_get () {
         local path=$1
-        [ -f "$path"/build/redo/what_cache.txt ] || return 1
-        [ -n "$(cat "$path"/build/redo/what_cache.txt)" ] || return 1
-        # todo: check for file integrity, timestamp, etc?
-        return 0
-    }
-
-    words_cache_save () {
-        local path=$1
-        local res status
-        res="$(what_parsed "$path")"
-        status=$?
-        echo "$res"
-        [ "$status" = 0 ] || return 2
-        mkdir -p "$path"/build/redo && echo "$res" > "$path"/build/redo/what_cache.txt
-        [ "$?" = 0 ] || return 1
-        return 0
-    }
-
-    # short lived cache of a directories in which we've run `redo what`
-    # i.e. can we assume that the cache in this directory is completely up to date?
-    dir_first_visit () {
-        local path=$1 filename=~/.cache/redo/what_cache_dirs.txt
-        [ -f "$filename" ] || return 0
-
-        cat "$filename" | grep "^$path\$" >/dev/null && return 1
-        return 0
-    }
-
-    dir_cache_save () {
-        local path=$1
-        mkdir -p ~/.cache/redo/ 2>/dev/null && echo "$path" >> ~/.cache/redo/what_cache_dirs.txt
+        what_parsed "$path"
     }
 
     # doesn't take a path, since dir cache is always relative to ./
@@ -193,14 +165,10 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
     }
 
     synchronous_work () {
-        compgen_arg=$(words_cache_save "$path")
+        compgen_arg=$(words_get "$path")
         RES=$(compgen -W "$compgen_arg" "$arg")
         prepend_path
         append_compgen_dirs
-    }
-
-    async_work () {
-        words_cache_save "$path" >/dev/null
     }
 
     should_recurse () {
@@ -275,91 +243,35 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
         fi
 
 
-        # locals
-        local compgen_arg first_run=false
-        if dir_first_visit "$path"; then
-            first_run=true
-            dir_cache_save "$path"
-        fi
-
-        # overview:
-        # if typed `redo <tab>` or `redo path/<tab>`, run `redo what` synchronously
-        # check word cache (fallback to `redo what_predefined`)
-        # -> if match, use the result and update caches in background
-        # if no matches yet, check for redo's path syntax
-        # -> if match, recurse using subdirectory
-        # if still no matches, match against directory names
-        # if *still* no matches, and cache is outdated, synchronously run `redo what`
-        # return regardless of matches
-
-
-        # I assume that if someone types `redo <tab>`,
-        # they probably want an up-to-date list of commands
-        # but if someone types `redo b<tab>` for example,
-        # they probably intended to autocomplete build/
-        # which is likely still available, and useful to provide instantly
-
-        # if typed `redo <tab>` and cache is outdated, bypass cache
-        if [ "$first_run" = true ] && [ -z "$arg" ]; then
-            synchronous_work
-            append_compgen_dirs
-            return 0
-        fi
-
-
-        if words_cache_ok "$path"; then
-            compgen_arg=$(cat "$path"/build/redo/what_cache.txt)
-            dbg '> cache ok'
-        else
-            # fallback to inlined predefined targets (no subprocess)
-            compgen_arg="$PREDEF_TARGETS"
-            dbg '> cache fallback to predefined'
-        fi
-
-        # generate completions
-        RES=$(compgen -W "$compgen_arg" "$arg")
-
-        if [ -n "$RES" ]; then
-
-            dbg '> used cache'
-
-            prepend_path
-            append_compgen_dirs
-            (async_work &)
-
-            return 0
-        fi
-
-        dbg '> cache miss'
-
-        # no match, so check for a directory prefix
+        # If the arg contains a slash, we're navigating into a subdirectory.
+        # Recurse first without calling 'redo what' — save the expensive call
+        # for the final leaf directory where we actually need target matches.
         if should_recurse; then
-            # found directory, so recurse "into" it
             do_recurse
             return $?
         fi
 
-        dbg '> no recurse'
-        dbg pre-full arg: "path ($path) arg ($arg)"
+        # We're at the leaf directory — get targets via redo what
+        # (fast ~95ms with persistent DB, falls back to ~300ms without)
+        local compgen_arg
+        compgen_arg=$(words_get "$path")
 
+        # Generate completions from targets
+        RES=$(compgen -W "$compgen_arg" "$arg")
+
+        if [ -n "$RES" ]; then
+            dbg '> got targets'
+            prepend_path
+            append_compgen_dirs
+            return 0
+        fi
+
+        dbg '> no target match'
+
+        # Fall back to directory completion
         RES=
         append_compgen_dirs
 
-        if [ -n "$RES" ]; then
-            # no need to prepend_path
-            (async_work &)
-            return 0
-        fi
-
-        # now there's really nothing to match
-        # so do synchronous anyway, but only on first run
-        # this is useful for i.e. autocompleting build/ in a directory for the first time after making a .component.yaml file
-        if [ "$first_run" = true ]; then
-            dbg '> synchronous time'
-            synchronous_work
-            return 0
-        fi
-        dbg '> no matches at all'
         return 0
     }
 
@@ -444,7 +356,7 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
         unset oldifs
     fi
 
-    unset -f redo_cmd_parsed what_parsed what_predef_parsed words_cache_ok words_cache_save dir_first_visit dir_cache_save dir_cache_clean save_last_confirmed_dir get_last_confirmed_dir prepend try_trim_leading_dir append_compgen_dirs synchronous_work async_work prepend_path redo_completion_helper try_cached_dir
+    unset -f redo_cmd_parsed what_parsed what_predef_parsed words_get dir_cache_clean save_last_confirmed_dir get_last_confirmed_dir prepend try_trim_leading_dir append_compgen_dirs synchronous_work prepend_path redo_completion_helper try_cached_dir is_redo_dir
 
     # must be very last command, see top
     echo $special_arg > /dev/null
