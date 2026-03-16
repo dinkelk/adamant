@@ -5,7 +5,26 @@ import os
 import sys
 from base_classes.build_rule_base import build_rule_base
 from os import environ
-from rules.build_what_predefined import get_predefined_targets
+
+
+# Redo targets available in any subdirectory of the project.
+_PREDEFINED_TARGETS = [
+    "all",
+    "clean",
+    "clean_all",
+    "clear_cache",
+    "templates",
+    "publish",
+    "targets",
+    "prove",
+    "analyze",
+    "style",
+    "pretty",
+    "test_all",
+    "analyze_all",
+    "coverage_all",
+    "style_all",
+]
 
 
 def _uniquify_preserve_order(lst):
@@ -44,7 +63,7 @@ class build_what(build_rule_base):
 
     def _build_from_persistent(self, redo_1, directory, persistent_db):
         """Read targets from the persistent DB without running setup."""
-        redo_targets = get_predefined_targets()
+        redo_targets = list(_PREDEFINED_TARGETS)
         from database.database import database, DATABASE_MODE
         with database(persistent_db, DATABASE_MODE.READ_ONLY) as db:
             try:
@@ -62,7 +81,7 @@ class build_what(build_rule_base):
 
     def _build(self, redo_1, redo_2, redo_3):
         # Define the special targets that exist everywhere...
-        redo_targets = get_predefined_targets()
+        redo_targets = list(_PREDEFINED_TARGETS)
         directory = os.path.dirname(redo_1)
         with redo_target_database() as db:
             try:
