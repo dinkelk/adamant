@@ -222,3 +222,12 @@ export -p > /tmp/.adamant_env_snapshot
 
 # Adding redo tab completion feature to shell
 . $ADAMANT_DIR/env/redo_completion.sh
+
+# Pre-warm the persistent target cache in the background.
+# Directly invokes Python to build the full target DB (~4s, backgrounded).
+# Skips if cache already exists. Subsequent 'redo what' / TAB = ~42ms.
+_redo_cache_dir="/tmp/redo-$(id -u)"
+if ! find "$_redo_cache_dir" -name "redo_target.db" -print -quit 2>/dev/null | grep -q .; then
+    (python3 -m database.persistent_target_cache >/dev/null 2>&1 &)
+fi
+unset _redo_cache_dir

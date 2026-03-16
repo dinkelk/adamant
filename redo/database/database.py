@@ -3,7 +3,6 @@ import pickle
 import os
 import time
 from enum import Enum
-from filelock import FileLock, Timeout
 
 # Large recursive items sometimes fail to pickle due to reaching the
 # recursion limit. Let's increase that to something more reasonable
@@ -51,6 +50,7 @@ def _get_flock_filename(filename):
 
 
 def _get_flock(filename):
+    from filelock import FileLock
     return FileLock(_get_flock_filename(filename), timeout=10)
 
 
@@ -69,6 +69,7 @@ def _destroy(filename):
 def _create(filename):
     # Create a database from a fresh file every time. If the user
     # does not want this they can call open_rw instead.
+    from filelock import Timeout
     _destroy(filename)
     lock = _get_flock(filename)
     db = None
@@ -87,6 +88,7 @@ def _open_ro(filename):
 
 
 def _open_rw(filename):
+    from filelock import Timeout
     lock = _get_flock(filename)
     db = None
     try:
@@ -179,6 +181,7 @@ class database(object):
     def store(self, key, data):
         """Store data in the database for a specific string key"""
         def _do_store():
+            from filelock import Timeout
             try:
                 # We must have mutual exclusion on writes, so we use an external
                 # file lock to do so since unqlite does not provide this feature
