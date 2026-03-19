@@ -3,19 +3,6 @@
 # The function that provides bash completions for the redo command.
 # To see debug messages, set DBG=true.
 __redo_completion () {
-    local underscore=$_ # must be very first command
-    local special_arg=____redo_completion_special_arg
-    local first_run=false
-    [ "$underscore" != "$special_arg" ] && first_run=true
-
-
-    # $_ is set to the argument of the last executed command
-    # so on the first run, it will depend on what the user just ran
-    # the second run onwards, it will be set to $special_arg
-    # this function runs once after every tab completion,
-    # so we can use this to detect whether this is the user's first tab press
-
-
     dbg () {
         local prevstatus=$?
         [ "$DBG" = true ] &&  echo - "$@"
@@ -23,7 +10,7 @@ __redo_completion () {
     }
 
     dbg
-    dbg "> start: first_run=$first_run this_word=$this_word"
+    dbg "> start: this_word=$this_word"
 
 
     ##########################################
@@ -50,46 +37,40 @@ what" | grep -v "^$"
         redo_cmd_parsed "$path/what_predefined"
     }
 
-    # main cache: stores output of previous runs of `redo what`
-    words_cache_ok () {
+    # Fast text cache read for tab completion
+    # Reads the breadcrumb written by Python's get_cache_dir() to find
+    # the cache directory, then reads the per-directory text cache file.
+    # Returns the cached targets on stdout, or fails (return 1) on miss.
+    text_cache_read () {
         local path=$1
-        [ -f "$path"/build/redo/what_cache.txt ] || return 1
-        [ -n "$(cat "$path"/build/redo/what_cache.txt)" ] || return 1
-        # todo: check for file integrity, timestamp, etc?
+        local abs_dir
+        # Use $PWD for "." to avoid a subshell
+        if [ "$path" = "." ]; then
+            abs_dir=$PWD
+        else
+            abs_dir=$(cd "$path" 2>/dev/null && pwd) || return 1
+        fi
+
+        local breadcrumb="/tmp/redo-$(id -u)/cache_dir"
+        local cache_dir
+        read -r cache_dir < "$breadcrumb" 2>/dev/null || return 1
+
+        # Encode directory path as filename: /foo/bar → _foo_bar
+        # Must match Python's save_text_cache() encoding.
+        local dir_key="${abs_dir//\//_}"
+        local text_file="${cache_dir}/what/${dir_key}.txt"
+
+        # Text cache must exist and be non-empty
+        [ -s "$text_file" ] || return 1
+
+        # Invalidate if directory has changed (files added/removed)
+        local text_mtime dir_mtime
+        text_mtime=$(stat -c %Y "$text_file" 2>/dev/null) || return 1
+        dir_mtime=$(stat -c %Y "$abs_dir" 2>/dev/null) || return 1
+        [ "$text_mtime" -ge "$dir_mtime" ] || return 1
+
+        cat "$text_file"
         return 0
-    }
-
-    words_cache_save () {
-        local path=$1
-        local res status
-        res="$(what_parsed "$path")"
-        status=$?
-        echo "$res"
-        [ "$status" = 0 ] || return 2
-        mkdir -p "$path"/build/redo && echo "$res" > "$path"/build/redo/what_cache.txt
-        [ "$?" = 0 ] || return 1
-        return 0
-    }
-
-    # short lived cache of a directories in which we've run `redo what`
-    # i.e. can we assume that the cache in this directory is completely up to date?
-    dir_first_visit () {
-        local path=$1 filename=~/.cache/redo/what_cache_dirs.txt
-        [ -f "$filename" ] || return 0
-
-        cat "$filename" | grep "^$path\$" >/dev/null && return 1
-        return 0
-    }
-
-    dir_cache_save () {
-        local path=$1
-        mkdir -p ~/.cache/redo/ 2>/dev/null && echo "$path" >> ~/.cache/redo/what_cache_dirs.txt
-    }
-
-    # doesn't take a path, since dir cache is always relative to ./
-    dir_cache_clean () {
-        local filename=~/.cache/redo/what_cache_dirs.txt
-        [ -f "$filename" ] && rm "$filename"
     }
 
     # shorter-lived cache to avoid having to recurse every new dir completion
@@ -155,8 +136,6 @@ what" | grep -v "^$"
         local full_arg
         if [ "$path" = . ]; then
             full_arg=$arg
-        # elif [ -z "$arg" ]; then
-            # full_arg=$path
         else
             full_arg=$path/$arg
         fi
@@ -169,14 +148,10 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
     }
 
     synchronous_work () {
-        compgen_arg=$(words_cache_save "$path")
+        compgen_arg=$(what_parsed "$path")
         RES=$(compgen -W "$compgen_arg" "$arg")
         prepend_path
         append_compgen_dirs
-    }
-
-    async_work () {
-        words_cache_save "$path" >/dev/null
     }
 
     should_recurse () {
@@ -217,13 +192,48 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
         # return value -- must reset at start of function
         RES=
 
-        # clean up $path / $arg -- replace instances of ./ with nothing
-        path=$(echo "$path" | sed 's/\b\.\///')
-        arg=$(echo "$arg" | sed 's/\b\.\///')
+        # clean up $path / $arg, strip leading ./ prefix
+        [[ "$path" == ./* ]] && path="${path#./}"
+        [ -z "$path" ] && path="."
+        [[ "$arg" == ./* ]] && arg="${arg#./}"
         [ "$arg" = . ] && arg=./ # just bc the user must have typed it in
 
         dbg "> enter helper: path=($path) arg=($arg)"
 
+        # Fast path: try text cache first (fast) before spawning any
+        # Python subprocess (slower). A valid text cache proves this is a
+        # redo directory, so we can skip what_predef_parsed entirely.
+        local compgen_arg
+        if compgen_arg=$(text_cache_read "$path" 2>/dev/null); then
+            dbg '> text cache hit (fast path)'
+
+            RES=$(compgen -W "$compgen_arg" "$arg")
+
+            if [ -n "$RES" ]; then
+                dbg '> matched'
+                prepend_path
+                append_compgen_dirs
+                return 0
+            fi
+
+            dbg '> text cache hit but no match for arg'
+
+            # no match, so check for a directory prefix
+            if should_recurse; then
+                do_recurse
+                return $?
+            fi
+
+            # fall through to dir completion
+            RES=
+            append_compgen_dirs
+            return 0
+        fi
+
+        dbg '> text cache miss, trying slow path'
+
+        # Slow path: no text cache. Check if this is a redo directory
+        # by calling what_predef_parsed (spawns redo subprocess, tens of ms).
         if what_predef_parsed "$path" >/dev/null; then
             # path only gets edited when we recurse, so this is safe
             save_last_confirmed_dir "$path"
@@ -240,7 +250,6 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
             # so just complete dirs
             append_compgen_dirs
             dbg new res just dropped "RES ($RES)"
-            # return 1
 
             if should_recurse; then
                 dbg '> yet recurse'
@@ -250,59 +259,17 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
             return 0
         fi
 
-
-        # locals
-        local compgen_arg first_run=false
-        if dir_first_visit "$path"; then
-            first_run=true
-            dir_cache_save "$path"
-        fi
-
-        # overview:
-        # if typed `redo <tab>` or `redo path/<tab>`, run `redo what` synchronously
-        # check word cache (fallback to `redo what_predefined`)
-        # -> if match, use the result and update caches in background
-        # if no matches yet, check for redo's path syntax
-        # -> if match, recurse using subdirectory
-        # if still no matches, match against directory names
-        # if *still* no matches, and cache is outdated, synchronously run `redo what`
-        # return regardless of matches
-
-
-        # I assume that if someone types `redo <tab>`,
-        # they probably want an up-to-date list of commands
-        # but if someone types `redo b<tab>` for example,
-        # they probably intended to autocomplete build/
-        # which is likely still available, and useful to provide instantly
-
-        # if typed `redo <tab>` and cache is outdated, bypass cache
-        if [ "$first_run" = true ] && [ -z "$arg" ]; then
-            synchronous_work
-            append_compgen_dirs
-            return 0
-        fi
-
-
-        if words_cache_ok "$path"; then
-            compgen_arg=$(cat "$path"/build/redo/what_cache.txt)
-            dbg '> cache ok'
-        else
-            # fallback to `redo what_predefined`
-            compgen_arg=$(what_predef_parsed "$path")
-            dbg '> cache fallback to what_predef'
-        fi
+        # No text cache — call redo what (also populates text cache)
+        compgen_arg=$(what_parsed "$path")
+        dbg '> called redo what (slow path)'
 
         # generate completions
         RES=$(compgen -W "$compgen_arg" "$arg")
 
         if [ -n "$RES" ]; then
-
-            dbg '> used cache'
-
+            dbg '> matched'
             prepend_path
             append_compgen_dirs
-            (async_work &)
-
             return 0
         fi
 
@@ -322,20 +289,13 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
         append_compgen_dirs
 
         if [ -n "$RES" ]; then
-            # no need to prepend_path
-            (async_work &)
             return 0
         fi
 
         # now there's really nothing to match
-        # so do synchronous anyway, but only on first run
-        # this is useful for i.e. autocompleting build/ in a directory for the first time after making a .component.yaml file
-        if [ "$first_run" = true ]; then
-            dbg '> synchronous time'
-            synchronous_work
-            return 0
-        fi
-        dbg '> no matches at all'
+        # so do synchronous completion as a final fallback
+        dbg '> synchronous time'
+        synchronous_work
         return 0
     }
 
@@ -369,13 +329,6 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
     # end definitions, start running stuff
     ######################################
 
-    # helps us figure out whether re-running `redo what` is a waste
-    # if first_run=true then the user might have run commands
-    # which might change the output of `redo what`
-    if [ $first_run = true ]; then
-        dir_cache_clean
-    fi
-
     local cmdname=$1 this_word=$2 prev_word=$3
     local starting_dir=.
 
@@ -390,7 +343,7 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
     # call helper function
 
     # helper function sets the RES variable
-    if [ "$first_run" = false ] && try_cached_dir; then
+    if try_cached_dir; then
         # this saves a few recursions
         # see recursion in helper function for when this gets cached
         dbg "> insta-recurse"
@@ -420,10 +373,8 @@ $(compgen -d "$full_arg" | grep -v '\bbuild\b' | sed 's/$/\//')" | grep -v '^$')
         unset oldifs
     fi
 
-    unset -f redo_cmd_parsed what_parsed what_predef_parsed words_cache_ok words_cache_save dir_first_visit dir_cache_save dir_cache_clean save_last_confirmed_dir get_last_confirmed_dir prepend try_trim_leading_dir append_compgen_dirs synchronous_work async_work prepend_path redo_completion_helper try_cached_dir
+    unset -f redo_cmd_parsed what_parsed what_predef_parsed text_cache_read save_last_confirmed_dir get_last_confirmed_dir prepend try_trim_leading_dir append_compgen_dirs synchronous_work prepend_path redo_completion_helper try_cached_dir
 
-    # must be very last command, see top
-    echo $special_arg > /dev/null
 }
 
 # the reason we can't use `complete -o dirnames` is that
