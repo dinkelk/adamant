@@ -122,6 +122,124 @@ def save_persistent_db(session_db_path):
         pass
 
 
+def generate_text_caches(persistent_db_path=None):
+    """
+    Generate text cache files for every directory in the persistent DB.
+
+    This gives the shell completion instant (~15ms) reads without needing
+    to spawn a Python subprocess (~50ms) on the first TAB press for each
+    directory.  Called at the end of build_full_target_cache() so that
+    activate pre-warms both the persistent DB and the text caches.
+    """
+    import unqlite
+    import pickle
+    from rules.build_what_predefined import get_predefined_targets
+
+    if persistent_db_path is None:
+        persistent_db_path = get_persistent_db_path()
+    if not os.path.isfile(persistent_db_path):
+        return
+
+    cache_dir = get_cache_dir()
+    what_dir = os.path.join(cache_dir, "what")
+    os.makedirs(what_dir, exist_ok=True)
+
+    predefined = get_predefined_targets()
+
+    try:
+        # Use unqlite directly for iteration — the database wrapper
+        # doesn't support __iter__.
+        db = unqlite.UnQLite(persistent_db_path, flags=0x00000001)  # UNQLITE_OPEN_READONLY
+        # Collect all directories that have entries in the DB, plus
+        # all their ancestor directories (up to the build roots).
+        # Intermediate dirs like /project/src/components/ won't have
+        # DB entries but still need text caches with predefined targets
+        # so that tab completion is instant.
+        all_dirs = {}  # directory → target list
+        for directory, raw_value in db:
+            try:
+                targets = list(pickle.loads(raw_value))
+            except Exception:
+                targets = []
+            all_dirs[directory] = targets
+        db.close()
+
+        # Determine build roots — these are the top-level directories
+        # where we stop generating ancestor text caches.
+        build_roots = set()
+        for var in ("REDO_BUILD_ROOTS", "BUILD_PATH"):
+            val = os.environ.get(var, "")
+            if val:
+                for p in val.split(os.pathsep):
+                    p = p.strip()
+                    if p:
+                        build_roots.add(os.path.abspath(p))
+        # Infer roots from env vars set by activate
+        config_yaml = os.environ.get("ADAMANT_CONFIGURATION_YAML", "")
+        if config_yaml:
+            project_root = os.path.dirname(os.path.dirname(config_yaml))
+            build_roots.add(os.path.abspath(project_root))
+        adamant_dir = os.environ.get("ADAMANT_DIR", "")
+        if adamant_dir:
+            build_roots.add(os.path.abspath(adamant_dir))
+
+        # Add ancestor directories (stop at build roots).
+        # For each leaf directory in the DB, walk up the tree and
+        # create text caches for intermediate dirs (src/, src/components/,
+        # etc.) that have no DB entries.  Stop at build roots to avoid
+        # creating caches for unrelated parent directories.
+        ancestor_dirs = set()
+        for directory in all_dirs:
+            # If this directory IS a build root, don't walk above it
+            if directory in build_roots:
+                continue
+            parent = os.path.dirname(directory)
+            while parent and parent != directory:
+                if parent in all_dirs or parent in ancestor_dirs:
+                    break
+                ancestor_dirs.add(parent)
+                # Stop at build roots — don't go above them
+                if parent in build_roots:
+                    break
+                directory = parent
+                parent = os.path.dirname(parent)
+        for d in ancestor_dirs:
+            if d not in all_dirs:
+                all_dirs[d] = []  # predefined targets only
+
+        # Write text cache for each directory
+        predefined_text = "\n".join(predefined) + "\n"
+        for directory, targets in all_dirs.items():
+            redo_targets = list(predefined)
+            if targets:
+                targets.sort()
+                for target in targets:
+                    redo_targets.append(os.path.relpath(target, directory))
+                # Deduplicate preserving order
+                seen = set()
+                unique = []
+                for t in redo_targets:
+                    if t not in seen:
+                        seen.add(t)
+                        unique.append(t)
+                content = "\n".join(unique) + "\n"
+            else:
+                # Only predefined targets — no need to deduplicate
+                content = predefined_text
+
+            dir_key = directory.replace("/", "_")
+            text_path = os.path.join(what_dir, dir_key + ".txt")
+            tmp_path = text_path + ".tmp"
+            try:
+                with open(tmp_path, "w") as f:
+                    f.write(content)
+                os.replace(tmp_path, text_path)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def build_full_target_cache():
     """
     Build the full project target database and save it to the persistent
@@ -151,6 +269,9 @@ def build_full_target_cache():
         session_dir = _get_session_dir()
         session_db = os.path.join(session_dir, "db", "redo_target.db")
         save_persistent_db(session_db)
+        # Generate text caches for all directories so shell completion
+        # is instant (~15ms) from the very first TAB press.
+        generate_text_caches()
         # Clean up
         database.setup.cleanup(redo_1, redo_2, redo_3)
 
