@@ -421,6 +421,108 @@ else
 fi
 
 # -------------------------------------------------------
+# Text Cache Prewarm Tests (generate_text_caches)
+# -------------------------------------------------------
+
+# Test 18: Prewarm generates text caches for all DB directories
+echo ""
+echo "Test 18: Prewarm generates text caches for all persistent DB directories"
+cd "$TEST_DIR"
+# Count directories in persistent DB
+db_path=$(python3 -c "from database.persistent_target_cache import get_persistent_db_path; print(get_persistent_db_path())" 2>/dev/null)
+db_key_count=$(python3 -c "
+import unqlite
+db = unqlite.UnQLite('$db_path', flags=0x00000001)
+count = sum(1 for _ in db)
+db.close()
+print(count)
+" 2>/dev/null)
+# Wipe text caches and regenerate
+cache_dir=$(cat "/tmp/redo-$(id -u)/cache_dir")
+rm -rf "$cache_dir/what"
+python3 -c "from database.persistent_target_cache import generate_text_caches; generate_text_caches()" 2>/dev/null
+text_file_count=$(ls "$cache_dir/what/" 2>/dev/null | wc -l)
+# Should have at least as many text files as DB keys (plus ancestors)
+if [ "$text_file_count" -ge "$db_key_count" ]; then
+    pass "text caches ($text_file_count) >= DB keys ($db_key_count)"
+else
+    fail "text caches ($text_file_count) < DB keys ($db_key_count)"
+fi
+
+# Test 19: Intermediate ancestor directories get text caches
+echo ""
+echo "Test 19: Intermediate ancestor directories get text caches"
+# These dirs have no build targets but should have predefined-only caches
+adamant_root="${ADAMANT_DIR}"
+adamant_src="${ADAMANT_DIR}/src"
+adamant_components="${ADAMANT_DIR}/src/components"
+all_ok=true
+for d in "$adamant_root" "$adamant_src" "$adamant_components"; do
+    tf=$(text_cache_path "$d" 2>/dev/null)
+    if [ -s "$tf" ]; then
+        content=$(cat "$tf")
+        # Should contain predefined targets
+        if echo "$content" | grep -q "^all$" && echo "$content" | grep -q "^clean$"; then
+            : # good
+        else
+            fail "text cache for $d missing predefined targets"
+            all_ok=false
+        fi
+    else
+        fail "no text cache for intermediate dir: $d"
+        all_ok=false
+    fi
+done
+if [ "$all_ok" = true ]; then pass "all intermediate dirs have valid text caches"; fi
+
+# Test 20: No text caches above build roots
+echo ""
+echo "Test 20: No text caches generated above build roots"
+spurious=false
+for bad_key in "_" "_home" "_home_user"; do
+    if [ -f "$cache_dir/what/${bad_key}.txt" ]; then
+        fail "spurious text cache: ${bad_key}.txt"
+        spurious=true
+    fi
+done
+if [ "$spurious" = false ]; then pass "no text caches above build roots"; fi
+
+# Test 21: Leaf directory text cache matches redo what output
+echo ""
+echo "Test 21: Prewarm text cache content matches redo what for leaf dir"
+cd "$TEST_DIR"
+# Get text cache content (from prewarm)
+tf=$(text_cache_path "$TEST_DIR" 2>/dev/null)
+cache_content=$(sort "$tf")
+# Get live redo what output
+live_content=$(redo what 2>&1 | tail +2 | sed 's/^redo //' | sort)
+if [ "$cache_content" = "$live_content" ]; then
+    pass "prewarm text cache matches redo what output"
+else
+    fail "prewarm text cache differs from redo what output"
+    diff <(echo "$cache_content") <(echo "$live_content") | head -5
+fi
+
+# Test 22: generate_text_caches is fast (< 500ms)
+echo ""
+echo "Test 22: Text cache generation speed"
+gen_ms=$(time_ms python3 -c "from database.persistent_target_cache import generate_text_caches; generate_text_caches()")
+echo "  generate_text_caches: ${gen_ms}ms"
+if [ "$gen_ms" -lt 500 ]; then pass "text cache generation fast: ${gen_ms}ms < 500ms"
+else fail "text cache generation slow: ${gen_ms}ms >= 500ms"; fi
+
+# Test 23: Prewarm text cache for adamant_example root
+echo ""
+echo "Test 23: Prewarm covers adamant_example build root"
+example_root=$(dirname "$(dirname "$ADAMANT_CONFIGURATION_YAML")")
+tf=$(text_cache_path "$example_root" 2>/dev/null)
+if [ -s "$tf" ]; then
+    pass "adamant_example root has text cache"
+else
+    fail "adamant_example root missing text cache"
+fi
+
+# -------------------------------------------------------
 echo ""
 echo "================================"
 echo "Results: $PASS passed, $FAIL failed"
