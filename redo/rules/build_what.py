@@ -71,8 +71,10 @@ class build_what(build_rule_base):
             try:
                 self._build_from_persistent(redo_1, directory, persistent_db)
                 return
+            except KeyError:
+                pass  # Directory not in DB — fall through to slow path
             except Exception:
-                pass  # DB corrupt or missing dir — fall through to slow path
+                pass  # DB corrupt — fall through to slow path
         # No persistent DB or DB corrupt.
         # Setup for just this directory (fast ~300ms).
         # Mark that we're running 'redo what' so _delayed_cleanup skips
@@ -101,21 +103,21 @@ class build_what(build_rule_base):
     def _build_from_persistent(self, redo_1, directory, persistent_db):
         """Read targets from the persistent DB without running setup.
 
-        Raises RuntimeError if no targets found for the directory,
-        which signals the caller to fall back to the slow path.
+        Raises RuntimeError if the directory is not in the persistent DB
+        at all (KeyError), which signals the caller to fall back to the
+        slow path.  An empty target list is a valid cache hit — it means
+        the directory exists in the project but has no file-level build
+        targets (only predefined ones like all/clean/style).
         """
         redo_targets = get_predefined_targets()
         with database(persistent_db, DATABASE_MODE.READ_ONLY) as db:
-            try:
-                targets = list(db.fetch(directory))
-            except Exception:
-                targets = []
-        if not targets:
-            raise RuntimeError("No targets in persistent DB for " + directory)
-        targets.sort()
-        for target in targets:
-            rel_target = os.path.relpath(target, directory)
-            redo_targets.append(rel_target)
+            # Let KeyError propagate — that's a real cache miss.
+            targets = list(db.fetch(directory))
+        if targets:
+            targets.sort()
+            for target in targets:
+                rel_target = os.path.relpath(target, directory)
+                redo_targets.append(rel_target)
         self._output_targets(directory, redo_targets)
 
     def _build(self, redo_1, redo_2, redo_3):
