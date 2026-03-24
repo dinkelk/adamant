@@ -14,31 +14,54 @@ with Binary_Tree;
 with Parameter_Table_Buffer;
 with Parameter_Table_Router_Types;
 
+-- This component receives segmented CCSDS packets containing parameter tables,
+-- reassembles them in a staging buffer, and routes completed tables to downstream
+-- components that accept a Parameters_Memory_Region type. It supports loading
+-- parameter tables from a designated component on command, which will often be a
+-- Parameter_Store sitting in front of persistent storage.
+-- A generator exists to produce the routing table that maps parameter table IDs
+-- to output connector indexes. See the gen/ subdirectory for documentation.
 package Component.Parameter_Table_Router.Implementation is
 
    -- The component class instance record:
    type Instance is new Parameter_Table_Router.Base_Instance with private;
 
-   overriding procedure Init (Self : in out Instance; Table : in Parameter_Table_Router_Types.Router_Table; Ticks_Until_Timeout : in Natural; Warn_Unexpected_Sequence_Counts : in Boolean := False; Buffer_Size : in Positive; Load_All_Parameter_Tables_On_Set_Up : in Boolean := False);
+   --------------------------------------------------
+   -- Subprogram for implementation init method:
+   --------------------------------------------------
+   -- Initialization parameters for the Parameter Table Router.
+   --
+   -- Init Parameters:
+   -- Table : Parameter_Table_Router_Types.Router_Table - The routing table mapping
+   -- parameter table IDs to destination connector indexes. Typically produced by the
+   -- generator.
+   -- Buffer_Size : Positive - The size in bytes of the internal staging buffer for
+   -- reassembling segmented CCSDS packets.
+   -- Ticks_Until_Timeout : Natural - The number of timeout ticks to wait for a
+   -- response from a downstream component before declaring a timeout.
+   -- Warn_Unexpected_Sequence_Counts : Boolean - If True, an event is produced when
+   -- a CCSDS packet is received with an unexpected (non-incrementing) sequence
+   -- count.
+   -- Load_All_Parameter_Tables_On_Set_Up : Boolean - If True, all parameter tables
+   -- that have a load_from source will be loaded from persistent storage during
+   -- Set_Up.
+   --
+   overriding procedure Init (Self : in out Instance; Table : in Parameter_Table_Router_Types.Router_Table; Buffer_Size : in Positive; Ticks_Until_Timeout : in Natural; Warn_Unexpected_Sequence_Counts : in Boolean := False; Load_All_Parameter_Tables_On_Set_Up : in Boolean := False);
    not overriding procedure Final (Self : in out Instance);
 
 private
    use Parameter_Table_Router_Types;
 
-   -- Protected variable for downstream response:
+   -- Protected variable for downstream response (same pattern as Parameter Manager):
    package Protected_Parameters_Memory_Region_Release is
       new Protected_Variables.Generic_Variable (Parameters_Memory_Region_Release.T);
 
-   -- Internal router table entry for binary tree:
-   type Internal_Router_Table_Entry is record
-      Table_Entry : Router_Table_Entry;
-   end record;
-
-   function Less_Than (Left, Right : Internal_Router_Table_Entry) return Boolean with
+   -- Binary tree comparison operators for Router_Table_Entry keyed by Table_Id:
+   function Less_Than (Left, Right : Router_Table_Entry) return Boolean with
       Inline => True;
-   function Greater_Than (Left, Right : Internal_Router_Table_Entry) return Boolean with
+   function Greater_Than (Left, Right : Router_Table_Entry) return Boolean with
       Inline => True;
-   package Router_Table_B_Tree is new Binary_Tree (Internal_Router_Table_Entry, Less_Than, Greater_Than);
+   package Router_Table_B_Tree is new Binary_Tree (Router_Table_Entry, Less_Than, Greater_Than);
 
    -- The component class instance record:
    type Instance is new Parameter_Table_Router.Base_Instance with record
@@ -54,35 +77,66 @@ private
       Load_All_On_Set_Up : Boolean := False;
       -- Sequence count tracking:
       Last_Sequence_Count : Ccsds_Primary_Header.Ccsds_Sequence_Count_Type := Ccsds_Primary_Header.Ccsds_Sequence_Count_Type'Last;
-      -- Overflow tracking:
-      Buffer_Overflowed : Boolean := False;
       -- Data product counters:
-      Packet_Count : Natural := 0;
-      Reject_Count : Natural := 0;
-      Table_Count : Natural := 0;
-      Invalid_Count : Natural := 0;
+      Packet_Count : Interfaces.Unsigned_32 := 0;
+      Reject_Count : Interfaces.Unsigned_32 := 0;
+      Table_Count : Interfaces.Unsigned_32 := 0;
+      Invalid_Count : Interfaces.Unsigned_32 := 0;
    end record;
 
-   -- Set_Up override:
+   ---------------------------------------
+   -- Set Up Procedure
+   ---------------------------------------
+   -- Null method which can be implemented to provide some component
+   -- set up code. This method is generally called by the assembly
+   -- main.adb after all component initialization and tasks have been started.
+   -- Some activities need to only be run once at startup, but cannot be run
+   -- safely until everything is up and running, i.e. command registration, initial
+   -- data product updates. This procedure should be implemented to do these things
+   -- if necessary.
    overriding procedure Set_Up (Self : in out Instance);
 
-   -- Invokee connector handlers:
+   ---------------------------------------
+   -- Invokee connector primitives:
+   ---------------------------------------
+   -- Receives segmented CCSDS packets containing parameter table data.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
+   -- This procedure is called when a Ccsds_Space_Packet_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
+   -- The command receive connector.
    overriding procedure Command_T_Recv_Async (Self : in out Instance; Arg : in Command.T);
+   -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T);
+   -- Periodic tick used for timeout counting when waiting for downstream responses.
    overriding procedure Timeout_Tick_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
+   -- Synchronous response from downstream components after a Set or Get operation.
    overriding procedure Parameters_Memory_Region_Release_T_Recv_Sync (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T);
 
-   -- Invoker connector dropped handlers:
+   ---------------------------------------
+   -- Invoker connector primitives:
+   ---------------------------------------
+   -- This procedure is called when a Parameters_Memory_Region_T_Send message is dropped due to a full queue.
    overriding procedure Parameters_Memory_Region_T_Send_Dropped (Self : in out Instance; Index : in Parameters_Memory_Region_T_Send_Index; Arg : in Parameters_Memory_Region.T) is null;
+   -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
+   -- This procedure is called when a Event_T_Send message is dropped due to a full queue.
    overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;
+   -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
    overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;
 
-   -- Command handlers:
+   -----------------------------------------------
+   -- Command handler primitives:
+   -----------------------------------------------
+   -- Description:
+   --    Commands for the Parameter Table Router component.
+   -- Load a single parameter table from its load_from source and distribute to other
+   -- destinations.
    overriding function Load_Parameter_Table (Self : in out Instance; Arg : in Parameter_Table_Id.T) return Command_Execution_Status.E;
+   -- Load all parameter tables that have a load_from source configured and
+   -- distribute to their destinations.
    overriding function Load_All_Parameter_Tables (Self : in out Instance) return Command_Execution_Status.E;
+
+   -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:
    overriding procedure Invalid_Command (Self : in out Instance; Cmd : in Command.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type);
 
 end Component.Parameter_Table_Router.Implementation;

@@ -17,6 +17,9 @@ init:
     - name: Table
       type: Parameter_Table_Router_Types.Router_Table
       description: The routing table mapping parameter table IDs to destination connector indexes. Typically produced by the generator.
+    - name: Buffer_Size
+      type: Positive
+      description: The size in bytes of the internal staging buffer for reassembling segmented CCSDS packets.
     - name: Ticks_Until_Timeout
       type: Natural
       description: The number of timeout ticks to wait for a response from a downstream component before declaring a timeout.
@@ -24,9 +27,6 @@ init:
       type: Boolean
       default: "False"
       description: If True, an event is produced when a CCSDS packet is received with an unexpected (non-incrementing) sequence count.
-    - name: Buffer_Size
-      type: Positive
-      description: The size in bytes of the internal staging buffer for reassembling segmented CCSDS packets.
     - name: Load_All_Parameter_Tables_On_Set_Up
       type: Boolean
       default: "False"

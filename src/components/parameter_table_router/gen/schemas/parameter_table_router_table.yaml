@@ -45,6 +45,8 @@ mapping:
                   load_from:
                     type: bool
                     required: False
+            range:
+              min: 1
             required: True
           # Description of this router table entry.
           description:

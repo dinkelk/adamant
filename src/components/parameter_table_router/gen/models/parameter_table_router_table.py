@@ -46,6 +46,13 @@ class router_table_entry(object):
                 )
             )
 
+        if not destinations:
+            raise ModelException(
+                "At least one destination is required for table_id "
+                + str(table_id)
+                + "."
+            )
+
         # Validate no duplicate destination component names:
         seen_names = []
         for dest in destinations:

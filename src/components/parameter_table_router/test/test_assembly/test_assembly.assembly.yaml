@@ -28,8 +28,8 @@ components:
       - "Parameters_Memory_Region_T_Send_Count => 5"
     init:
       - "Table => Test_Assembly_Parameter_Table_Router_Table.Router_Table_Entries"
-      - "Ticks_Until_Timeout => 7"
       - "Buffer_Size => 150_000"
+      - "Ticks_Until_Timeout => 7"
   # Parameters component and parameter-bearing components are included
   # to exercise the parameter table name resolution path in the autocoder.
   - type: Parameters
