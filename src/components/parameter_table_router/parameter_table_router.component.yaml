@@ -24,6 +24,13 @@ init:
       type: Boolean
       default: "False"
       description: If True, an event is produced when a CCSDS packet is received with an unexpected (non-incrementing) sequence count.
+    - name: Buffer_Size
+      type: Positive
+      description: The size in bytes of the internal staging buffer for reassembling segmented CCSDS packets.
+    - name: Load_All_Parameter_Tables_On_Set_Up
+      type: Boolean
+      default: "False"
+      description: If True, all parameter tables that have a load_from source will be loaded from persistent storage during Set_Up.
 connectors:
   - description: Receives segmented CCSDS packets containing parameter table data.
     type: Ccsds_Space_Packet.T

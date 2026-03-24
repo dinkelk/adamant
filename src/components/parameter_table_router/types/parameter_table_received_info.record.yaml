@@ -1,0 +1,14 @@
+---
+description: Information about the last parameter table received by the Parameter Table Router.
+fields:
+  - name: Table_Id
+    type: Parameter_Types.Parameter_Table_Id
+    format: U16
+    description: The parameter table ID.
+  - name: Table_Length
+    type: Interfaces.Unsigned_32
+    format: U32
+    description: The total length in bytes of the table data (excluding the 2-byte Table ID).
+  - name: Timestamp
+    type: Sys_Time.T
+    description: The time the table was fully received.
