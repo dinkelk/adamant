@@ -55,6 +55,18 @@ private
    overriding procedure Test_Multiple_Tables (Self : in out Instance);
    -- A FirstSegment with exactly 2 bytes (only Table ID, no payload) is valid.
    overriding procedure Test_First_Segment_Only_Table_Id (Self : in out Instance);
+   -- An Unsegmented packet whose payload exceeds buffer capacity returns
+   -- Buffer_Overflow.
+   overriding procedure Test_Buffer_Overflow_Unsegmented (Self : in out Instance);
+   -- Verify byte-for-byte data integrity after a FirstSegment, multiple
+   -- ContinuationSegments, and LastSegment.
+   overriding procedure Test_Data_Integrity_Multi_Segment (Self : in out Instance);
+   -- Verify Table ID, length, and packet count are in expected states after
+   -- various error paths.
+   overriding procedure Test_State_After_Errors (Self : in out Instance);
+   -- After overflow on Continuation or LastSegment, data already in the
+   -- buffer from FirstSegment is intact.
+   overriding procedure Test_Overflow_Preserves_Existing_Data (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Parameter_Table_Buffer_Tests.Base_Instance with record

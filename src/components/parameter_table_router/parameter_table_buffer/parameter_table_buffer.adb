@@ -101,6 +101,9 @@ package body Parameter_Table_Buffer is
 
       Result : Append_Status;
    begin
+      -- Buffer must be allocated before appending:
+      pragma Assert (Self.Buffer /= null);
+
       case Sequence_Flag is
          when Unsegmented =>
             -- Treat as a combined FirstSegment + LastSegment. The entire

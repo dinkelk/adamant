@@ -31,3 +31,11 @@ tests:
     description: Test receiving multiple complete tables in sequence to verify state is properly reset.
   - name: Test_First_Segment_Only_Table_Id
     description: A FirstSegment with exactly 2 bytes (only Table ID, no payload) is valid.
+  - name: Test_Buffer_Overflow_Unsegmented
+    description: An Unsegmented packet whose payload exceeds buffer capacity returns Buffer_Overflow.
+  - name: Test_Data_Integrity_Multi_Segment
+    description: Verify byte-for-byte data integrity after a FirstSegment, multiple ContinuationSegments, and LastSegment.
+  - name: Test_State_After_Errors
+    description: Verify Table ID, length, and packet count are in expected states after various error paths.
+  - name: Test_Overflow_Preserves_Existing_Data
+    description: After overflow on Continuation or LastSegment, data already in the buffer from FirstSegment is intact.

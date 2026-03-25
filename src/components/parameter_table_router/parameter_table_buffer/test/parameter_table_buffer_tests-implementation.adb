@@ -407,4 +407,156 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Check_Full_Buffer_Region (Self.Buf, Default_Buffer_Size);
    end Test_First_Segment_Only_Table_Id;
 
+   overriding procedure Test_Buffer_Overflow_Unsegmented (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Status : Append_Status;
+      Small_Buf : Parameter_Table_Buffer.Instance;
+      -- Buffer is 4 bytes, payload (5 bytes) exceeds capacity:
+      Big_Data : constant Basic_Types.Byte_Array := [16#00#, 16#01#, 16#AA#, 16#BB#, 16#CC#, 16#DD#, 16#EE#];
+   begin
+      Small_Buf.Create (Buffer_Size => 4);
+
+      Status := Small_Buf.Append (Data => Big_Data, Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Buffer_Overflow);
+
+      -- Should be in Idle after overflow on Unsegmented:
+      Status := Small_Buf.Append (Data => [16#AA#], Sequence_Flag => Continuationsegment);
+      Append_Status_Assert.Eq (Status, Packet_Ignored);
+
+      -- A valid Unsegmented should still work after overflow:
+      Status := Small_Buf.Append (Data => [16#00#, 16#02#, 16#11#], Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Complete_Table);
+      Table_Id_Assert.Eq (Small_Buf.Get_Table_Id, 2);
+
+      Small_Buf.Destroy;
+      pragma Unreferenced (Small_Buf);
+   end Test_Buffer_Overflow_Unsegmented;
+
+   overriding procedure Test_Data_Integrity_Multi_Segment (Self : in out Instance) is
+      Status : Append_Status;
+      -- Table ID = 0x0001, followed by payload split across 4 segments:
+      First_Data : constant Basic_Types.Byte_Array := [16#00#, 16#01#, 16#AA#, 16#BB#];
+      Cont1_Data : constant Basic_Types.Byte_Array := [16#CC#, 16#DD#];
+      Cont2_Data : constant Basic_Types.Byte_Array := [16#EE#];
+      Last_Data : constant Basic_Types.Byte_Array := [16#FF#, 16#11#, 16#22#];
+   begin
+      Status := Self.Buf.Append (Data => First_Data, Sequence_Flag => Firstsegment);
+      Append_Status_Assert.Eq (Status, New_Table);
+      Status := Self.Buf.Append (Data => Cont1_Data, Sequence_Flag => Continuationsegment);
+      Append_Status_Assert.Eq (Status, Buffering_Table);
+      Status := Self.Buf.Append (Data => Cont2_Data, Sequence_Flag => Continuationsegment);
+      Append_Status_Assert.Eq (Status, Buffering_Table);
+      Status := Self.Buf.Append (Data => Last_Data, Sequence_Flag => Lastsegment);
+      Append_Status_Assert.Eq (Status, Complete_Table);
+
+      -- Total payload: AA BB CC DD EE FF 11 22 = 8 bytes
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 8);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 4);
+
+      -- Verify every byte:
+      declare
+         Region : constant Memory_Region.T := Self.Buf.Get_Table_Region;
+         Result : Basic_Types.Byte_Array (0 .. 7);
+         for Result'Address use Region.Address;
+         pragma Import (Ada, Result);
+      begin
+         Natural_Assert.Eq (Region.Length, 8);
+         Byte_Assert.Eq (Result (0), 16#AA#);
+         Byte_Assert.Eq (Result (1), 16#BB#);
+         Byte_Assert.Eq (Result (2), 16#CC#);
+         Byte_Assert.Eq (Result (3), 16#DD#);
+         Byte_Assert.Eq (Result (4), 16#EE#);
+         Byte_Assert.Eq (Result (5), 16#FF#);
+         Byte_Assert.Eq (Result (6), 16#11#);
+         Byte_Assert.Eq (Result (7), 16#22#);
+      end;
+   end Test_Data_Integrity_Multi_Segment;
+
+   overriding procedure Test_State_After_Errors (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Status : Append_Status;
+      Small_Buf : Parameter_Table_Buffer.Instance;
+   begin
+      Small_Buf.Create (Buffer_Size => 4);
+
+      -- Too_Small_Table on FirstSegment:
+      Status := Small_Buf.Append (Data => [16#01#], Sequence_Flag => Firstsegment);
+      Append_Status_Assert.Eq (Status, Too_Small_Table);
+      -- Table ID should be unchanged (still default 0):
+      Table_Id_Assert.Eq (Small_Buf.Get_Table_Id, 0);
+      Natural_Assert.Eq (Small_Buf.Get_Table_Length, 0);
+      Natural_Assert.Eq (Small_Buf.Get_Packet_Count, 0);
+
+      -- Too_Small_Table on Unsegmented:
+      Status := Small_Buf.Append (Data => [1 .. 0 => 0], Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Too_Small_Table);
+      Table_Id_Assert.Eq (Small_Buf.Get_Table_Id, 0);
+
+      -- Buffer_Overflow on FirstSegment — Table ID IS extracted before overflow:
+      Status := Small_Buf.Append (Data => [16#00#, 16#05#, 16#AA#, 16#BB#, 16#CC#, 16#DD#, 16#EE#], Sequence_Flag => Firstsegment);
+      Append_Status_Assert.Eq (Status, Buffer_Overflow);
+      -- Table ID was extracted before the overflow check:
+      Table_Id_Assert.Eq (Small_Buf.Get_Table_Id, 5);
+      Natural_Assert.Eq (Small_Buf.Get_Table_Length, 0);
+      Natural_Assert.Eq (Small_Buf.Get_Packet_Count, 0);
+
+      -- Successful FirstSegment resets everything:
+      Status := Small_Buf.Append (Data => [16#00#, 16#0A#, 16#11#], Sequence_Flag => Firstsegment);
+      Append_Status_Assert.Eq (Status, New_Table);
+      Table_Id_Assert.Eq (Small_Buf.Get_Table_Id, 10);
+      Natural_Assert.Eq (Small_Buf.Get_Table_Length, 1);
+      Natural_Assert.Eq (Small_Buf.Get_Packet_Count, 1);
+
+      Small_Buf.Destroy;
+      pragma Unreferenced (Small_Buf);
+   end Test_State_After_Errors;
+
+   overriding procedure Test_Overflow_Preserves_Existing_Data (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Status : Append_Status;
+      Small_Buf : Parameter_Table_Buffer.Instance;
+   begin
+      Small_Buf.Create (Buffer_Size => 4);
+
+      -- FirstSegment with ID + 2 bytes payload (fills buffer to index 2):
+      Status := Small_Buf.Append (Data => [16#00#, 16#01#, 16#AA#, 16#BB#], Sequence_Flag => Firstsegment);
+      Append_Status_Assert.Eq (Status, New_Table);
+      Natural_Assert.Eq (Small_Buf.Get_Table_Length, 2);
+
+      -- Continuation that would overflow — existing data should be preserved:
+      Status := Small_Buf.Append (Data => [16#CC#, 16#DD#, 16#EE#], Sequence_Flag => Continuationsegment);
+      Append_Status_Assert.Eq (Status, Buffer_Overflow);
+
+      -- Verify existing data is still intact:
+      declare
+         Region : constant Memory_Region.T := Small_Buf.Get_Table_Region;
+         Result : Basic_Types.Byte_Array (0 .. 1);
+         for Result'Address use Region.Address;
+         pragma Import (Ada, Result);
+      begin
+         Natural_Assert.Eq (Region.Length, 2);
+         Byte_Assert.Eq (Result (0), 16#AA#);
+         Byte_Assert.Eq (Result (1), 16#BB#);
+      end;
+
+      -- LastSegment that would overflow — same preservation:
+      Status := Small_Buf.Append (Data => [16#FF#, 16#EE#, 16#DD#], Sequence_Flag => Lastsegment);
+      Append_Status_Assert.Eq (Status, Buffer_Overflow);
+
+      -- Data still intact:
+      declare
+         Region : constant Memory_Region.T := Small_Buf.Get_Table_Region;
+         Result : Basic_Types.Byte_Array (0 .. 1);
+         for Result'Address use Region.Address;
+         pragma Import (Ada, Result);
+      begin
+         Natural_Assert.Eq (Region.Length, 2);
+         Byte_Assert.Eq (Result (0), 16#AA#);
+         Byte_Assert.Eq (Result (1), 16#BB#);
+      end;
+
+      Small_Buf.Destroy;
+      pragma Unreferenced (Small_Buf);
+   end Test_Overflow_Preserves_Existing_Data;
+
 end Parameter_Table_Buffer_Tests.Implementation;
