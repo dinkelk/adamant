@@ -58,9 +58,10 @@ package body Parameter_Table_Buffer is
          Self.Packet_Count := @ + 1;
          return True;
       end Try_Append;
-      -- Helper: Process a first segment — reset buffer, extract Table ID,
-      -- store payload. Returns the Append_Status to propagate on error,
-      -- or Complete_Table on success (caller may override to New_Table).
+
+      -- Process a first segment — reset buffer, extract Table ID,
+      -- store payload. Returns New_Table on success, or an error status
+      -- (Too_Small_Table, Buffer_Overflow) on failure.
       function Process_First_Segment return Append_Status is
       begin
          Self.Buffer_Index := Self.Buffer'First;
@@ -95,7 +96,7 @@ package body Parameter_Table_Buffer is
             Self.State := Idle;
             return Buffer_Overflow;
          end if;
-         return Complete_Table;
+         return New_Table;
       end Process_First_Segment;
 
       Result : Append_Status;
@@ -106,18 +107,17 @@ package body Parameter_Table_Buffer is
             -- table is contained in this single packet:
             Self.State := Idle;
             Result := Process_First_Segment;
-            if Result /= Complete_Table then
+            if Result = New_Table then
+               -- In this case a new table is a complete table since there
+               -- is only a single segment to hold the entire table.
+               return Complete_Table;
+            else
                return Result;
             end if;
-            return Complete_Table;
 
          when Firstsegment =>
             Self.State := Receiving_Table;
-            Result := Process_First_Segment;
-            if Result /= Complete_Table then
-               return Result;
-            end if;
-            return New_Table;
+            return Process_First_Segment;
 
          when Continuationsegment =>
             if Self.State = Idle then
