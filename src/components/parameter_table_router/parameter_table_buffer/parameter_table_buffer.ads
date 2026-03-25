@@ -31,6 +31,7 @@ package Parameter_Table_Buffer is
    function Get_Full_Buffer_Region (Self : in Instance) return Memory_Region.T;
    function Get_Table_Id (Self : in Instance) return Parameter_Types.Parameter_Table_Id;
    function Get_Table_Length (Self : in Instance) return Natural;
+   function Get_Packet_Count (Self : in Instance) return Natural;
 
 private
 
@@ -41,6 +42,7 @@ private
       Buffer_Index : Natural := 0;
       Table_Id : Parameter_Types.Parameter_Table_Id := 0;
       State : Buffer_State := Idle;
+      Packet_Count : Natural := 0;
    end record;
 
 end Parameter_Table_Buffer;

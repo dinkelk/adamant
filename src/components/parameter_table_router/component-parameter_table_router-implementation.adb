@@ -300,7 +300,7 @@ package body Component.Parameter_Table_Router.Implementation is
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (The_Time, (
          Table_Id => 0,
-         Status => Idle,
+         Status => Table_Update_Success,
          Bytes_Received => 0,
          Packets_Received => 0,
          Timestamp => The_Time
@@ -319,17 +319,18 @@ package body Component.Parameter_Table_Router.Implementation is
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
       use Ccsds_Enums.Ccsds_Sequence_Flag;
       use Parameter_Table_Buffer;
+      The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
       -- Note: CCSDS Packet_Length field value is one less than the actual data
       -- length per the CCSDS standard, hence the seemingly missing "-1" in the
       -- slice below.
       Data : Basic_Types.Byte_Array renames Arg.Data (Arg.Data'First .. Arg.Data'First + Natural (Arg.Header.Packet_Length));
       Seq_Flag : Ccsds_Enums.Ccsds_Sequence_Flag.E renames Arg.Header.Sequence_Flag;
       Status : Append_Status;
-      Table_Status_Val : Parameter_Table_Router_Enums.Table_Status.E := Idle;
+      Table_Status_Val : Parameter_Table_Router_Enums.Table_Status.E := Table_Update_Success;
    begin
       -- Increment packet counter:
       Self.Packet_Count := @ + 1;
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (Self.Sys_Time_T_Get, (Value => Self.Packet_Count)));
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
 
       -- Check sequence count if enabled:
       if Self.Warn_Unexpected_Sequence_Counts then
@@ -339,7 +340,7 @@ package body Component.Parameter_Table_Router.Implementation is
             if Self.Last_Sequence_Count /= Ccsds_Sequence_Count_Type'Last
                and then Arg.Header.Sequence_Count /= Expected
             then
-               Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Sequence_Count_Detected (Self.Sys_Time_T_Get, (
+               Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Sequence_Count_Detected (The_Time, (
                   Ccsds_Header => Arg.Header,
                   Received_Sequence_Count => Interfaces.Unsigned_16 (Arg.Header.Sequence_Count),
                   Expected_Sequence_Count => Interfaces.Unsigned_16 (Expected)
@@ -355,36 +356,31 @@ package body Component.Parameter_Table_Router.Implementation is
       case Status is
          when Packet_Ignored =>
             Self.Reject_Count.Increment_Count;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (Self.Sys_Time_T_Get, (Value => Self.Reject_Count.Get_Count)));
-            Self.Event_T_Send_If_Connected (Self.Events.Packet_Ignored (Self.Sys_Time_T_Get, Arg.Header));
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
+            Self.Event_T_Send_If_Connected (Self.Events.Packet_Ignored (The_Time, Arg.Header));
             Table_Status_Val := Packet_Ignored;
 
          when Too_Small_Table =>
             Self.Reject_Count.Increment_Count;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (Self.Sys_Time_T_Get, (Value => Self.Reject_Count.Get_Count)));
-            Self.Event_T_Send_If_Connected (Self.Events.Too_Small_Table (Self.Sys_Time_T_Get, Arg.Header));
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
+            Self.Event_T_Send_If_Connected (Self.Events.Too_Small_Table (The_Time, Arg.Header));
             Table_Status_Val := Too_Small;
 
          when New_Table =>
-            -- Reset per-table packet counter:
-            Self.Current_Table_Packet_Count := 1;
             -- Emit event with table ID. The ID will be validated against the
             -- routing table when the complete table arrives:
             Self.Event_T_Send_If_Connected (Self.Events.Receiving_New_Table (
-               Self.Sys_Time_T_Get, (Id => Self.Staging_Buffer.Get_Table_Id)
+               The_Time, (Id => Self.Staging_Buffer.Get_Table_Id)
             ));
             Table_Status_Val := Receiving_Table;
 
          when Buffering_Table =>
-            Self.Current_Table_Packet_Count := @ + 1;
             Table_Status_Val := Receiving_Table;
 
          when Complete_Table =>
-            Self.Current_Table_Packet_Count := @ + 1;
             Self.Table_Count := @ + 1;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (Self.Sys_Time_T_Get, (Value => Self.Table_Count)));
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
             declare
-               The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
                Tid : constant Parameter_Table_Id.T := (Id => Self.Staging_Buffer.Get_Table_Id);
                -- Construct a search key with only Table_Id populated. Destinations
                -- is null here which would fail the Init assertion, but the binary
@@ -407,7 +403,7 @@ package body Component.Parameter_Table_Router.Implementation is
                   begin
                      if Send_Table_To_Destinations (Self, Found, Set_Region, The_Time) then
                         Self.Event_T_Send_If_Connected (Self.Events.Table_Updated (The_Time, Tid));
-                        Table_Status_Val := Table_Updated;
+                        Table_Status_Val := Table_Update_Success;
                      else
                         Self.Invalid_Count := @ + 1;
                         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
@@ -419,18 +415,18 @@ package body Component.Parameter_Table_Router.Implementation is
 
          when Buffer_Overflow =>
             Self.Reject_Count.Increment_Count;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (Self.Sys_Time_T_Get, (Value => Self.Reject_Count.Get_Count)));
-            Self.Event_T_Send_If_Connected (Self.Events.Staging_Buffer_Overflow (Self.Sys_Time_T_Get, Arg.Header));
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
+            Self.Event_T_Send_If_Connected (Self.Events.Staging_Buffer_Overflow (The_Time, Arg.Header));
             Table_Status_Val := Buffer_Overflow;
       end case;
 
       -- Update last table received data product with current status:
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (Self.Sys_Time_T_Get, (
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (The_Time, (
          Table_Id => Self.Staging_Buffer.Get_Table_Id,
          Status => Table_Status_Val,
-         Bytes_Received => Interfaces.Unsigned_32 (Self.Staging_Buffer.Get_Table_Length),
-         Packets_Received => Self.Current_Table_Packet_Count,
-         Timestamp => Self.Sys_Time_T_Get
+         Bytes_Received => Self.Staging_Buffer.Get_Table_Length,
+         Packets_Received => Self.Staging_Buffer.Get_Packet_Count,
+         Timestamp => The_Time
       )));
    end Ccsds_Space_Packet_T_Recv_Async;
 

@@ -88,8 +88,6 @@ private
       Reject_Count : Protected_Unsigned_32_Counter.Counter;
       Table_Count : Interfaces.Unsigned_32 := 0;
       Invalid_Count : Interfaces.Unsigned_32 := 0;
-      -- Per-table packet counter, reset on each FirstSegment:
-      Current_Table_Packet_Count : Interfaces.Unsigned_32 := 0;
    end record;
 
    ---------------------------------------

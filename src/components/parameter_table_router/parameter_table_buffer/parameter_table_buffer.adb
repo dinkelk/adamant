@@ -40,6 +40,7 @@ package body Parameter_Table_Buffer is
 
          when Firstsegment =>
             Self.Buffer_Index := 0;
+            Self.Packet_Count := 1;
             Self.State := Receiving_Table;
 
             if Data'Length < 2 then
@@ -81,6 +82,7 @@ package body Parameter_Table_Buffer is
 
             Self.Buffer (Self.Buffer_Index .. Self.Buffer_Index + Data'Length - 1) := Data;
             Self.Buffer_Index := @ + Data'Length;
+            Self.Packet_Count := @ + 1;
             return Buffering_Table;
 
          when Lastsegment =>
@@ -94,6 +96,7 @@ package body Parameter_Table_Buffer is
 
             Self.Buffer (Self.Buffer_Index .. Self.Buffer_Index + Data'Length - 1) := Data;
             Self.Buffer_Index := @ + Data'Length;
+            Self.Packet_Count := @ + 1;
             Self.State := Idle;
             return Complete_Table;
       end case;
@@ -126,5 +129,10 @@ package body Parameter_Table_Buffer is
    begin
       return Self.Buffer_Index;
    end Get_Table_Length;
+
+   function Get_Packet_Count (Self : in Instance) return Natural is
+   begin
+      return Self.Packet_Count;
+   end Get_Packet_Count;
 
 end Parameter_Table_Buffer;

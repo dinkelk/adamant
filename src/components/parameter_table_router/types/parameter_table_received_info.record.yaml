@@ -10,11 +10,11 @@ fields:
     format: E8
     description: The current status of the table operation.
   - name: Bytes_Received
-    type: Interfaces.Unsigned_32
+    type: Natural
     format: U32
     description: Number of table data bytes currently in the staging buffer.
   - name: Packets_Received
-    type: Interfaces.Unsigned_32
+    type: Natural
     format: U32
     description: Number of CCSDS packets received for the current table.
   - name: Timestamp
