@@ -38,18 +38,22 @@ package body Parameter_Table_Buffer is
    ) return Append_Status is
       use Ccsds_Enums.Ccsds_Sequence_Flag;
 
-      -- Helper: Try to append bytes to the buffer at the current index.
+      -- Try to append bytes to the buffer at the current index.
       -- Returns True on success, False if the data would overflow the buffer.
       -- On success, increments the buffer index and packet counter.
       function Try_Append (Bytes : in Basic_Types.Byte_Array) return Boolean is
       begin
          if Bytes'Length > 0 then
-            -- Compare would-be last index against buffer's last valid index:
-            if Self.Buffer_Index + Bytes'Length - 1 > Self.Buffer.all'Last then
-               return False;
-            end if;
-            Self.Buffer (Self.Buffer_Index .. Self.Buffer_Index + Bytes'Length - 1) := Bytes;
-            Self.Buffer_Index := @ + Bytes'Length;
+            declare
+               Last_Index : constant Natural := Self.Buffer_Index + Bytes'Length - 1;
+            begin
+               -- Compare would-be last index against buffer's last valid index:
+               if Last_Index > Self.Buffer.all'Last then
+                  return False;
+               end if;
+               Self.Buffer (Self.Buffer_Index .. Last_Index) := Bytes;
+               Self.Buffer_Index := @ + Bytes'Length;
+            end;
          end if;
          Self.Packet_Count := @ + 1;
          return True;
@@ -73,11 +77,16 @@ package body Parameter_Table_Buffer is
             declare
                Id_Packed : constant Packed_U16.T := Packed_U16.Serialization.From_Byte_Array (Data (Data'First .. Data'First + 1));
             begin
-               -- Ensure that all Packed_U16 values fit within Parameter_Table_Id range:
+               -- Ensure that all Packed_U16 values fit within Parameter_Table_Id range. This should be
+               -- OK by design, but let's make sure at compile time.
                pragma Warnings (Off, "condition is always False");
                pragma Compile_Time_Error (
                   Natural (Unsigned_16'Last) > Natural (Parameter_Table_Id'Last),
-                  "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id range."
+                  "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id upper range."
+               );
+               pragma Compile_Time_Error (
+                  Natural (Unsigned_16'First) < Natural (Parameter_Table_Id'First),
+                  "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id lower range."
                );
                pragma Warnings (On, "condition is always False");
                Self.Table_Id := Parameter_Types.Parameter_Table_Id (Id_Packed.Value);
