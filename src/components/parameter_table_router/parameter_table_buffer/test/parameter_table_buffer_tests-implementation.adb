@@ -75,20 +75,70 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Check_Full_Buffer_Region (Self.Buf, 32);
    end Test_Create_Destroy;
 
-   overriding procedure Test_Unsegmented_Ignored (Self : in out Instance) is
+   overriding procedure Test_Unsegmented_Complete_Table (Self : in out Instance) is
       Status : Append_Status;
-      Data : constant Basic_Types.Byte_Array := [16#00#, 16#01#, 16#AA#, 16#BB#];
+      -- Table ID = 0x000A, payload = [0x11, 0x22, 0x33]:
+      Data : constant Basic_Types.Byte_Array := [16#00#, 16#0A#, 16#11#, 16#22#, 16#33#];
    begin
-      -- Unsegmented from Idle:
       Status := Self.Buf.Append (Data => Data, Sequence_Flag => Unsegmented);
-      Append_Status_Assert.Eq (Status, Packet_Ignored);
+      Append_Status_Assert.Eq (Status, Complete_Table);
+      Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 10);
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 3);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
+      Check_Table_Region (Self.Buf, 3);
 
-      -- Start receiving a table, then try Unsegmented:
-      Status := Self.Buf.Append (Data => Data, Sequence_Flag => Firstsegment);
+      -- Verify data contents:
+      declare
+         Region : constant Memory_Region.T := Self.Buf.Get_Table_Region;
+         Result : Basic_Types.Byte_Array (0 .. 2);
+         for Result'Address use Region.Address;
+         pragma Import (Ada, Result);
+      begin
+         Byte_Assert.Eq (Result (0), 16#11#);
+         Byte_Assert.Eq (Result (1), 16#22#);
+         Byte_Assert.Eq (Result (2), 16#33#);
+      end;
+
+      -- Unsegmented with only Table ID (no payload) should also work:
+      Status := Self.Buf.Append (Data => [16#00#, 16#FF#], Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Complete_Table);
+      Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 16#00FF#);
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 0);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
+   end Test_Unsegmented_Complete_Table;
+
+   overriding procedure Test_Unsegmented_Too_Small (Self : in out Instance) is
+      Status : Append_Status;
+   begin
+      -- Empty data:
+      Status := Self.Buf.Append (Data => [1 .. 0 => 0], Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Too_Small_Table);
+
+      -- 1 byte:
+      Status := Self.Buf.Append (Data => [16#01#], Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Too_Small_Table);
+   end Test_Unsegmented_Too_Small;
+
+   overriding procedure Test_Unsegmented_During_Receive (Self : in out Instance) is
+      Status : Append_Status;
+   begin
+      -- Start a segmented table (ID = 1):
+      Status := Self.Buf.Append (Data => [16#00#, 16#01#, 16#AA#, 16#BB#], Sequence_Flag => Firstsegment);
       Append_Status_Assert.Eq (Status, New_Table);
-      Status := Self.Buf.Append (Data => Data, Sequence_Flag => Unsegmented);
+      Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 1);
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 2);
+
+      -- Unsegmented packet arrives (ID = 2) — replaces in-progress table:
+      Status := Self.Buf.Append (Data => [16#00#, 16#02#, 16#CC#, 16#DD#], Sequence_Flag => Unsegmented);
+      Append_Status_Assert.Eq (Status, Complete_Table);
+      Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 2);
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 2);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
+
+      -- Continuation should be ignored since we're back to Idle:
+      Status := Self.Buf.Append (Data => [16#EE#], Sequence_Flag => Continuationsegment);
       Append_Status_Assert.Eq (Status, Packet_Ignored);
-   end Test_Unsegmented_Ignored;
+   end Test_Unsegmented_During_Receive;
 
    overriding procedure Test_Nominal_Segmented_Flow (Self : in out Instance) is
       Status : Append_Status;

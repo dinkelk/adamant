@@ -58,44 +58,64 @@ package body Parameter_Table_Buffer is
          Self.Packet_Count := @ + 1;
          return True;
       end Try_Append;
+      -- Helper: Process a first segment — reset buffer, extract Table ID,
+      -- store payload. Returns the Append_Status to propagate on error,
+      -- or Complete_Table on success (caller may override to New_Table).
+      function Process_First_Segment return Append_Status is
+      begin
+         Self.Buffer_Index := Self.Buffer'First;
+         Self.Packet_Count := 0;
+
+         if Data'Length < 2 then
+            Self.State := Idle;
+            return Too_Small_Table;
+         end if;
+
+         -- Extract Table ID from first 2 bytes using packed deserialization:
+         declare
+            Id_Packed : constant Packed_U16.T := Packed_U16.Serialization.From_Byte_Array (Data (Data'First .. Data'First + 1));
+         begin
+            -- Ensure that all Packed_U16 values fit within Parameter_Table_Id range. This should be
+            -- OK by design, but let's make sure at compile time.
+            pragma Warnings (Off, "condition is always False");
+            pragma Compile_Time_Error (
+               Natural (Unsigned_16'Last) > Natural (Parameter_Table_Id'Last),
+               "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id upper range."
+            );
+            pragma Compile_Time_Error (
+               Natural (Unsigned_16'First) < Natural (Parameter_Table_Id'First),
+               "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id lower range."
+            );
+            pragma Warnings (On, "condition is always False");
+            Self.Table_Id := Parameter_Types.Parameter_Table_Id (Id_Packed.Value);
+         end;
+
+         -- Store only the data AFTER the 2-byte Table ID:
+         if not Try_Append (Data (Data'First + 2 .. Data'Last)) then
+            Self.State := Idle;
+            return Buffer_Overflow;
+         end if;
+         return Complete_Table;
+      end Process_First_Segment;
+
+      Result : Append_Status;
    begin
       case Sequence_Flag is
          when Unsegmented =>
-            return Packet_Ignored;
+            -- Treat as a combined FirstSegment + LastSegment. The entire
+            -- table is contained in this single packet:
+            Self.State := Idle;
+            Result := Process_First_Segment;
+            if Result /= Complete_Table then
+               return Result;
+            end if;
+            return Complete_Table;
 
          when Firstsegment =>
-            Self.Buffer_Index := Self.Buffer'First;
-            Self.Packet_Count := 0;
             Self.State := Receiving_Table;
-
-            if Data'Length < 2 then
-               Self.State := Idle;
-               return Too_Small_Table;
-            end if;
-
-            -- Extract Table ID from first 2 bytes using packed deserialization:
-            declare
-               Id_Packed : constant Packed_U16.T := Packed_U16.Serialization.From_Byte_Array (Data (Data'First .. Data'First + 1));
-            begin
-               -- Ensure that all Packed_U16 values fit within Parameter_Table_Id range. This should be
-               -- OK by design, but let's make sure at compile time.
-               pragma Warnings (Off, "condition is always False");
-               pragma Compile_Time_Error (
-                  Natural (Unsigned_16'Last) > Natural (Parameter_Table_Id'Last),
-                  "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id upper range."
-               );
-               pragma Compile_Time_Error (
-                  Natural (Unsigned_16'First) < Natural (Parameter_Table_Id'First),
-                  "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id lower range."
-               );
-               pragma Warnings (On, "condition is always False");
-               Self.Table_Id := Parameter_Types.Parameter_Table_Id (Id_Packed.Value);
-            end;
-
-            -- Store only the data AFTER the 2-byte Table ID:
-            if not Try_Append (Data (Data'First + 2 .. Data'Last)) then
-               Self.State := Idle;
-               return Buffer_Overflow;
+            Result := Process_First_Segment;
+            if Result /= Complete_Table then
+               return Result;
             end if;
             return New_Table;
 

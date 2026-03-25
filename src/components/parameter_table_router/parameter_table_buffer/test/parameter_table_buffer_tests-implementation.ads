@@ -18,8 +18,14 @@ private
 
    -- Test buffer creation, allocation, and destruction.
    overriding procedure Test_Create_Destroy (Self : in out Instance);
-   -- Unsegmented packets are always ignored regardless of state.
-   overriding procedure Test_Unsegmented_Ignored (Self : in out Instance);
+   -- An Unsegmented packet is treated as a combined FirstSegment and
+   -- LastSegment, producing a complete table in one packet.
+   overriding procedure Test_Unsegmented_Complete_Table (Self : in out Instance);
+   -- An Unsegmented packet with less than 2 bytes returns Too_Small_Table.
+   overriding procedure Test_Unsegmented_Too_Small (Self : in out Instance);
+   -- An Unsegmented packet received while buffering a segmented table replaces
+   -- the in-progress table.
+   overriding procedure Test_Unsegmented_During_Receive (Self : in out Instance);
    -- Test the nominal FirstSegment -> ContinuationSegment -> LastSegment flow.
    overriding procedure Test_Nominal_Segmented_Flow (Self : in out Instance);
    -- Verify Table ID is correctly deserialized from the first 2 bytes of a

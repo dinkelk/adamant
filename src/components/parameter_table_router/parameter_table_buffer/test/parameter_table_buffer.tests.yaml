@@ -3,8 +3,12 @@ description: Unit tests for the Parameter_Table_Buffer standalone package.
 tests:
   - name: Test_Create_Destroy
     description: Test buffer creation, allocation, and destruction.
-  - name: Test_Unsegmented_Ignored
-    description: Unsegmented packets are always ignored regardless of state.
+  - name: Test_Unsegmented_Complete_Table
+    description: An Unsegmented packet is treated as a combined FirstSegment and LastSegment, producing a complete table in one packet.
+  - name: Test_Unsegmented_Too_Small
+    description: An Unsegmented packet with less than 2 bytes returns Too_Small_Table.
+  - name: Test_Unsegmented_During_Receive
+    description: An Unsegmented packet received while buffering a segmented table replaces the in-progress table.
   - name: Test_Nominal_Segmented_Flow
     description: Test the nominal FirstSegment -> ContinuationSegment -> LastSegment flow.
   - name: Test_First_Segment_Extracts_Table_Id
