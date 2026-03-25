@@ -311,32 +311,33 @@ package body Component.Parameter_Table_Router.Implementation is
    -- Receives segmented CCSDS packets containing parameter table data.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
       use Parameter_Table_Buffer;
+
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+      Table_Status_Val : Parameter_Table_Router_Enums.Table_Status.E := Table_Update_Success;
+
+      -- Helper: Increment the reject counter, publish the reject DP, and emit the given event.
+      procedure Reject_Packet (Evnt : in Event.T) is
+      begin
+         Self.Reject_Count.Increment_Count;
+         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
+         Self.Event_T_Send_If_Connected (Evnt);
+      end Reject_Packet;
+
       -- Note: CCSDS Packet_Length field value is one less than the actual data
       -- length per the CCSDS standard, hence the seemingly missing "-1" in the
       -- slice below.
       Data : Basic_Types.Byte_Array renames Arg.Data (Arg.Data'First .. Arg.Data'First + Natural (Arg.Header.Packet_Length));
-      Status : Append_Status;
-      Table_Status_Val : Parameter_Table_Router_Enums.Table_Status.E := Table_Update_Success;
-   begin
-      -- Increment packet counter:
-      Self.Packet_Count := @ + 1;
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
-
       -- Append to staging buffer:
-      Status := Self.Staging_Buffer.Append (Data => Data, Sequence_Flag => Arg.Header.Sequence_Flag);
-
+      Status : constant Append_Status := Self.Staging_Buffer.Append (Data => Data, Sequence_Flag => Arg.Header.Sequence_Flag);
+   begin
+      -- Based on append status we need to increment different counters, throw different events, etc.
       case Status is
          when Packet_Ignored =>
-            Self.Reject_Count.Increment_Count;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
-            Self.Event_T_Send_If_Connected (Self.Events.Packet_Ignored (The_Time, Arg.Header));
+            Reject_Packet (Self.Events.Packet_Ignored (The_Time, Arg.Header));
             Table_Status_Val := Packet_Ignored;
 
          when Too_Small_Table =>
-            Self.Reject_Count.Increment_Count;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
-            Self.Event_T_Send_If_Connected (Self.Events.Too_Small_Table (The_Time, Arg.Header));
+            Reject_Packet (Self.Events.Too_Small_Table (The_Time, Arg.Header));
             Table_Status_Val := Too_Small;
 
          when New_Table =>
@@ -351,8 +352,6 @@ package body Component.Parameter_Table_Router.Implementation is
             Table_Status_Val := Receiving_Table;
 
          when Complete_Table =>
-            Self.Table_Count := @ + 1;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
             declare
                Tid : constant Parameter_Table_Id.T := (Id => Self.Staging_Buffer.Get_Table_Id);
                -- Construct a search key with only Table_Id populated. Destinations
@@ -386,12 +385,18 @@ package body Component.Parameter_Table_Router.Implementation is
                end if;
             end;
 
+            -- Increment table count and publish.
+            Self.Table_Count := @ + 1;
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
+
          when Buffer_Overflow =>
-            Self.Reject_Count.Increment_Count;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
-            Self.Event_T_Send_If_Connected (Self.Events.Staging_Buffer_Overflow (The_Time, Arg.Header));
+            Reject_Packet (Self.Events.Staging_Buffer_Overflow (The_Time, Arg.Header));
             Table_Status_Val := Buffer_Overflow;
       end case;
+
+      -- Increment and publish packet counter:
+      Self.Packet_Count := @ + 1;
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
 
       -- Update last table received data product with current status:
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (The_Time, (
