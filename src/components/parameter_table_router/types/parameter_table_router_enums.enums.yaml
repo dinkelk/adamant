@@ -2,35 +2,32 @@
 description: Enumerations for the Parameter Table Router component.
 enums:
   - name: Table_Status
-    description: Status of the most recent parameter table operation. Also used as the return type from the staging buffer Append function.
+    description: Status of the most recent parameter table operation.
     literals:
       - name: Idle
         value: 0
         description: No table operation in progress.
-      - name: New_Table
-        value: 1
-        description: A valid FirstSegment was received and buffering has started.
       - name: Receiving_Table
-        value: 2
-        description: A ContinuationSegment was appended to the staging buffer.
+        value: 1
+        description: A FirstSegment has been received and the buffer is accumulating data.
       - name: Complete_Table
-        value: 3
-        description: A complete table has been reassembled from CCSDS segments.
+        value: 2
+        description: A complete table has been reassembled and is being distributed.
       - name: Table_Updated
-        value: 4
+        value: 3
         description: The table was successfully distributed to all destinations.
       - name: Table_Update_Failed
-        value: 5
+        value: 4
         description: A downstream component rejected the table or timed out.
       - name: Unrecognized_Id
-        value: 6
+        value: 5
         description: The completed table had a Table ID not found in the routing table.
       - name: Buffer_Overflow
-        value: 7
+        value: 6
         description: The staging buffer overflowed while receiving table data.
       - name: Too_Small
-        value: 8
+        value: 7
         description: A FirstSegment was too small to contain a Table ID.
       - name: Packet_Ignored
-        value: 9
+        value: 8
         description: A packet was ignored (continuation/last without first, or unsegmented).
