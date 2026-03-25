@@ -5,9 +5,6 @@
 with Parameter_Enums;
 with Parameter_Types; use Parameter_Types;
 with Parameter_Table_Router_Enums;
-with Ccsds_Enums;
-with Ccsds_Primary_Header; use Ccsds_Primary_Header;
-
 package body Component.Parameter_Table_Router.Implementation is
 
    use Parameter_Enums.Parameter_Table_Update_Status;
@@ -221,20 +218,16 @@ package body Component.Parameter_Table_Router.Implementation is
    -- reassembling segmented CCSDS packets.
    -- Ticks_Until_Timeout : Natural - The number of timeout ticks to wait for a
    -- response from a downstream component before declaring a timeout.
-   -- Warn_Unexpected_Sequence_Counts : Boolean - If True, an event is produced when
-   -- a CCSDS packet is received with an unexpected (non-incrementing) sequence
-   -- count.
    -- Load_All_Parameter_Tables_On_Set_Up : Boolean - If True, all parameter tables
    -- that have a load_from source will be loaded from persistent storage during
    -- Set_Up.
    --
-   overriding procedure Init (Self : in out Instance; Table : in Parameter_Table_Router_Types.Router_Table; Buffer_Size : in Positive; Ticks_Until_Timeout : in Natural; Warn_Unexpected_Sequence_Counts : in Boolean := False; Load_All_Parameter_Tables_On_Set_Up : in Boolean := False) is
+   overriding procedure Init (Self : in out Instance; Table : in Parameter_Table_Router_Types.Router_Table; Buffer_Size : in Positive; Ticks_Until_Timeout : in Natural; Load_All_Parameter_Tables_On_Set_Up : in Boolean := False) is
    begin
       -- Set timeout limit:
       Self.Sync_Object.Set_Timeout_Limit (Ticks_Until_Timeout);
 
       -- Store configuration:
-      Self.Warn_Unexpected_Sequence_Counts := Warn_Unexpected_Sequence_Counts;
       Self.Load_All_On_Set_Up := Load_All_Parameter_Tables_On_Set_Up;
 
       -- Create staging buffer:
@@ -317,14 +310,12 @@ package body Component.Parameter_Table_Router.Implementation is
    ---------------------------------------
    -- Receives segmented CCSDS packets containing parameter table data.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
-      use Ccsds_Enums.Ccsds_Sequence_Flag;
       use Parameter_Table_Buffer;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
       -- Note: CCSDS Packet_Length field value is one less than the actual data
       -- length per the CCSDS standard, hence the seemingly missing "-1" in the
       -- slice below.
       Data : Basic_Types.Byte_Array renames Arg.Data (Arg.Data'First .. Arg.Data'First + Natural (Arg.Header.Packet_Length));
-      Seq_Flag : Ccsds_Enums.Ccsds_Sequence_Flag.E renames Arg.Header.Sequence_Flag;
       Status : Append_Status;
       Table_Status_Val : Parameter_Table_Router_Enums.Table_Status.E := Table_Update_Success;
    begin
@@ -332,26 +323,8 @@ package body Component.Parameter_Table_Router.Implementation is
       Self.Packet_Count := @ + 1;
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
 
-      -- Check sequence count if enabled:
-      if Self.Warn_Unexpected_Sequence_Counts then
-         declare
-            Expected : constant Ccsds_Sequence_Count_Type := Self.Last_Sequence_Count + 1;
-         begin
-            if Self.Last_Sequence_Count /= Ccsds_Sequence_Count_Type'Last
-               and then Arg.Header.Sequence_Count /= Expected
-            then
-               Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Sequence_Count_Detected (The_Time, (
-                  Ccsds_Header => Arg.Header,
-                  Received_Sequence_Count => Interfaces.Unsigned_16 (Arg.Header.Sequence_Count),
-                  Expected_Sequence_Count => Interfaces.Unsigned_16 (Expected)
-               )));
-            end if;
-         end;
-         Self.Last_Sequence_Count := Arg.Header.Sequence_Count;
-      end if;
-
       -- Append to staging buffer:
-      Status := Self.Staging_Buffer.Append (Data => Data, Sequence_Flag => Seq_Flag);
+      Status := Self.Staging_Buffer.Append (Data => Data, Sequence_Flag => Arg.Header.Sequence_Flag);
 
       case Status is
          when Packet_Ignored =>

@@ -4,7 +4,6 @@
 
 -- Includes:
 with Ccsds_Space_Packet;
-with Ccsds_Primary_Header;
 with Command;
 with Tick;
 with Parameters_Memory_Region_Release;
@@ -39,14 +38,11 @@ package Component.Parameter_Table_Router.Implementation is
    -- reassembling segmented CCSDS packets.
    -- Ticks_Until_Timeout : Natural - The number of timeout ticks to wait for a
    -- response from a downstream component before declaring a timeout.
-   -- Warn_Unexpected_Sequence_Counts : Boolean - If True, an event is produced when
-   -- a CCSDS packet is received with an unexpected (non-incrementing) sequence
-   -- count.
    -- Load_All_Parameter_Tables_On_Set_Up : Boolean - If True, all parameter tables
    -- that have a load_from source will be loaded from persistent storage during
    -- Set_Up.
    --
-   overriding procedure Init (Self : in out Instance; Table : in Parameter_Table_Router_Types.Router_Table; Buffer_Size : in Positive; Ticks_Until_Timeout : in Natural; Warn_Unexpected_Sequence_Counts : in Boolean := False; Load_All_Parameter_Tables_On_Set_Up : in Boolean := False);
+   overriding procedure Init (Self : in out Instance; Table : in Parameter_Table_Router_Types.Router_Table; Buffer_Size : in Positive; Ticks_Until_Timeout : in Natural; Load_All_Parameter_Tables_On_Set_Up : in Boolean := False);
    not overriding procedure Final (Self : in out Instance);
 
 private
@@ -78,10 +74,7 @@ private
       Response : Protected_Parameters_Memory_Region_Release.Variable;
       Sync_Object : Task_Synchronization.Wait_Release_Timeout_Counter_Object;
       -- Configuration:
-      Warn_Unexpected_Sequence_Counts : Boolean := False;
       Load_All_On_Set_Up : Boolean := False;
-      -- Sequence count tracking:
-      Last_Sequence_Count : Ccsds_Primary_Header.Ccsds_Sequence_Count_Type := Ccsds_Primary_Header.Ccsds_Sequence_Count_Type'Last;
       -- Data product counters (Reject_Count is protected since
       -- Ccsds_Space_Packet_T_Recv_Async_Dropped runs in the sender's context):
       Packet_Count : Interfaces.Unsigned_32 := 0;

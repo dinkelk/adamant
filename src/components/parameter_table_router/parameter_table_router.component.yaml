@@ -23,10 +23,6 @@ init:
     - name: Ticks_Until_Timeout
       type: Natural
       description: The number of timeout ticks to wait for a response from a downstream component before declaring a timeout.
-    - name: Warn_Unexpected_Sequence_Counts
-      type: Boolean
-      default: "False"
-      description: If True, an event is produced when a CCSDS packet is received with an unexpected (non-incrementing) sequence count.
     - name: Load_All_Parameter_Tables_On_Set_Up
       type: Boolean
       default: "False"

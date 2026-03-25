@@ -37,9 +37,6 @@ events:
   - name: Staging_Buffer_Overflow
     description: The staging buffer is full. Dropping packets until a new FirstSegment resets the buffer.
     param_type: Ccsds_Primary_Header.T
-  - name: Unexpected_Sequence_Count_Detected
-    description: A CCSDS packet was received with an unexpected sequence count.
-    param_type: Unexpected_Sequence_Count.T
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
