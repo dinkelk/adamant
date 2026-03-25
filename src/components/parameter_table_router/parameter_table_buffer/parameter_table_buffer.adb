@@ -4,6 +4,7 @@ with Packed_U16;
 package body Parameter_Table_Buffer is
 
    use Basic_Types;
+   use Parameter_Table_Router_Enums.Table_Status;
 
    procedure Create (Self : in out Instance; Buffer_Size : in Positive) is
    begin
@@ -44,7 +45,7 @@ package body Parameter_Table_Buffer is
 
             if Data'Length < 2 then
                Self.State := Idle;
-               return Too_Small_Table;
+               return Too_Small;
             end if;
 
             -- Extract Table ID from first 2 bytes using packed deserialization:
@@ -81,7 +82,7 @@ package body Parameter_Table_Buffer is
 
             Self.Buffer (Self.Buffer_Index .. Self.Buffer_Index + Data'Length - 1) := Data;
             Self.Buffer_Index := @ + Data'Length;
-            return Buffering_Table;
+            return Receiving_Table;
 
          when Lastsegment =>
             if Self.State = Idle then

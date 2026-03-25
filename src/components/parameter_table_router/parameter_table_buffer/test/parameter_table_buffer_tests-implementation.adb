@@ -5,6 +5,7 @@
 with Basic_Assertions; use Basic_Assertions;
 with Smart_Assert;
 with Parameter_Table_Buffer; use Parameter_Table_Buffer;
+with Parameter_Table_Router_Enums; use Parameter_Table_Router_Enums.Table_Status;
 with Ccsds_Enums; use Ccsds_Enums.Ccsds_Sequence_Flag;
 with Basic_Types;
 with Memory_Region;
@@ -82,7 +83,7 @@ package body Parameter_Table_Buffer_Tests.Implementation is
 
       -- ContinuationSegment:
       Status := Self.Buf.Append (Data => Cont_Data, Sequence_Flag => Continuationsegment);
-      Append_Status_Assert.Eq (Status, Buffering_Table);
+      Append_Status_Assert.Eq (Status, Receiving_Table);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 6);
 
       -- LastSegment:
@@ -122,11 +123,11 @@ package body Parameter_Table_Buffer_Tests.Implementation is
    begin
       -- Empty data:
       Status := Self.Buf.Append (Data => [1 .. 0 => 0], Sequence_Flag => Firstsegment);
-      Append_Status_Assert.Eq (Status, Too_Small_Table);
+      Append_Status_Assert.Eq (Status, Too_Small);
 
       -- 1 byte (still too small for 2-byte Table ID):
       Status := Self.Buf.Append (Data => [16#01#], Sequence_Flag => Firstsegment);
-      Append_Status_Assert.Eq (Status, Too_Small_Table);
+      Append_Status_Assert.Eq (Status, Too_Small);
 
       -- Verify we're back to Idle (continuation should be ignored):
       Status := Self.Buf.Append (Data => [16#AA#, 16#BB#], Sequence_Flag => Continuationsegment);
@@ -157,7 +158,7 @@ package body Parameter_Table_Buffer_Tests.Implementation is
 
       -- Add continuation:
       Status := Self.Buf.Append (Data => [16#CC#, 16#DD#], Sequence_Flag => Continuationsegment);
-      Append_Status_Assert.Eq (Status, Buffering_Table);
+      Append_Status_Assert.Eq (Status, Receiving_Table);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 4);
 
       -- New FirstSegment interrupts (ID = 2):

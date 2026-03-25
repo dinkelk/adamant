@@ -1,19 +1,13 @@
 with Basic_Types;
 with Parameter_Types;
+with Parameter_Table_Router_Enums;
 with Ccsds_Enums;
 with Memory_Region;
 
 package Parameter_Table_Buffer is
 
-   -- Return status from the Append operation:
-   type Append_Status is (
-      Packet_Ignored,
-      Buffering_Table,
-      New_Table,
-      Complete_Table,
-      Too_Small_Table,
-      Buffer_Overflow
-   );
+   -- Use the component's shared status enum as the Append return type:
+   subtype Append_Status is Parameter_Table_Router_Enums.Table_Status.E;
 
    -- The staging buffer instance:
    type Instance is tagged limited private;
