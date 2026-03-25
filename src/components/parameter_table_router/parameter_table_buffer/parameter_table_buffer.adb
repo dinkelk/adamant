@@ -108,6 +108,15 @@ package body Parameter_Table_Buffer is
       );
    end Get_Table_Region;
 
+   function Get_Full_Buffer_Region (Self : in Instance) return Memory_Region.T is
+   begin
+      pragma Assert (Self.Buffer /= null);
+      return (
+         Address => Self.Buffer (0)'Address,
+         Length => Self.Buffer.all'Length
+      );
+   end Get_Full_Buffer_Region;
+
    function Get_Table_Id (Self : in Instance) return Parameter_Types.Parameter_Table_Id is
    begin
       return Self.Table_Id;

@@ -28,6 +28,7 @@ package Parameter_Table_Buffer is
    ) return Append_Status;
 
    function Get_Table_Region (Self : in Instance) return Memory_Region.T;
+   function Get_Full_Buffer_Region (Self : in Instance) return Memory_Region.T;
    function Get_Table_Id (Self : in Instance) return Parameter_Types.Parameter_Table_Id;
    function Get_Table_Length (Self : in Instance) return Natural;
 

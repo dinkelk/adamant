@@ -49,3 +49,7 @@ events:
   - name: Packet_Dropped
     description: A CCSDS packet was dropped due to a full queue.
     param_type: Ccsds_Primary_Header.T
+  - name: Loading_All_Parameter_Tables
+    description: Starting to load all parameter tables that have a load_from source.
+  - name: All_Parameter_Tables_Loaded
+    description: Finished loading all parameter tables.

@@ -56,6 +56,11 @@ private
    package Protected_Parameters_Memory_Region_Release is
       new Protected_Variables.Generic_Variable (Parameters_Memory_Region_Release.T);
 
+   -- Protected counter for reject count (incremented from both the component's
+   -- task and the sender's task context via the Dropped handler):
+   package Protected_Unsigned_32_Counter is
+      new Protected_Variables.Generic_Protected_Counter (Interfaces.Unsigned_32);
+
    -- Binary tree comparison operators for Router_Table_Entry keyed by Table_Id:
    function Less_Than (Left, Right : Router_Table_Entry) return Boolean with
       Inline => True;
@@ -77,11 +82,14 @@ private
       Load_All_On_Set_Up : Boolean := False;
       -- Sequence count tracking:
       Last_Sequence_Count : Ccsds_Primary_Header.Ccsds_Sequence_Count_Type := Ccsds_Primary_Header.Ccsds_Sequence_Count_Type'Last;
-      -- Data product counters:
+      -- Data product counters (Reject_Count is protected since
+      -- Ccsds_Space_Packet_T_Recv_Async_Dropped runs in the sender's context):
       Packet_Count : Interfaces.Unsigned_32 := 0;
-      Reject_Count : Interfaces.Unsigned_32 := 0;
+      Reject_Count : Protected_Unsigned_32_Counter.Counter;
       Table_Count : Interfaces.Unsigned_32 := 0;
       Invalid_Count : Interfaces.Unsigned_32 := 0;
+      -- Per-table packet counter, reset on each FirstSegment:
+      Current_Table_Packet_Count : Interfaces.Unsigned_32 := 0;
    end record;
 
    ---------------------------------------

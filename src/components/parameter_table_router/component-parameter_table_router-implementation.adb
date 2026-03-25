@@ -4,12 +4,14 @@
 
 with Parameter_Enums;
 with Parameter_Types; use Parameter_Types;
+with Parameter_Table_Router_Enums;
 with Ccsds_Enums;
 with Ccsds_Primary_Header; use Ccsds_Primary_Header;
 
 package body Component.Parameter_Table_Router.Implementation is
 
    use Parameter_Enums.Parameter_Table_Update_Status;
+   use Parameter_Table_Router_Enums.Table_Status;
 
    -- Comparison operators for binary tree:
    function Less_Than (Left, Right : Router_Table_Entry) return Boolean is
@@ -22,57 +24,87 @@ package body Component.Parameter_Table_Router.Implementation is
       return Left.Table_Id > Right.Table_Id;
    end Greater_Than;
 
-   -- No standalone helper needed — counter increments are simple inline statements.
+   ---------------------------------------
+   -- Helper: Check if a destination list has a Load_From entry.
+   -- If found, returns True with the connector index in Load_From_Idx.
+   ---------------------------------------
+   function Find_Load_From_Index (
+      Destinations : in Destination_Table_Access;
+      Load_From_Idx : out Connector_Types.Connector_Index_Type
+   ) return Boolean is
+   begin
+      for Dest of Destinations.all loop
+         if Dest.Load_From then
+            Load_From_Idx := Dest.Connector_Index;
+            return True;
+         end if;
+      end loop;
+      Load_From_Idx := Connector_Types.Connector_Index_Type'First;
+      return False;
+   end Find_Load_From_Index;
 
    ---------------------------------------
-   -- Helper: Send region to a destination and wait for response.
+   -- Helper: Wait for a response from a downstream component after a
+   -- send. Handles timeout and failure event emission internally.
+   -- Callers should NOT inspect Self.Response.Get_Var to distinguish
+   -- timeout from failure — this function handles that.
    -- Returns True on success, False on timeout or failure.
-   -- The response is available via Self.Response.Get_Var after this call.
    ---------------------------------------
-   function Send_And_Wait (Self : in out Instance; Index : in Connector_Types.Connector_Index_Type; Region : in Parameters_Memory_Region.T) return Boolean is
+   function Wait_For_Response (Self : in out Instance; The_Time : in Sys_Time.T; Id_Param : in Parameter_Table_Id.T; Is_Load : in Boolean := False) return Boolean is
       Wait_Timed_Out : Boolean;
    begin
-      Self.Sync_Object.Reset;
-      Self.Parameters_Memory_Region_T_Send_If_Connected (Index, Region);
       Self.Sync_Object.Wait (Wait_Timed_Out);
 
       if Wait_Timed_Out then
+         Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Timeout (The_Time, Id_Param));
          return False;
       end if;
 
-      return Self.Response.Get_Var.Status = Success;
+      -- Response was set by Parameters_Memory_Region_Release_T_Recv_Sync.
+      -- Only read it here, after confirming we are not timed out:
+      declare
+         Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
+      begin
+         if Release.Status /= Success then
+            if Is_Load then
+               Self.Event_T_Send_If_Connected (Self.Events.Table_Load_Failure (The_Time, Release));
+            else
+               Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Failure (The_Time, Release));
+            end if;
+            return False;
+         end if;
+      end;
+
+      return True;
+   end Wait_For_Response;
+
+   ---------------------------------------
+   -- Helper: Reset sync object, send region to a destination, and wait.
+   -- Returns True on success, False on timeout or failure.
+   ---------------------------------------
+   function Send_And_Wait (Self : in out Instance; Index : in Connector_Types.Connector_Index_Type; Region : in Parameters_Memory_Region.T; The_Time : in Sys_Time.T; Id_Param : in Parameter_Table_Id.T; Is_Load : in Boolean := False) return Boolean is
+   begin
+      -- Reset the synchronization object to clear any stale state and
+      -- restart the timeout counter:
+      Self.Sync_Object.Reset;
+      Self.Parameters_Memory_Region_T_Send_If_Connected (Index, Region);
+      return Self.Wait_For_Response (The_Time, Id_Param, Is_Load);
    end Send_And_Wait;
 
    ---------------------------------------
    -- Helper: Send Set to all destinations for a table entry.
    -- Sends to non-Load_From destinations first (in order), then Load_From last.
-   -- Returns True if all succeeded, emits events on failure.
+   -- Returns True if all succeeded.
    ---------------------------------------
-   function Send_Table_To_Destinations (Self : in out Instance; Table_Ent : in Router_Table_Entry; Region : in Parameters_Memory_Region.T) return Boolean is
-      The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+   function Send_Table_To_Destinations (Self : in out Instance; Table_Ent : in Router_Table_Entry; Region : in Parameters_Memory_Region.T; The_Time : in Sys_Time.T) return Boolean is
       Id_Param : constant Parameter_Table_Id.T := (Id => Table_Ent.Table_Id);
-      Load_From_Index : Connector_Types.Connector_Index_Type := Connector_Types.Connector_Index_Type'First;
-      Has_Load_From : Boolean := False;
+      Load_From_Idx : Connector_Types.Connector_Index_Type;
+      Has_Load_From : constant Boolean := Find_Load_From_Index (Table_Ent.Destinations, Load_From_Idx);
    begin
       -- First pass: send to non-Load_From destinations in order:
-      for I in Table_Ent.Destinations'Range loop
-         if Table_Ent.Destinations (I).Load_From then
-            Load_From_Index := Table_Ent.Destinations (I).Connector_Index;
-            Has_Load_From := True;
-         else
-            if not Self.Send_And_Wait (Table_Ent.Destinations (I).Connector_Index, Region) then
-               -- Determine if this was a timeout or downstream failure:
-               declare
-                  Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
-               begin
-                  case Release.Status is
-                     when Success =>
-                        -- Must have been a timeout:
-                        Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Timeout (The_Time, Id_Param));
-                     when others =>
-                        Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Failure (The_Time, Release));
-                  end case;
-               end;
+      for Dest of Table_Ent.Destinations.all loop
+         if not Dest.Load_From then
+            if not Self.Send_And_Wait (Dest.Connector_Index, Region, The_Time, Id_Param) then
                return False;
             end if;
          end if;
@@ -81,17 +113,7 @@ package body Component.Parameter_Table_Router.Implementation is
       -- Second pass: send to Load_From destination last so we don't persist an
       -- invalid table if validation fails at another destination:
       if Has_Load_From then
-         if not Self.Send_And_Wait (Load_From_Index, Region) then
-            declare
-               Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
-            begin
-               case Release.Status is
-                  when Success =>
-                     Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Timeout (The_Time, Id_Param));
-                  when others =>
-                     Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Failure (The_Time, Release));
-               end case;
-            end;
+         if not Self.Send_And_Wait (Load_From_Idx, Region, The_Time, Id_Param) then
             return False;
          end if;
       end if;
@@ -106,89 +128,85 @@ package body Component.Parameter_Table_Router.Implementation is
    function Load_Single_Table (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
       Id_Param : constant Parameter_Table_Id.T := (Id => Table_Id);
+      -- Construct a search key with only Table_Id populated. Destinations is
+      -- null here which would fail the Init assertion, but the binary tree
+      -- comparison only uses Table_Id so this is safe for searching:
       Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
       Found : Router_Table_Entry;
       Found_Index : Positive;
+      Load_From_Idx : Connector_Types.Connector_Index_Type;
    begin
-      -- Look up table ID:
       if not Self.Table.Search (Search_Key, Found, Found_Index) then
          Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (The_Time, Id_Param));
          return False;
       end if;
 
-      -- Find the Load_From destination:
+      -- Silently skip tables without a Load_From source:
+      if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
+         return True;
+      end if;
+
+      -- Send Get to Load_From destination to retrieve the table.
+      -- We provide the full staging buffer capacity for the store to write into:
       declare
-         Load_From_Idx : Connector_Types.Connector_Index_Type := Connector_Types.Connector_Index_Type'First;
-         Has_Load_From : Boolean := False;
+         Get_Region : constant Parameters_Memory_Region.T := (
+            Region => Self.Staging_Buffer.Get_Full_Buffer_Region,
+            Operation => Parameter_Enums.Parameter_Table_Operation_Type.Get
+         );
       begin
-         for I in Found.Destinations'Range loop
-            if Found.Destinations (I).Load_From then
-               Load_From_Idx := Found.Destinations (I).Connector_Index;
-               Has_Load_From := True;
-               exit;
+         if not Self.Send_And_Wait (Load_From_Idx, Get_Region, The_Time, Id_Param, Is_Load => True) then
+            return False;
+         end if;
+      end;
+
+      -- The Load_From destination populated the region. The response contains
+      -- the actual data length. Forward this to non-Load_From destinations:
+      declare
+         Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
+         Set_Region : constant Parameters_Memory_Region.T := (
+            Region => Release.Region,
+            Operation => Parameter_Enums.Parameter_Table_Operation_Type.Set
+         );
+      begin
+         for Dest of Found.Destinations.all loop
+            if not Dest.Load_From then
+               if not Self.Send_And_Wait (Dest.Connector_Index, Set_Region, The_Time, Id_Param) then
+                  return False;
+               end if;
             end if;
          end loop;
+      end;
 
-         -- Silently skip tables without a Load_From source:
-         if not Has_Load_From then
-            return True;
-         end if;
+      Self.Event_T_Send_If_Connected (Self.Events.Table_Loaded (The_Time, Id_Param));
+      return True;
+   end Load_Single_Table;
 
-         -- Send Get to Load_From destination to retrieve the table.
-         -- We provide our staging buffer as the memory region to be filled:
+   ---------------------------------------
+   -- Helper: Execute Load_All logic, shared between command and Set_Up.
+   ---------------------------------------
+   procedure Do_Load_All_Parameter_Tables (Self : in out Instance) is
+      The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+      Load_From_Idx : Connector_Types.Connector_Index_Type;
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Loading_All_Parameter_Tables (The_Time));
+
+      for I in Self.Table.Get_First_Index .. Self.Table.Get_Last_Index loop
          declare
-            Get_Region : constant Parameters_Memory_Region.T := (
-               Region => Self.Staging_Buffer.Get_Table_Region,
-               Operation => Parameter_Enums.Parameter_Table_Operation_Type.Get
-            );
+            Tbl_Entry : constant Router_Table_Entry := Self.Table.Get (I);
          begin
-            if not Self.Send_And_Wait (Load_From_Idx, Get_Region) then
+            if Find_Load_From_Index (Tbl_Entry.Destinations, Load_From_Idx) then
+               -- Load this table; failures are reported via events:
                declare
-                  Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
+                  Ignore_Result : constant Boolean := Self.Load_Single_Table (Tbl_Entry.Table_Id);
                begin
-                  case Release.Status is
-                     when Success =>
-                        Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Timeout (The_Time, Id_Param));
-                     when others =>
-                        Self.Event_T_Send_If_Connected (Self.Events.Table_Load_Failure (The_Time, Release));
-                  end case;
+                  null;
                end;
-               return False;
             end if;
          end;
+      end loop;
 
-         -- The Load_From destination populated the region. The response contains
-         -- the actual data length. Forward this to non-Load_From destinations:
-         declare
-            Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
-            Set_Region : constant Parameters_Memory_Region.T := (
-               Region => Release.Region,
-               Operation => Parameter_Enums.Parameter_Table_Operation_Type.Set
-            );
-         begin
-            for I in Found.Destinations'Range loop
-               if not Found.Destinations (I).Load_From then
-                  if not Self.Send_And_Wait (Found.Destinations (I).Connector_Index, Set_Region) then
-                     declare
-                        Fail_Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
-                     begin
-                        case Fail_Release.Status is
-                           when Success =>
-                              Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Timeout (The_Time, Id_Param));
-                           when others =>
-                              Self.Event_T_Send_If_Connected (Self.Events.Table_Update_Failure (The_Time, Fail_Release));
-                        end case;
-                     end;
-                     return False;
-                  end if;
-               end if;
-            end loop;
-         end;
-
-         Self.Event_T_Send_If_Connected (Self.Events.Table_Loaded (The_Time, Id_Param));
-         return True;
-      end;
-   end Load_Single_Table;
+      Self.Event_T_Send_If_Connected (Self.Events.All_Parameter_Tables_Loaded (Self.Sys_Time_T_Get));
+   end Do_Load_All_Parameter_Tables;
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -277,35 +295,20 @@ package body Component.Parameter_Table_Router.Implementation is
    begin
       -- Publish initial data product values:
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count)));
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (The_Time, (
+         Table_Id => 0,
+         Status => Idle,
+         Bytes_Received => 0,
+         Packets_Received => 0,
+         Timestamp => The_Time
+      )));
 
       -- Load all parameter tables if configured:
       if Self.Load_All_On_Set_Up then
-         for I in Self.Table.Get_First_Index .. Self.Table.Get_Last_Index loop
-            declare
-               Tbl_Entry : constant Router_Table_Entry := Self.Table.Get (I);
-               Has_Load_From : Boolean := False;
-            begin
-               -- Check if this entry has a Load_From destination:
-               for Dest of Tbl_Entry.Destinations.all loop
-                  if Dest.Load_From then
-                     Has_Load_From := True;
-                     exit;
-                  end if;
-               end loop;
-
-               if Has_Load_From then
-                  -- Load this table; failures are reported via events:
-                  declare
-                     Ignore_Result : constant Boolean := Self.Load_Single_Table (Tbl_Entry.Table_Id);
-                  begin
-                     null;
-                  end;
-               end if;
-            end;
-         end loop;
+         Self.Do_Load_All_Parameter_Tables;
       end if;
    end Set_Up;
 
@@ -322,9 +325,11 @@ package body Component.Parameter_Table_Router.Implementation is
       Data : Basic_Types.Byte_Array renames Arg.Data (Arg.Data'First .. Arg.Data'First + Natural (Arg.Header.Packet_Length));
       Seq_Flag : Ccsds_Enums.Ccsds_Sequence_Flag.E renames Arg.Header.Sequence_Flag;
       Status : Append_Status;
+      Table_Status_Val : Parameter_Table_Router_Enums.Table_Status.E := Idle;
    begin
       -- Increment packet counter:
       Self.Packet_Count := @ + 1;
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (Self.Sys_Time_T_Get, (Value => Self.Packet_Count)));
 
       -- Check sequence count if enabled:
       if Self.Warn_Unexpected_Sequence_Counts then
@@ -349,28 +354,41 @@ package body Component.Parameter_Table_Router.Implementation is
 
       case Status is
          when Packet_Ignored =>
-            Self.Reject_Count := @ + 1;
+            Self.Reject_Count.Increment_Count;
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (Self.Sys_Time_T_Get, (Value => Self.Reject_Count.Get_Count)));
             Self.Event_T_Send_If_Connected (Self.Events.Packet_Ignored (Self.Sys_Time_T_Get, Arg.Header));
+            Table_Status_Val := Packet_Ignored;
 
          when Too_Small_Table =>
-            Self.Reject_Count := @ + 1;
+            Self.Reject_Count.Increment_Count;
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (Self.Sys_Time_T_Get, (Value => Self.Reject_Count.Get_Count)));
             Self.Event_T_Send_If_Connected (Self.Events.Too_Small_Table (Self.Sys_Time_T_Get, Arg.Header));
+            Table_Status_Val := Too_Small;
 
          when New_Table =>
+            -- Reset per-table packet counter:
+            Self.Current_Table_Packet_Count := 1;
             -- Emit event with table ID. The ID will be validated against the
             -- routing table when the complete table arrives:
             Self.Event_T_Send_If_Connected (Self.Events.Receiving_New_Table (
                Self.Sys_Time_T_Get, (Id => Self.Staging_Buffer.Get_Table_Id)
             ));
+            Table_Status_Val := Receiving_Table;
 
          when Buffering_Table =>
-            null;
+            Self.Current_Table_Packet_Count := @ + 1;
+            Table_Status_Val := Receiving_Table;
 
          when Complete_Table =>
+            Self.Current_Table_Packet_Count := @ + 1;
             Self.Table_Count := @ + 1;
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (Self.Sys_Time_T_Get, (Value => Self.Table_Count)));
             declare
                The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
                Tid : constant Parameter_Table_Id.T := (Id => Self.Staging_Buffer.Get_Table_Id);
+               -- Construct a search key with only Table_Id populated. Destinations
+               -- is null here which would fail the Init assertion, but the binary
+               -- tree comparison only uses Table_Id so this is safe for searching:
                Search_Key : constant Router_Table_Entry := (Table_Id => Tid.Id, Destinations => null);
                Found : Router_Table_Entry;
                Found_Index : Positive;
@@ -379,49 +397,49 @@ package body Component.Parameter_Table_Router.Implementation is
 
                if not Self.Table.Search (Search_Key, Found, Found_Index) then
                   Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (The_Time, Tid));
+                  Table_Status_Val := Unrecognized_Id;
                else
-                  -- Build set region and send to destinations:
                   declare
                      Set_Region : constant Parameters_Memory_Region.T := (
                         Region => Self.Staging_Buffer.Get_Table_Region,
                         Operation => Parameter_Enums.Parameter_Table_Operation_Type.Set
                      );
                   begin
-                     if Send_Table_To_Destinations (Self, Found, Set_Region) then
+                     if Send_Table_To_Destinations (Self, Found, Set_Region, The_Time) then
                         Self.Event_T_Send_If_Connected (Self.Events.Table_Updated (The_Time, Tid));
+                        Table_Status_Val := Table_Updated;
                      else
                         Self.Invalid_Count := @ + 1;
+                        Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
+                        Table_Status_Val := Table_Update_Failed;
                      end if;
                   end;
-
-                  -- Update last table received data product:
-                  Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (The_Time, (
-                     Table_Id => Tid.Id,
-                     Table_Length => Interfaces.Unsigned_32 (Self.Staging_Buffer.Get_Table_Length),
-                     Timestamp => The_Time
-                  )));
                end if;
             end;
 
          when Buffer_Overflow =>
-            Self.Reject_Count := @ + 1;
+            Self.Reject_Count.Increment_Count;
+            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (Self.Sys_Time_T_Get, (Value => Self.Reject_Count.Get_Count)));
             Self.Event_T_Send_If_Connected (Self.Events.Staging_Buffer_Overflow (Self.Sys_Time_T_Get, Arg.Header));
+            Table_Status_Val := Buffer_Overflow;
       end case;
 
-      -- Update data products at end of handler:
-      declare
-         The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
-      begin
-         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
-         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count)));
-         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
-         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
-      end;
+      -- Update last table received data product with current status:
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (Self.Sys_Time_T_Get, (
+         Table_Id => Self.Staging_Buffer.Get_Table_Id,
+         Status => Table_Status_Val,
+         Bytes_Received => Interfaces.Unsigned_32 (Self.Staging_Buffer.Get_Table_Length),
+         Packets_Received => Self.Current_Table_Packet_Count,
+         Timestamp => Self.Sys_Time_T_Get
+      )));
    end Ccsds_Space_Packet_T_Recv_Async;
 
    -- This procedure is called when a Ccsds_Space_Packet_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Ccsds_Space_Packet_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is
    begin
+      -- Note: This handler runs in the sender's task context, not this
+      -- component's task. The reject counter is protected to handle this:
+      Self.Reject_Count.Increment_Count;
       Self.Event_T_Send_If_Connected (Self.Events.Packet_Dropped (Self.Sys_Time_T_Get, Arg.Header));
    end Ccsds_Space_Packet_T_Recv_Async_Dropped;
 
@@ -491,27 +509,7 @@ package body Component.Parameter_Table_Router.Implementation is
    overriding function Load_All_Parameter_Tables (Self : in out Instance) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
-      for I in Self.Table.Get_First_Index .. Self.Table.Get_Last_Index loop
-         declare
-            Tbl_Entry : constant Router_Table_Entry := Self.Table.Get (I);
-            Has_Load_From : Boolean := False;
-         begin
-            for Dest of Tbl_Entry.Destinations.all loop
-               if Dest.Load_From then
-                  Has_Load_From := True;
-                  exit;
-               end if;
-            end loop;
-
-            if Has_Load_From then
-               declare
-                  Ignore_Result : constant Boolean := Self.Load_Single_Table (Tbl_Entry.Table_Id);
-               begin
-                  null;
-               end;
-            end if;
-         end;
-      end loop;
+      Self.Do_Load_All_Parameter_Tables;
       return Success;
    end Load_All_Parameter_Tables;
 
