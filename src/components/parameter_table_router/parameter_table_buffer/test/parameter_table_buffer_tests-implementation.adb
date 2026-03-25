@@ -9,6 +9,7 @@ with Ccsds_Enums; use Ccsds_Enums.Ccsds_Sequence_Flag;
 with Basic_Types;
 with Memory_Region;
 with Parameter_Types;
+with System; use System;
 
 package body Parameter_Table_Buffer_Tests.Implementation is
 
@@ -20,6 +21,22 @@ package body Parameter_Table_Buffer_Tests.Implementation is
 
    -- Default buffer size used by most tests:
    Default_Buffer_Size : constant Positive := 64;
+
+   -- Helper: Check table region has expected length and nonzero address.
+   procedure Check_Table_Region (Buf : in Parameter_Table_Buffer.Instance; Expected_Length : in Natural) is
+      Region : constant Memory_Region.T := Buf.Get_Table_Region;
+   begin
+      Natural_Assert.Eq (Region.Length, Expected_Length);
+      pragma Assert (Region.Address /= Null_Address);
+   end Check_Table_Region;
+
+   -- Helper: Check full buffer region has expected length and nonzero address.
+   procedure Check_Full_Buffer_Region (Buf : in Parameter_Table_Buffer.Instance; Expected_Length : in Natural) is
+      Region : constant Memory_Region.T := Buf.Get_Full_Buffer_Region;
+   begin
+      Natural_Assert.Eq (Region.Length, Expected_Length);
+      pragma Assert (Region.Address /= Null_Address);
+   end Check_Full_Buffer_Region;
 
    -------------------------------------------------------------------------
    -- Fixtures:
@@ -43,12 +60,19 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       -- Buffer was created in fixture. Verify initial state:
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 0);
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 0);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 0);
+      Check_Table_Region (Self.Buf, 0);
+      Check_Full_Buffer_Region (Self.Buf, Default_Buffer_Size);
 
       -- Destroy and recreate to test lifecycle:
       Self.Buf.Destroy;
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 0);
       Self.Buf.Create (Buffer_Size => 32);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 0);
+      Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 0);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 0);
+      Check_Table_Region (Self.Buf, 0);
+      Check_Full_Buffer_Region (Self.Buf, 32);
    end Test_Create_Destroy;
 
    overriding procedure Test_Unsegmented_Ignored (Self : in out Instance) is
@@ -77,25 +101,24 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Status := Self.Buf.Append (Data => First_Data, Sequence_Flag => Firstsegment);
       Append_Status_Assert.Eq (Status, New_Table);
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 5);
-      -- Buffer should contain data after Table ID (4 bytes):
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 4);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
 
       -- ContinuationSegment:
       Status := Self.Buf.Append (Data => Cont_Data, Sequence_Flag => Continuationsegment);
       Append_Status_Assert.Eq (Status, Buffering_Table);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 6);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 2);
 
       -- LastSegment:
       Status := Self.Buf.Append (Data => Last_Data, Sequence_Flag => Lastsegment);
       Append_Status_Assert.Eq (Status, Complete_Table);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 8);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 3);
 
-      -- Verify table region length:
-      declare
-         Region : constant Memory_Region.T := Self.Buf.Get_Table_Region;
-      begin
-         Natural_Assert.Eq (Region.Length, 8);
-      end;
+      -- Verify table region:
+      Check_Table_Region (Self.Buf, 8);
+      Check_Full_Buffer_Region (Self.Buf, Default_Buffer_Size);
    end Test_Nominal_Segmented_Flow;
 
    overriding procedure Test_First_Segment_Extracts_Table_Id (Self : in out Instance) is
@@ -154,11 +177,13 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Append_Status_Assert.Eq (Status, New_Table);
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 1);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 2);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
 
       -- Add continuation:
       Status := Self.Buf.Append (Data => [16#CC#, 16#DD#], Sequence_Flag => Continuationsegment);
       Append_Status_Assert.Eq (Status, Buffering_Table);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 4);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 2);
 
       -- New FirstSegment interrupts (ID = 2):
       Status := Self.Buf.Append (Data => [16#00#, 16#02#, 16#EE#], Sequence_Flag => Firstsegment);
@@ -166,6 +191,8 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 2);
       -- Buffer should only contain data from the new table:
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 1);
+      -- Packet count reset for new table:
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
    end Test_First_Segment_Resets_Buffer;
 
    overriding procedure Test_Buffer_Overflow_First_Segment (Self : in out Instance) is
@@ -254,21 +281,31 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Status := Self.Buf.Append (Data => Last_Data, Sequence_Flag => Lastsegment);
       Append_Status_Assert.Eq (Status, Complete_Table);
 
+      -- Verify table region:
       declare
          Region : constant Memory_Region.T := Self.Buf.Get_Table_Region;
+         Full_Region : constant Memory_Region.T := Self.Buf.Get_Full_Buffer_Region;
          -- Read back the bytes from the region address:
          Result : Basic_Types.Byte_Array (0 .. 3);
          for Result'Address use Region.Address;
          pragma Import (Ada, Result);
       begin
-         -- Length should be 4 (payload only, no Table ID):
+         -- Table region length should be 4 (payload only, no Table ID):
          Natural_Assert.Eq (Region.Length, 4);
+         pragma Assert (Region.Address /= Null_Address);
+         -- Full buffer region should be the full buffer size:
+         Natural_Assert.Eq (Full_Region.Length, Default_Buffer_Size);
+         pragma Assert (Full_Region.Address /= Null_Address);
+         -- Both regions should start at the same address:
+         pragma Assert (Region.Address = Full_Region.Address);
          -- Verify data contents:
          Byte_Assert.Eq (Result (0), 16#11#);
          Byte_Assert.Eq (Result (1), 16#22#);
          Byte_Assert.Eq (Result (2), 16#33#);
          Byte_Assert.Eq (Result (3), 16#44#);
       end;
+
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 2);
    end Test_Get_Table_Region;
 
    overriding procedure Test_Multiple_Tables (Self : in out Instance) is
@@ -281,14 +318,17 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Append_Status_Assert.Eq (Status, Complete_Table);
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 10);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 2);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 2);
 
-      -- Second table (ID = 20):
+      -- Second table (ID = 20) — packet count resets:
       Status := Self.Buf.Append (Data => [16#00#, 16#14#, 16#CC#, 16#DD#, 16#EE#], Sequence_Flag => Firstsegment);
       Append_Status_Assert.Eq (Status, New_Table);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
       Status := Self.Buf.Append (Data => [16#FF#], Sequence_Flag => Lastsegment);
       Append_Status_Assert.Eq (Status, Complete_Table);
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 20);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 4);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 2);
    end Test_Multiple_Tables;
 
    overriding procedure Test_First_Segment_Only_Table_Id (Self : in out Instance) is
@@ -299,11 +339,22 @@ package body Parameter_Table_Buffer_Tests.Implementation is
       Append_Status_Assert.Eq (Status, New_Table);
       Table_Id_Assert.Eq (Self.Buf.Get_Table_Id, 7);
       Natural_Assert.Eq (Self.Buf.Get_Table_Length, 0);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 1);
 
-      -- Complete with a LastSegment carrying the actual data:
+      -- Add continuation with some data:
+      Status := Self.Buf.Append (Data => [16#AA#, 16#BB#], Sequence_Flag => Continuationsegment);
+      Append_Status_Assert.Eq (Status, Buffering_Table);
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 2);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 2);
+
+      -- Complete with a LastSegment:
       Status := Self.Buf.Append (Data => [16#11#, 16#22#], Sequence_Flag => Lastsegment);
       Append_Status_Assert.Eq (Status, Complete_Table);
-      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 2);
+      Natural_Assert.Eq (Self.Buf.Get_Table_Length, 4);
+      Natural_Assert.Eq (Self.Buf.Get_Packet_Count, 3);
+
+      Check_Table_Region (Self.Buf, 4);
+      Check_Full_Buffer_Region (Self.Buf, Default_Buffer_Size);
    end Test_First_Segment_Only_Table_Id;
 
 end Parameter_Table_Buffer_Tests.Implementation;
