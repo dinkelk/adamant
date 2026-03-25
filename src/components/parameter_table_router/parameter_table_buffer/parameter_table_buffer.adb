@@ -8,12 +8,6 @@ package body Parameter_Table_Buffer is
    use Interfaces;
    use Parameter_Types;
 
-   -- Ensure that all Packed_U16 values fit within Parameter_Table_Id range:
-   pragma Compile_Time_Error (
-      Integer (Unsigned_16'Last) > Integer (Parameter_Table_Id'Last),
-      "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id range."
-   );
-
    procedure Create (Self : in out Instance; Buffer_Size : in Positive) is
    begin
       pragma Assert (Self.Buffer = null);
@@ -44,21 +38,22 @@ package body Parameter_Table_Buffer is
    ) return Append_Status is
       use Ccsds_Enums.Ccsds_Sequence_Flag;
 
-      -- Helper: Append data to the buffer at the current index and
-      -- increment both the buffer index and the packet counter.
-      procedure Append_Data is
+      -- Helper: Try to append bytes to the buffer at the current index.
+      -- Returns True on success, False if the data would overflow the buffer.
+      -- On success, increments the buffer index and packet counter.
+      function Try_Append (Bytes : in Basic_Types.Byte_Array) return Boolean is
       begin
-         Self.Buffer (Self.Buffer_Index .. Self.Buffer_Index + Data'Length - 1) := Data;
-         Self.Buffer_Index := @ + Data'Length;
+         if Bytes'Length > 0 then
+            -- Compare would-be last index against buffer's last valid index:
+            if Self.Buffer_Index + Bytes'Length - 1 > Self.Buffer.all'Last then
+               return False;
+            end if;
+            Self.Buffer (Self.Buffer_Index .. Self.Buffer_Index + Bytes'Length - 1) := Bytes;
+            Self.Buffer_Index := @ + Bytes'Length;
+         end if;
          Self.Packet_Count := @ + 1;
-      end Append_Data;
-
-      -- Helper: Check if appending Data would exceed the buffer.
-      -- Compares the would-be last index against the buffer's last valid index.
-      function Would_Overflow return Boolean is
-      begin
-         return Self.Buffer_Index + Data'Length - 1 > Self.Buffer.all'Last;
-      end Would_Overflow;
+         return True;
+      end Try_Append;
    begin
       case Sequence_Flag is
          when Unsegmented =>
@@ -66,7 +61,7 @@ package body Parameter_Table_Buffer is
 
          when Firstsegment =>
             Self.Buffer_Index := Self.Buffer'First;
-            Self.Packet_Count := 1;
+            Self.Packet_Count := 0;
             Self.State := Receiving_Table;
 
             if Data'Length < 2 then
@@ -78,24 +73,21 @@ package body Parameter_Table_Buffer is
             declare
                Id_Packed : constant Packed_U16.T := Packed_U16.Serialization.From_Byte_Array (Data (Data'First .. Data'First + 1));
             begin
+               -- Ensure that all Packed_U16 values fit within Parameter_Table_Id range:
+               pragma Warnings (Off, "condition is always False");
+               pragma Compile_Time_Error (
+                  Natural (Unsigned_16'Last) > Natural (Parameter_Table_Id'Last),
+                  "Packed_U16 range exceeds Parameter_Types.Parameter_Table_Id range."
+               );
+               pragma Warnings (On, "condition is always False");
                Self.Table_Id := Parameter_Types.Parameter_Table_Id (Id_Packed.Value);
             end;
 
             -- Store only the data AFTER the 2-byte Table ID:
-            declare
-               Table_Data_Length : constant Natural := Data'Length - 2;
-            begin
-               if Table_Data_Length > 0 then
-                  -- Check if the payload would exceed the buffer:
-                  if Self.Buffer'First + Table_Data_Length - 1 > Self.Buffer.all'Last then
-                     Self.State := Idle;
-                     return Buffer_Overflow;
-                  end if;
-                  Self.Buffer (Self.Buffer'First .. Self.Buffer'First + Table_Data_Length - 1) :=
-                     Data (Data'First + 2 .. Data'Last);
-               end if;
-               Self.Buffer_Index := Self.Buffer'First + Table_Data_Length;
-            end;
+            if not Try_Append (Data (Data'First + 2 .. Data'Last)) then
+               Self.State := Idle;
+               return Buffer_Overflow;
+            end if;
             return New_Table;
 
          when Continuationsegment =>
@@ -103,11 +95,9 @@ package body Parameter_Table_Buffer is
                return Packet_Ignored;
             end if;
 
-            if Would_Overflow then
+            if not Try_Append (Data) then
                return Buffer_Overflow;
             end if;
-
-            Append_Data;
             return Buffering_Table;
 
          when Lastsegment =>
@@ -115,11 +105,9 @@ package body Parameter_Table_Buffer is
                return Packet_Ignored;
             end if;
 
-            if Would_Overflow then
+            if not Try_Append (Data) then
                return Buffer_Overflow;
             end if;
-
-            Append_Data;
             Self.State := Idle;
             return Complete_Table;
       end case;
