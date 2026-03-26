@@ -79,8 +79,8 @@ private
       -- Ccsds_Space_Packet_T_Recv_Async_Dropped runs in the sender's context):
       Packet_Count : Interfaces.Unsigned_32 := 0;
       Reject_Count : Protected_Unsigned_32_Counter.Counter;
-      Table_Count : Interfaces.Unsigned_32 := 0;
-      Invalid_Count : Interfaces.Unsigned_32 := 0;
+      Valid_Table_Count : Interfaces.Unsigned_32 := 0;
+      Invalid_Table_Count : Interfaces.Unsigned_32 := 0;
    end record;
 
    ---------------------------------------

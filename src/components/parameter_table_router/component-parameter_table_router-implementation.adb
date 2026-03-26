@@ -363,8 +363,8 @@ package body Component.Parameter_Table_Router.Implementation is
       -- Publish initial data product values:
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Received (The_Time, (Value => Self.Packet_Count)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Packets_Rejected (The_Time, (Value => Self.Reject_Count.Get_Count)));
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Updated (The_Time, (Value => Self.Valid_Table_Count)));
+      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Table_Count)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Table_Received (The_Time, (
          Table_Id => 0,
          Status => Table_Update_Success,
@@ -404,6 +404,13 @@ package body Component.Parameter_Table_Router.Implementation is
          Self.Event_T_Send_If_Connected (Evnt);
       end Reject_Packet;
 
+      -- Helper to increment the invalid table counter and publish the DP.
+      procedure Reject_Table is
+      begin
+         Self.Invalid_Table_Count := @ + 1;
+         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Table_Count)));
+      end Reject_Table;
+
       -- Note: CCSDS Packet_Length field value is one less than the actual data
       -- length per the CCSDS standard, hence the seemingly missing "-1" in the
       -- slice below.
@@ -440,6 +447,7 @@ package body Component.Parameter_Table_Router.Implementation is
                Self.Event_T_Send_If_Connected (Self.Events.Table_Received (The_Time, Tid));
 
                if not Self.Find_Table_Entry (Tid.Id, Found) then
+                  Reject_Table;
                   Table_Status_Val := Unrecognized_Id;
                else
                   declare
@@ -452,11 +460,10 @@ package body Component.Parameter_Table_Router.Implementation is
                         Self.Event_T_Send_If_Connected (Self.Events.Table_Updated (The_Time, Tid));
                         Table_Status_Val := Table_Update_Success;
                         -- Only count tables that were successfully distributed:
-                        Self.Table_Count := @ + 1;
-                        Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
+                        Self.Valid_Table_Count := @ + 1;
+                        Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Updated (The_Time, (Value => Self.Valid_Table_Count)));
                      else
-                        Self.Invalid_Count := @ + 1;
-                        Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
+                        Reject_Table;
                         Table_Status_Val := Table_Update_Failed;
                      end if;
                   end;
