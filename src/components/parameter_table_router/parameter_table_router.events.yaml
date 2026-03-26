@@ -14,14 +14,14 @@ events:
     description: A parameter table has been successfully loaded from persistent storage and sent to all destinations.
     param_type: Parameter_Table_Id.T
   - name: Table_Update_Failure
-    description: A downstream component rejected a parameter table update.
-    param_type: Parameters_Memory_Region_Release.T
+    description: A downstream component rejected a parameter table update. Includes the table ID, connector index, and release status.
+    param_type: Parameter_Table_Operation_Failure_Info.T
   - name: Table_Update_Timeout
     description: Timed out waiting for a response from a downstream component during table update.
-    param_type: Parameter_Table_Id.T
+    param_type: Parameter_Table_Timeout_Info.T
   - name: Table_Load_Failure
-    description: Failed to load a parameter table from persistent storage.
-    param_type: Parameters_Memory_Region_Release.T
+    description: Failed to load a parameter table from persistent storage. Includes the table ID, connector index, and release status.
+    param_type: Parameter_Table_Operation_Failure_Info.T
   - name: No_Load_Source
     description: Load_Parameter_Table command received for a table ID that has no load_from destination configured.
     param_type: Parameter_Table_Id.T
