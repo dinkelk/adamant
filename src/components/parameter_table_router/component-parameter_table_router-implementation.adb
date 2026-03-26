@@ -146,14 +146,9 @@ package body Component.Parameter_Table_Router.Implementation is
    end Send_Table_To_Destinations;
 
    -- Load a single table by ID from its Load_From source.
-   -- When Called_From_Command is True, returns False (failure) if the table
-   -- has no Load_From source. When False (Set_Up path), silently skips.
+   -- Fails with No_Load_Source event if the table has no Load_From destination.
    -- Returns True on success.
-   function Load_Single_Table (
-      Self : in out Instance;
-      Table_Id : in Parameter_Types.Parameter_Table_Id;
-      Called_From_Command : in Boolean
-   ) return Boolean is
+   function Load_Table (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
       Id_Param : constant Parameter_Table_Id.T := (Id => Table_Id);
       -- Construct a search key with only Table_Id populated. Destinations is
       -- null here which would fail the Init assertion, but the binary tree
@@ -169,14 +164,8 @@ package body Component.Parameter_Table_Router.Implementation is
       end if;
 
       if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
-         if Called_From_Command then
-            -- Command asked to load a table that has no load_from source:
-            Self.Event_T_Send_If_Connected (Self.Events.No_Load_Source (Self.Sys_Time_T_Get, Id_Param));
-            return False;
-         else
-            -- Set_Up path: silently skip tables without load_from:
-            return True;
-         end if;
+         Self.Event_T_Send_If_Connected (Self.Events.No_Load_Source (Self.Sys_Time_T_Get, Id_Param));
+         return False;
       end if;
 
       -- Send Get to Load_From destination to retrieve the table.
@@ -214,12 +203,31 @@ package body Component.Parameter_Table_Router.Implementation is
 
       Self.Event_T_Send_If_Connected (Self.Events.Table_Loaded (Self.Sys_Time_T_Get, Id_Param));
       return True;
-   end Load_Single_Table;
+   end Load_Table;
+
+   -- Load a single table if it has a Load_From source.
+   -- Silently skips tables without Load_From (returns True).
+   function Load_Table_If_Available (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
+      -- Construct a search key with only Table_Id populated:
+      Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
+      Found : Router_Table_Entry;
+      Found_Index : Positive;
+      Load_From_Idx : Connector_Types.Connector_Index_Type;
+   begin
+      if not Self.Table.Search (Search_Key, Found, Found_Index) then
+         return True;
+      end if;
+
+      if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
+         return True;
+      end if;
+
+      return Self.Load_Table (Table_Id);
+   end Load_Table_If_Available;
 
    -- Execute Load_All logic, shared between command and Set_Up.
    -- Returns True if all table loads succeeded.
-   function Do_Load_All_Parameter_Tables (Self : in out Instance; Called_From_Command : in Boolean) return Boolean is
-      Load_From_Idx : Connector_Types.Connector_Index_Type;
+   function Do_Load_All_Parameter_Tables (Self : in out Instance) return Boolean is
       All_Succeeded : Boolean := True;
    begin
       Self.Event_T_Send_If_Connected (Self.Events.Loading_All_Parameter_Tables (Self.Sys_Time_T_Get));
@@ -228,11 +236,8 @@ package body Component.Parameter_Table_Router.Implementation is
          declare
             Tbl_Entry : constant Router_Table_Entry := Self.Table.Get (Idx);
          begin
-            if Find_Load_From_Index (Tbl_Entry.Destinations, Load_From_Idx) then
-               -- Load this table; failures are reported via events:
-               if not Self.Load_Single_Table (Tbl_Entry.Table_Id, Called_From_Command) then
-                  All_Succeeded := False;
-               end if;
+            if not Self.Load_Table_If_Available (Tbl_Entry.Table_Id) then
+               All_Succeeded := False;
             end if;
          end;
       end loop;
@@ -338,7 +343,7 @@ package body Component.Parameter_Table_Router.Implementation is
       -- Load all parameter tables if configured:
       if Self.Load_All_On_Set_Up then
          declare
-            Ignore_Result : constant Boolean := Self.Do_Load_All_Parameter_Tables (Called_From_Command => False);
+            Ignore_Result : constant Boolean := Self.Do_Load_All_Parameter_Tables;
          begin
             null;
          end;
@@ -511,7 +516,7 @@ package body Component.Parameter_Table_Router.Implementation is
    overriding function Load_Parameter_Table (Self : in out Instance; Arg : in Parameter_Table_Id.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
-      if Self.Load_Single_Table (Arg.Id, Called_From_Command => True) then
+      if Self.Load_Table (Arg.Id) then
          return Success;
       else
          return Failure;
@@ -523,7 +528,7 @@ package body Component.Parameter_Table_Router.Implementation is
    overriding function Load_All_Parameter_Tables (Self : in out Instance) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
-      if Self.Do_Load_All_Parameter_Tables (Called_From_Command => True) then
+      if Self.Do_Load_All_Parameter_Tables then
          return Success;
       else
          return Failure;
