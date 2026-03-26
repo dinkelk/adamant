@@ -10,6 +10,9 @@ events:
   - name: Table_Updated
     description: A parameter table has been successfully sent to all downstream destinations.
     param_type: Parameter_Table_Id.T
+  - name: Loading_Table
+    description: Starting to load a parameter table from its load_from source.
+    param_type: Parameter_Table_Id.T
   - name: Table_Loaded
     description: A parameter table has been successfully loaded from persistent storage and sent to all destinations.
     param_type: Parameter_Table_Id.T

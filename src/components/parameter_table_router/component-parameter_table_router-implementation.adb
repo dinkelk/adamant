@@ -42,11 +42,12 @@ package body Component.Parameter_Table_Router.Implementation is
    begin
       if Self.Table.Search (Search_Key, Found, Found_Index) then
          return True;
+      else
+         Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (
+            Self.Sys_Time_T_Get, (Id => Table_Id)
+         ));
+         return False;
       end if;
-      Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (
-         Self.Sys_Time_T_Get, (Id => Table_Id)
-      ));
-      return False;
    end Find_Table_Entry;
 
    -- Check if a destination list has a Load_From entry.
@@ -177,6 +178,10 @@ package body Component.Parameter_Table_Router.Implementation is
       Load_From_Idx : in Connector_Types.Connector_Index_Type
    ) return Boolean is
    begin
+      Self.Event_T_Send_If_Connected (Self.Events.Loading_Table (
+         Self.Sys_Time_T_Get, (Id => Table_Ent.Table_Id)
+      ));
+
       -- Send Get to Load_From destination to retrieve the table.
       -- We provide the full staging buffer capacity for the store to write into.
       -- Warning: if a table is being received via CCSDS at the same time, the
@@ -368,7 +373,10 @@ package body Component.Parameter_Table_Router.Implementation is
          Timestamp => The_Time
       )));
 
-      -- Load all parameter tables if configured:
+      -- Load all parameter tables if configured. We ignore the result here
+      -- because Set_Up cannot return failure. Individual load failures are
+      -- reported via events, and downstream components (e.g. Parameters)
+      -- report table load status in their own data products.
       if Self.Load_All_On_Set_Up then
          declare
             Ignore_Result : constant Boolean := Self.Do_Load_All_Parameter_Tables;
@@ -443,6 +451,9 @@ package body Component.Parameter_Table_Router.Implementation is
                      if Send_Table_To_Destinations (Self, Found, Set_Region) then
                         Self.Event_T_Send_If_Connected (Self.Events.Table_Updated (The_Time, Tid));
                         Table_Status_Val := Table_Update_Success;
+                        -- Only count tables that were successfully distributed:
+                        Self.Table_Count := @ + 1;
+                        Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
                      else
                         Self.Invalid_Count := @ + 1;
                         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Invalid (The_Time, (Value => Self.Invalid_Count)));
@@ -451,10 +462,6 @@ package body Component.Parameter_Table_Router.Implementation is
                   end;
                end if;
             end;
-
-            -- Increment table count and publish.
-            Self.Table_Count := @ + 1;
-            Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Received (The_Time, (Value => Self.Table_Count)));
 
          when Buffer_Overflow =>
             Reject_Packet (Self.Events.Staging_Buffer_Overflow (The_Time, Arg.Header));
