@@ -26,6 +26,29 @@ package body Component.Parameter_Table_Router.Implementation is
    -- Helper subprograms
    ---------------------------------------
 
+   -- Search the routing table for a Table_Id. On success, returns True
+   -- with the entry in Found. On failure, emits Unrecognized_Table_Id
+   -- event and returns False.
+   function Find_Table_Entry (
+      Self : in out Instance;
+      Table_Id : in Parameter_Types.Parameter_Table_Id;
+      Found : out Router_Table_Entry
+   ) return Boolean is
+      -- Construct a search key with only Table_Id populated. Destinations is
+      -- null here which would fail the Init assertion, but the binary tree
+      -- comparison only uses Table_Id so this is safe for searching:
+      Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
+      Found_Index : Positive;
+   begin
+      if Self.Table.Search (Search_Key, Found, Found_Index) then
+         return True;
+      end if;
+      Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (
+         Self.Sys_Time_T_Get, (Id => Table_Id)
+      ));
+      return False;
+   end Find_Table_Entry;
+
    -- Check if a destination list has a Load_From entry.
    -- If found, returns True with the connector index in Load_From_Idx.
    function Find_Load_From_Index (
@@ -125,7 +148,7 @@ package body Component.Parameter_Table_Router.Implementation is
       Load_From_Idx : Connector_Types.Connector_Index_Type;
       Has_Load_From : constant Boolean := Find_Load_From_Index (Table_Ent.Destinations, Load_From_Idx);
    begin
-      -- First pass: send to non-Load_From destinations in order:
+      -- First phase - send to non-Load_From destinations in order:
       for Dest of Table_Ent.Destinations.all loop
          if not Dest.Load_From then
             if not Self.Send_And_Wait (Dest.Connector_Index, Region, Table_Ent.Table_Id) then
@@ -134,7 +157,7 @@ package body Component.Parameter_Table_Router.Implementation is
          end if;
       end loop;
 
-      -- Second pass: send to Load_From destination last so we don't persist an
+      -- Second phase - send to Load_From destination last so we don't persist an
       -- invalid table if validation fails at another destination:
       if Has_Load_From then
          if not Self.Send_And_Wait (Load_From_Idx, Region, Table_Ent.Table_Id) then
@@ -145,7 +168,7 @@ package body Component.Parameter_Table_Router.Implementation is
       return True;
    end Send_Table_To_Destinations;
 
-   -- Core load logic: Get table data from the Load_From destination and
+   -- Core load logic - Get table data from the Load_From destination and
    -- forward to all other destinations. Caller has already resolved the
    -- table entry and Load_From index.
    function Do_Table_Load (
@@ -196,22 +219,17 @@ package body Component.Parameter_Table_Router.Implementation is
    -- Load a single table by ID from its Load_From source.
    -- Fails with events if the table ID is unrecognized or has no Load_From.
    function Load_Table (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
-      Id_Param : constant Parameter_Table_Id.T := (Id => Table_Id);
-      -- Construct a search key with only Table_Id populated. Destinations is
-      -- null here which would fail the Init assertion, but the binary tree
-      -- comparison only uses Table_Id so this is safe for searching:
-      Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
       Found : Router_Table_Entry;
-      Found_Index : Positive;
       Load_From_Idx : Connector_Types.Connector_Index_Type;
    begin
-      if not Self.Table.Search (Search_Key, Found, Found_Index) then
-         Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (Self.Sys_Time_T_Get, Id_Param));
+      if not Self.Find_Table_Entry (Table_Id, Found) then
          return False;
       end if;
 
       if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
-         Self.Event_T_Send_If_Connected (Self.Events.No_Load_Source (Self.Sys_Time_T_Get, Id_Param));
+         Self.Event_T_Send_If_Connected (Self.Events.No_Load_Source (
+            Self.Sys_Time_T_Get, (Id => Table_Id)
+         ));
          return False;
       end if;
 
@@ -221,15 +239,10 @@ package body Component.Parameter_Table_Router.Implementation is
    -- Load a single table if it has a Load_From source.
    -- Silently skips tables without Load_From (returns True).
    function Load_Table_If_Available (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
-      Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
       Found : Router_Table_Entry;
-      Found_Index : Positive;
       Load_From_Idx : Connector_Types.Connector_Index_Type;
    begin
-      if not Self.Table.Search (Search_Key, Found, Found_Index) then
-         Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (
-            Self.Sys_Time_T_Get, (Id => Table_Id)
-         ));
+      if not Self.Find_Table_Entry (Table_Id, Found) then
          return False;
       end if;
 
@@ -414,17 +427,11 @@ package body Component.Parameter_Table_Router.Implementation is
          when Complete_Table =>
             declare
                Tid : constant Parameter_Table_Id.T := (Id => Self.Staging_Buffer.Get_Table_Id);
-               -- Construct a search key with only Table_Id populated. Destinations
-               -- is null here which would fail the Init assertion, but the binary
-               -- tree comparison only uses Table_Id so this is safe for searching:
-               Search_Key : constant Router_Table_Entry := (Table_Id => Tid.Id, Destinations => null);
                Found : Router_Table_Entry;
-               Found_Index : Positive;
             begin
                Self.Event_T_Send_If_Connected (Self.Events.Table_Received (The_Time, Tid));
 
-               if not Self.Table.Search (Search_Key, Found, Found_Index) then
-                  Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (The_Time, Tid));
+               if not Self.Find_Table_Entry (Tid.Id, Found) then
                   Table_Status_Val := Unrecognized_Id;
                else
                   declare
