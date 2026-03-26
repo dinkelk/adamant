@@ -145,9 +145,56 @@ package body Component.Parameter_Table_Router.Implementation is
       return True;
    end Send_Table_To_Destinations;
 
+   -- Core load logic: Get table data from the Load_From destination and
+   -- forward to all other destinations. Caller has already resolved the
+   -- table entry and Load_From index.
+   function Do_Table_Load (
+      Self : in out Instance;
+      Table_Ent : in Router_Table_Entry;
+      Load_From_Idx : in Connector_Types.Connector_Index_Type
+   ) return Boolean is
+   begin
+      -- Send Get to Load_From destination to retrieve the table.
+      -- We provide the full staging buffer capacity for the store to write into.
+      -- Warning: if a table is being received via CCSDS at the same time, the
+      -- staging buffer will be overwritten and that upload will fail.
+      declare
+         Get_Region : constant Parameters_Memory_Region.T := (
+            Region => Self.Staging_Buffer.Get_Full_Buffer_Region,
+            Operation => Parameter_Enums.Parameter_Table_Operation_Type.Get
+         );
+      begin
+         if not Self.Send_And_Wait (Load_From_Idx, Get_Region, Table_Ent.Table_Id, Is_Load => True) then
+            return False;
+         end if;
+      end;
+
+      -- The Load_From destination populated the region. The response contains
+      -- the actual data length. Forward this to non-Load_From destinations:
+      declare
+         Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
+         Set_Region : constant Parameters_Memory_Region.T := (
+            Region => Release.Region,
+            Operation => Parameter_Enums.Parameter_Table_Operation_Type.Set
+         );
+      begin
+         for Dest of Table_Ent.Destinations.all loop
+            if not Dest.Load_From then
+               if not Self.Send_And_Wait (Dest.Connector_Index, Set_Region, Table_Ent.Table_Id) then
+                  return False;
+               end if;
+            end if;
+         end loop;
+      end;
+
+      Self.Event_T_Send_If_Connected (Self.Events.Table_Loaded (
+         Self.Sys_Time_T_Get, (Id => Table_Ent.Table_Id)
+      ));
+      return True;
+   end Do_Table_Load;
+
    -- Load a single table by ID from its Load_From source.
-   -- Fails with No_Load_Source event if the table has no Load_From destination.
-   -- Returns True on success.
+   -- Fails with events if the table ID is unrecognized or has no Load_From.
    function Load_Table (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
       Id_Param : constant Parameter_Table_Id.T := (Id => Table_Id);
       -- Construct a search key with only Table_Id populated. Destinations is
@@ -168,47 +215,12 @@ package body Component.Parameter_Table_Router.Implementation is
          return False;
       end if;
 
-      -- Send Get to Load_From destination to retrieve the table.
-      -- We provide the full staging buffer capacity for the store to write into.
-      -- Warning: if a table is being received via CCSDS at the same time, the
-      -- staging buffer will be overwritten and that upload will fail.
-      declare
-         Get_Region : constant Parameters_Memory_Region.T := (
-            Region => Self.Staging_Buffer.Get_Full_Buffer_Region,
-            Operation => Parameter_Enums.Parameter_Table_Operation_Type.Get
-         );
-      begin
-         if not Self.Send_And_Wait (Load_From_Idx, Get_Region, Table_Id, Is_Load => True) then
-            return False;
-         end if;
-      end;
-
-      -- The Load_From destination populated the region. The response contains
-      -- the actual data length. Forward this to non-Load_From destinations:
-      declare
-         Release : constant Parameters_Memory_Region_Release.T := Self.Response.Get_Var;
-         Set_Region : constant Parameters_Memory_Region.T := (
-            Region => Release.Region,
-            Operation => Parameter_Enums.Parameter_Table_Operation_Type.Set
-         );
-      begin
-         for Dest of Found.Destinations.all loop
-            if not Dest.Load_From then
-               if not Self.Send_And_Wait (Dest.Connector_Index, Set_Region, Table_Id) then
-                  return False;
-               end if;
-            end if;
-         end loop;
-      end;
-
-      Self.Event_T_Send_If_Connected (Self.Events.Table_Loaded (Self.Sys_Time_T_Get, Id_Param));
-      return True;
+      return Self.Do_Table_Load (Found, Load_From_Idx);
    end Load_Table;
 
    -- Load a single table if it has a Load_From source.
    -- Silently skips tables without Load_From (returns True).
    function Load_Table_If_Available (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
-      -- Construct a search key with only Table_Id populated:
       Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
       Found : Router_Table_Entry;
       Found_Index : Positive;
@@ -222,7 +234,7 @@ package body Component.Parameter_Table_Router.Implementation is
          return True;
       end if;
 
-      return Self.Load_Table (Table_Id);
+      return Self.Do_Table_Load (Found, Load_From_Idx);
    end Load_Table_If_Available;
 
    -- Execute Load_All logic, shared between command and Set_Up.
