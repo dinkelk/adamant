@@ -227,7 +227,10 @@ package body Component.Parameter_Table_Router.Implementation is
       Load_From_Idx : Connector_Types.Connector_Index_Type;
    begin
       if not Self.Table.Search (Search_Key, Found, Found_Index) then
-         return True;
+         Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (
+            Self.Sys_Time_T_Get, (Id => Table_Id)
+         ));
+         return False;
       end if;
 
       if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
