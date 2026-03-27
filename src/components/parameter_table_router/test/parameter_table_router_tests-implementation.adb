@@ -917,4 +917,84 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
    end Test_Invalid_Command;
 
+   -- Test_Load_From_Destination_Failure: Upload table where non-Load_From succeeds
+   -- but Load_From (sent last) fails. Covers Send_Table_To_Destinations Load_From failure path.
+   overriding procedure Test_Load_From_Destination_Failure (Self : in out Instance) is
+      T : Component.Parameter_Table_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      Task_Exit : aliased Boolean := False;
+      Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
+      Payload : constant Basic_Types.Byte_Array (0 .. 9) := [others => 16#AA#];
+   begin
+      -- Table ID 10: Working_Params (idx 1, no LF) + Primary_Param_Store (idx 2, LF)
+      -- Schedule: first send (non-LF) succeeds, second send (LF) fails.
+      Schedule_Length := 2;
+      Schedule_Index := 0;
+      Response_Schedule (0) := Parameter_Enums.Parameter_Table_Update_Status.Success;
+      Response_Schedule (1) := Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error;
+      Task_Responses_To_Send := 2;
+      Task_Send_Response := True;
+
+      -- Send unsegmented table for quick complete:
+      T.Ccsds_Space_Packet_T_Send (Make_Table_Packet (
+         Ccsds_Enums.Ccsds_Sequence_Flag.Unsegmented,
+         Table_Id => 10,
+         Payload => Payload
+      ));
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Table_Received should fire:
+      Natural_Assert.Eq (T.Table_Received_History.Get_Count, 1);
+
+      -- Table_Updated should NOT fire (Load_From failed):
+      Natural_Assert.Eq (T.Table_Updated_History.Get_Count, 0);
+
+      -- Table_Update_Failure should fire for the Load_From destination:
+      Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
+
+      -- Invalid table count incremented:
+      Natural_Assert.Eq (Natural (T.Num_Tables_Invalid_History.Get (T.Num_Tables_Invalid_History.Get_Count).Value), 1);
+
+      Task_Exit := True;
+   end Test_Load_From_Destination_Failure;
+
+   -- Test_Load_Command_Set_Failure: Load command where Get succeeds but Set fails.
+   -- Covers Do_Table_Load Set failure path.
+   overriding procedure Test_Load_Command_Set_Failure (Self : in out Instance) is
+      T : Component.Parameter_Table_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      Task_Exit : aliased Boolean := False;
+      Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
+   begin
+      -- Table ID 10: Get from Primary_Param_Store (LF, idx 2) + Set to Working_Params (idx 1)
+      -- Schedule: Get succeeds, Set fails.
+      Schedule_Length := 2;
+      Schedule_Index := 0;
+      Response_Schedule (0) := Parameter_Enums.Parameter_Table_Update_Status.Success;
+      Response_Schedule (1) := Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error;
+      Task_Responses_To_Send := 2;
+      Task_Send_Response := True;
+
+      T.Command_T_Send (T.Commands.Load_Parameter_Table ((Id => 10)));
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Loading_Table event should fire:
+      Natural_Assert.Eq (T.Loading_Table_History.Get_Count, 1);
+
+      -- Table_Loaded should NOT fire (Set failed):
+      Natural_Assert.Eq (T.Table_Loaded_History.Get_Count, 0);
+
+      -- Table_Update_Failure should fire for the Set destination:
+      Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
+
+      -- Command should fail:
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (
+         Source_Id => 0,
+         Registration_Id => 0,
+         Command_Id => T.Commands.Get_Load_Parameter_Table_Id,
+         Status => Failure
+      ));
+
+      Task_Exit := True;
+   end Test_Load_Command_Set_Failure;
+
 end Parameter_Table_Router_Tests.Implementation;

@@ -53,3 +53,8 @@ tests:
   # Invalid command:
   - name: Test_Invalid_Command
     description: Send command with corrupted arguments. Verify Invalid_Command_Received event.
+  # Coverage gap tests:
+  - name: Test_Load_From_Destination_Failure
+    description: Upload table where non-Load_From succeeds but Load_From (sent last) fails.
+  - name: Test_Load_Command_Set_Failure
+    description: Load command where Get succeeds but subsequent Set to non-Load_From fails.

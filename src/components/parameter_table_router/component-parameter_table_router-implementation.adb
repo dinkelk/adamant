@@ -247,9 +247,10 @@ package body Component.Parameter_Table_Router.Implementation is
       Found : Router_Table_Entry;
       Load_From_Idx : Connector_Types.Connector_Index_Type;
    begin
-      if not Self.Find_Table_Entry (Table_Id, Found) then
-         return False;
-      end if;
+      -- This function is only called from Do_Load_All_Parameter_Tables which
+      -- iterates entries from the binary tree itself. The search must always
+      -- succeed because the Table_Id was just retrieved from the tree:
+      pragma Assert (Self.Find_Table_Entry (Table_Id, Found));
 
       if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
          return True;
@@ -447,7 +448,7 @@ package body Component.Parameter_Table_Router.Implementation is
                Self.Event_T_Send_If_Connected (Self.Events.Table_Received (The_Time, Tid));
 
                if not Self.Find_Table_Entry (Tid.Id, Found) then
-                  Reject_Table;
+                  Reject_Table; -- Error event already sent
                   Table_Status_Val := Unrecognized_Id;
                else
                   declare
@@ -463,7 +464,7 @@ package body Component.Parameter_Table_Router.Implementation is
                         Self.Valid_Table_Count := @ + 1;
                         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Num_Tables_Updated (The_Time, (Value => Self.Valid_Table_Count)));
                      else
-                        Reject_Table;
+                        Reject_Table; -- Error event already sent
                         Table_Status_Val := Table_Update_Failed;
                      end if;
                   end;

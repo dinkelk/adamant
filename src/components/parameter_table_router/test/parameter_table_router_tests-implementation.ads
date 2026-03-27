@@ -68,6 +68,10 @@ private
    overriding procedure Test_Command_Dropped (Self : in out Instance);
    -- Send command with corrupted arguments. Verify Invalid_Command_Received event.
    overriding procedure Test_Invalid_Command (Self : in out Instance);
+   -- Upload table where non-Load_From succeeds but Load_From (sent last) fails.
+   overriding procedure Test_Load_From_Destination_Failure (Self : in out Instance);
+   -- Load command where Get succeeds but subsequent Set to non-Load_From fails.
+   overriding procedure Test_Load_Command_Set_Failure (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Parameter_Table_Router_Tests.Base_Instance with record
