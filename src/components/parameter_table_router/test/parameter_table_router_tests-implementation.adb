@@ -14,6 +14,7 @@ with Interfaces; use Interfaces;
 with Packed_U32.Assertion; use Packed_U32.Assertion;
 with Parameter_Enums; use Parameter_Enums.Parameter_Table_Update_Status;
 with Parameter_Table_Id.Assertion; use Parameter_Table_Id.Assertion;
+with Parameter_Table_Operation_Failure_Info;
 with Parameter_Table_Router_Types; use Parameter_Table_Router_Types;
 with Parameter_Types;
 with Parameters_Memory_Region;
@@ -597,10 +598,14 @@ package body Parameter_Table_Router_Tests.Implementation is
       ));
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
-      -- Verify Table_Update_Failure event:
+      -- Verify Table_Update_Failure event with correct info:
       Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
-      Natural_Assert.Eq (Natural (T.Table_Update_Failure_History.Get (1).Table_Id), 10);
-      Boolean_Assert.Eq (T.Table_Update_Failure_History.Get (1).Release.Status = Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error, True);
+      declare
+         Failure : constant Parameter_Table_Operation_Failure_Info.T := T.Table_Update_Failure_History.Get (1);
+      begin
+         Parameter_Table_Id_Assert.Eq ((Id => Failure.Table_Id), (Id => 10));
+         pragma Assert (Failure.Release.Status = Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error);
+      end;
 
       -- Verify no Table_Updated event (it failed):
       Boolean_Assert.Eq (T.Table_Updated_History.Is_Empty, True);
@@ -637,9 +642,9 @@ package body Parameter_Table_Router_Tests.Implementation is
       ));
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
-      -- Verify Table_Update_Timeout event:
+      -- Verify Table_Update_Timeout event with correct info:
       Natural_Assert.Eq (T.Table_Update_Timeout_History.Get_Count, 1);
-      Natural_Assert.Eq (Natural (T.Table_Update_Timeout_History.Get (1).Table_Id), 10);
+      Parameter_Table_Id_Assert.Eq ((Id => T.Table_Update_Timeout_History.Get (1).Table_Id), (Id => 10));
 
       -- Verify no Table_Updated event:
       Boolean_Assert.Eq (T.Table_Updated_History.Is_Empty, True);
@@ -819,9 +824,9 @@ package body Parameter_Table_Router_Tests.Implementation is
       T.Command_T_Send (T.Commands.Load_Parameter_Table ((Id => 10)));
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
-      -- Verify Table_Load_Failure event (Is_Load path):
+      -- Verify Table_Load_Failure event (Is_Load path) with correct info:
       Natural_Assert.Eq (T.Table_Load_Failure_History.Get_Count, 1);
-      Natural_Assert.Eq (Natural (T.Table_Load_Failure_History.Get (1).Table_Id), 10);
+      Parameter_Table_Id_Assert.Eq ((Id => T.Table_Load_Failure_History.Get (1).Table_Id), (Id => 10));
 
       -- Verify command failure:
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
