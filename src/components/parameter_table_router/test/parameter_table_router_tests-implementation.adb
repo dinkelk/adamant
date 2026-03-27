@@ -11,6 +11,7 @@ with Command;
 with Command_Enums; use Command_Enums.Command_Response_Status;
 with Command_Response.Assertion; use Command_Response.Assertion;
 with Interfaces; use Interfaces;
+with Packed_U16;
 with Packed_U32.Assertion; use Packed_U32.Assertion;
 with Parameter_Enums; use Parameter_Enums.Parameter_Table_Update_Status;
 with Parameter_Table_Id.Assertion; use Parameter_Table_Id.Assertion;
@@ -114,14 +115,20 @@ package body Parameter_Table_Router_Tests.Implementation is
       Sequence_Flag : in Ccsds_Enums.Ccsds_Sequence_Flag.E;
       Data : in Basic_Types.Byte_Array
    ) return Ccsds_Space_Packet.T is
-      -- TODO Best practice is to initialize the entire packet here including everything
-      -- in header and set data to others => 0. Then overwrite with valid data in a single
-      -- line after begin.
-      Pkt : Ccsds_Space_Packet.T;
+      Pkt : Ccsds_Space_Packet.T := (
+         Header => (
+            Version => 0,
+            Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
+            Secondary_Header => Ccsds_Enums.Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present,
+            Apid => 0,
+            Sequence_Flag => Sequence_Flag,
+            Sequence_Count => 0,
+            -- CCSDS convention: Packet_Length = data_length - 1
+            Packet_Length => Unsigned_16 (Data'Length) - 1
+         ),
+         Data => [others => 0]
+      );
    begin
-      Pkt.Header.Sequence_Flag := Sequence_Flag;
-      -- CCSDS convention is Packet_Length = data_length - 1
-      Pkt.Header.Packet_Length := Unsigned_16 (Data'Length) - 1;
       Pkt.Data (0 .. Data'Length - 1) := Data;
       return Pkt;
    end Make_Packet;
@@ -132,15 +139,12 @@ package body Parameter_Table_Router_Tests.Implementation is
       Table_Id : Parameter_Types.Parameter_Table_Id;
       Payload : Basic_Types.Byte_Array
    ) return Ccsds_Space_Packet.T is
-      -- Table ID is big-endian 2 bytes followed by payload
       Data_Len : constant Natural := 2 + Payload'Length;
-      Data : Basic_Types.Byte_Array (0 .. Data_Len - 1);
+      Data : Basic_Types.Byte_Array (0 .. Data_Len - 1) := [others => 0];
+      -- Serialize Table ID as big-endian 2 bytes:
+      Id_Bytes : constant Basic_Types.Byte_Array := Packed_U16.Serialization.To_Byte_Array ((Value => Unsigned_16 (Table_Id)));
    begin
-      -- Table ID MSB, LSB:
-      -- TODO what is below is not idiomatic. Please use Packed_U16.Serialization.To_Byte_Array
-      -- to accomplish this instead.
-      Data (0) := Basic_Types.Byte (Unsigned_16 (Table_Id) / 256);
-      Data (1) := Basic_Types.Byte (Unsigned_16 (Table_Id) mod 256);
+      Data (0 .. 1) := Id_Bytes;
       if Payload'Length > 0 then
          Data (2 .. Data_Len - 1) := Payload;
       end if;
