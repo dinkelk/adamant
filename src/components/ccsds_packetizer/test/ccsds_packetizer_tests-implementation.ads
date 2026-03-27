@@ -17,6 +17,8 @@ private
    overriding procedure Test_Max_Size_Packetization (Self : in out Instance);
    -- This unit test exercises the packetization of a minimum sized Adamant packet into a CCSDS packet, which should succeed without issue.
    overriding procedure Test_Min_Size_Packetization (Self : in out Instance);
+   -- This unit test verifies that an invalid (out-of-range) Buffer_Length value is caught by the runtime assertion.
+   overriding procedure Test_Invalid_Buffer_Length (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Ccsds_Packetizer_Tests.Base_Instance with record
