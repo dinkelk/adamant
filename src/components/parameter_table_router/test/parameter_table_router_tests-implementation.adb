@@ -6,6 +6,8 @@ with Ada.Real_Time;
 with Basic_Assertions; use Basic_Assertions;
 with Basic_Types;
 with Ccsds_Enums;
+with Ccsds_Primary_Header;
+with Ccsds_Primary_Header.Assertion; use Ccsds_Primary_Header.Assertion;
 with Ccsds_Space_Packet;
 with Command;
 with Command_Enums; use Command_Enums.Command_Response_Status;
@@ -20,6 +22,7 @@ with Parameter_Table_Timeout_Info.Assertion; use Parameter_Table_Timeout_Info.As
 with Parameter_Table_Router_Types; use Parameter_Table_Router_Types;
 with Parameter_Types;
 with Parameters_Memory_Region;
+with Parameters_Memory_Region.Assertion; use Parameters_Memory_Region.Assertion;
 with System; use System;
 with Test_Assembly_Parameter_Table_Router_Table;
 
@@ -472,7 +475,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
       Natural_Assert.Eq (T.Packet_Ignored_History.Get_Count, 1);
-      -- Reject counter should be 1:
+      -- Verify CCSDS header in event matches the sent packet:
+      Ccsds_Primary_Header_Assert.Eq (T.Packet_Ignored_History.Get (1), (
+         Version => 0, Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
+         Secondary_Header => Ccsds_Enums.Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present,
+         Apid => 0, Sequence_Flag => Ccsds_Enums.Ccsds_Sequence_Flag.Continuationsegment,
+         Sequence_Count => 0, Packet_Length => Unsigned_16 (Payload'Length) - 1
+      ));
       Packed_U32_Assert.Eq (T.Num_Packets_Rejected_History.Get (T.Num_Packets_Rejected_History.Get_Count), (Value => 1));
 
       -- Send Last without prior First:
@@ -483,10 +492,12 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
       Natural_Assert.Eq (T.Packet_Ignored_History.Get_Count, 2);
-      -- TODO ^ cool man, why the hell are you not testing the data that comes back 
-      -- with the event. it should be the CCSDS header. YOU NEED TO CHECK THIS. This is
-      -- a terrible, widespread issue that needs addressing for most of your event checks.
-      -- Reject counter should be 2:
+      Ccsds_Primary_Header_Assert.Eq (T.Packet_Ignored_History.Get (2), (
+         Version => 0, Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
+         Secondary_Header => Ccsds_Enums.Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present,
+         Apid => 0, Sequence_Flag => Ccsds_Enums.Ccsds_Sequence_Flag.Lastsegment,
+         Sequence_Count => 0, Packet_Length => Unsigned_16 (Payload'Length) - 1
+      ));
       Packed_U32_Assert.Eq (T.Num_Packets_Rejected_History.Get (T.Num_Packets_Rejected_History.Get_Count), (Value => 2));
 
       -- Verify packet count:
@@ -511,6 +522,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
       Natural_Assert.Eq (T.Too_Small_Table_History.Get_Count, 1);
+      -- Verify CCSDS header in event:
+      Ccsds_Primary_Header_Assert.Eq (T.Too_Small_Table_History.Get (1), (
+         Version => 0, Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
+         Secondary_Header => Ccsds_Enums.Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present,
+         Apid => 0, Sequence_Flag => Ccsds_Enums.Ccsds_Sequence_Flag.Firstsegment,
+         Sequence_Count => 0, Packet_Length => 0
+      ));
       Packed_U32_Assert.Eq (T.Num_Packets_Rejected_History.Get (T.Num_Packets_Rejected_History.Get_Count), (Value => 1));
       Packed_U32_Assert.Eq (T.Num_Packets_Received_History.Get (T.Num_Packets_Received_History.Get_Count), (Value => 1));
 
@@ -541,6 +559,7 @@ package body Parameter_Table_Router_Tests.Implementation is
       ));
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Natural_Assert.Eq (T.Receiving_New_Table_History.Get_Count, 1);
+      Parameter_Table_Id_Assert.Eq (T.Receiving_New_Table_History.Get (1), (Id => 10));
 
       -- Send a large continuation that overflows the buffer:
       T.Ccsds_Space_Packet_T_Send (Make_Packet (
@@ -550,6 +569,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
       Natural_Assert.Eq (T.Staging_Buffer_Overflow_History.Get_Count, 1);
+      -- Verify CCSDS header of the overflow packet:
+      Ccsds_Primary_Header_Assert.Eq (T.Staging_Buffer_Overflow_History.Get (1), (
+         Version => 0, Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
+         Secondary_Header => Ccsds_Enums.Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present,
+         Apid => 0, Sequence_Flag => Ccsds_Enums.Ccsds_Sequence_Flag.Continuationsegment,
+         Sequence_Count => 0, Packet_Length => Unsigned_16 (Large_Payload'Length) - 1
+      ));
       Packed_U32_Assert.Eq (T.Num_Packets_Rejected_History.Get (T.Num_Packets_Rejected_History.Get_Count), (Value => 1));
 
       -- Total events: 1 Receiving_New_Table + 1 Staging_Buffer_Overflow = 2
