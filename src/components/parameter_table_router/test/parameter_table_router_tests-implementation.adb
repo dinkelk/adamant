@@ -32,9 +32,12 @@ package body Parameter_Table_Router_Tests.Implementation is
    Task_Send_Timeout : Boolean := False;
    Task_Responses_To_Send : Natural := 0;
 
-   -- Optional response schedule: if populated, the simulator reads successive
-   -- statuses from this list (index 0 .. Schedule_Length-1) and overrides
-   -- Task_Response_Status for each response sent.
+   -- Simulator task parameter table byte array
+   Sim_Bytes : aliased Basic_Types.Byte_Array := [0 .. 1023 => 16#AB#];
+
+   -- Optional response schedule - If populated, the simulator reads successive
+   -- statuses from this list and overrides Task_Response_Status for each response
+   -- sent.
    Max_Schedule_Length : constant := 20;
    Response_Schedule : array (0 .. Max_Schedule_Length - 1) of Parameter_Enums.Parameter_Table_Update_Status.E :=
       [others => Parameter_Enums.Parameter_Table_Update_Status.Success];
@@ -56,8 +59,6 @@ package body Parameter_Table_Router_Tests.Implementation is
    -- Simulator task type for downstream components:
    -------------------------------------------------------------------------
    type Boolean_Access is access all Boolean;
-
-   Sim_Bytes : aliased Basic_Types.Byte_Array := [0 .. 1023 => 16#AB#];
 
    task type Simulator_Task (
       Class_Self : Class_Access;
@@ -107,22 +108,25 @@ package body Parameter_Table_Router_Tests.Implementation is
    end Simulator_Task;
 
    -------------------------------------------------------------------------
-   -- Helper: construct a CCSDS space packet:
+   -- Helper that constructs a CCSDS packet:
    -------------------------------------------------------------------------
    function Make_Packet (
-      Sequence_Flag : Ccsds_Enums.Ccsds_Sequence_Flag.E;
-      Data : Basic_Types.Byte_Array
+      Sequence_Flag : in Ccsds_Enums.Ccsds_Sequence_Flag.E;
+      Data : in Basic_Types.Byte_Array
    ) return Ccsds_Space_Packet.T is
+      -- TODO Best practice is to initialize the entire packet here including everything
+      -- in header and set data to others => 0. Then overwrite with valid data in a single
+      -- line after begin.
       Pkt : Ccsds_Space_Packet.T;
    begin
       Pkt.Header.Sequence_Flag := Sequence_Flag;
-      -- CCSDS convention: Packet_Length = data_length - 1
+      -- CCSDS convention is Packet_Length = data_length - 1
       Pkt.Header.Packet_Length := Unsigned_16 (Data'Length) - 1;
       Pkt.Data (0 .. Data'Length - 1) := Data;
       return Pkt;
    end Make_Packet;
 
-   -- Helper: make a FirstSegment or Unsegmented packet with table ID and payload.
+   -- Helper which makes a FirstSegment or Unsegmented packet with table ID and payload.
    function Make_Table_Packet (
       Sequence_Flag : Ccsds_Enums.Ccsds_Sequence_Flag.E;
       Table_Id : Parameter_Types.Parameter_Table_Id;
@@ -133,6 +137,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       Data : Basic_Types.Byte_Array (0 .. Data_Len - 1);
    begin
       -- Table ID MSB, LSB:
+      -- TODO what is below is not idiomatic. Please use Packed_U16.Serialization.To_Byte_Array
+      -- to accomplish this instead.
       Data (0) := Basic_Types.Byte (Unsigned_16 (Table_Id) / 256);
       Data (1) := Basic_Types.Byte (Unsigned_16 (Table_Id) mod 256);
       if Payload'Length > 0 then
@@ -168,8 +174,9 @@ package body Parameter_Table_Router_Tests.Implementation is
          Ticks_Until_Timeout => 3
       );
 
-      -- Call the component set up method that the assembly would normally call.
-      Self.Tester.Component_Instance.Set_Up;
+      -- Note: Set_Up is NOT called here. Only tests that specifically test
+      -- Set_Up behavior call it themselves. This avoids having to account for
+      -- the 5 initial data products in every other test.
    end Set_Up_Test;
 
    overriding procedure Tear_Down_Test (Self : in out Instance) is
@@ -186,26 +193,23 @@ package body Parameter_Table_Router_Tests.Implementation is
    overriding procedure Test_Init (Self : in out Instance) is
       T : Component.Parameter_Table_Router.Implementation.Tester.Instance_Access renames Self.Tester;
    begin
-      -- Init was already called in Set_Up_Test. Verify that the component
-      -- is functional by checking that Set_Up published the initial data products.
-      -- The fact that Init completed without assertion failure means the binary
-      -- tree was populated and the staging buffer was created.
-      -- We should have 5 data products from Set_Up:
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Init was already called in Set_Up_Test. The fact that Init completed
+      -- without assertion failure means the binary tree was populated, the
+      -- staging buffer was created, and all routing table validations passed.
 
-      -- Verify the routing table has 4 entries by sending packets for each
-      -- known table ID and verifying none produces Unrecognized_Table_Id:
-      Boolean_Assert.Eq (T.Unrecognized_Table_Id_History.Is_Empty, True);
-
-      -- Verify no events from Set_Up:
+      -- No events or data products should have been emitted (Set_Up not called):
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
    end Test_Init;
 
    -- Test_Set_Up: Verify Set_Up publishes initial data product values.
    overriding procedure Test_Set_Up (Self : in out Instance) is
       T : Component.Parameter_Table_Router.Implementation.Tester.Instance_Access renames Self.Tester;
    begin
-      -- Set_Up was called in Set_Up_Test. Verify 5 initial data products were published:
+      -- Call Set_Up explicitly for this test:
+      T.Component_Instance.Set_Up;
+
+      -- Verify 5 initial data products were published:
       Natural_Assert.Eq (T.Num_Packets_Received_History.Get_Count, 1);
       Natural_Assert.Eq (T.Num_Packets_Rejected_History.Get_Count, 1);
       Natural_Assert.Eq (T.Num_Tables_Updated_History.Get_Count, 1);
@@ -232,22 +236,9 @@ package body Parameter_Table_Router_Tests.Implementation is
       Task_Exit : aliased Boolean := False;
       Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
    begin
-      -- We need to re-init with Load_All_Parameter_Tables_On_Set_Up => True.
-      -- First, tear down what Set_Up_Test did:
+      -- Re-init with Load_All_Parameter_Tables_On_Set_Up => True.
+      -- Final the previous Init, then re-Init with the new flag:
       T.Component_Instance.Final;
-      T.Final_Base;
-
-      -- Reset globals:
-      Task_Send_Response := False;
-      Task_Response_Status := Parameter_Enums.Parameter_Table_Update_Status.Success;
-      Task_Send_Timeout := False;
-      Task_Responses_To_Send := 0;
-      Schedule_Length := 0;
-      Schedule_Index := 0;
-
-      -- Re-init:
-      T.Init_Base (Parameters_Memory_Region_T_Send_Count => 5, Queue_Size => T.Component_Instance.Get_Max_Queue_Element_Size * 10);
-      T.Connect;
       T.Component_Instance.Init (
          Table => Test_Assembly_Parameter_Table_Router_Table.Router_Table_Entries,
          Buffer_Size => 1024,
@@ -255,7 +246,7 @@ package body Parameter_Table_Router_Tests.Implementation is
          Load_All_Parameter_Tables_On_Set_Up => True
       );
 
-      -- The routing table has 4 entries. 3 have load_from (IDs 10, 1, 3).
+      -- The routing table has 4 entries. 3 have load_from (IDs 1, 3, 10).
       -- Table ID 4 has no load_from, so it's skipped.
       -- For each loadable table, Do_Table_Load does:
       --   1 Get (from load_from) + N Set (to non-load_from destinations)
@@ -277,6 +268,10 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Loading_Table_History.Get_Count, 3);
       -- Verify Table_Loaded events (one per loadable table):
       Natural_Assert.Eq (T.Table_Loaded_History.Get_Count, 3);
+      -- TODO ^ it is not sufficient in unit tests to just check that an event
+      -- was produced. You must ALWAYS check the value of the event via .Get
+      -- and use packed record assertion packages to check. please correct this
+      -- in the entire test file. This is lazy.
 
       -- Total events: 1 Loading_All + 1 All_Loaded + 3 Loading_Table + 3 Table_Loaded = 8
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 8);
@@ -338,12 +333,12 @@ package body Parameter_Table_Router_Tests.Implementation is
 
          -- Verify data products:
          -- 3 packets received:
-         Natural_Assert.Eq (T.Num_Packets_Received_History.Get_Count, 1 + 3);
-         Packed_U32_Assert.Eq (T.Num_Packets_Received_History.Get (1 + 3), (Value => 3));
+         Natural_Assert.Eq (T.Num_Packets_Received_History.Get_Count, 3);
+         Packed_U32_Assert.Eq (T.Num_Packets_Received_History.Get (3), (Value => 3));
 
          -- 1 table updated:
-         Natural_Assert.Eq (T.Num_Tables_Updated_History.Get_Count, 1 + 1);
-         Packed_U32_Assert.Eq (T.Num_Tables_Updated_History.Get (1 + 1), (Value => 1));
+         Natural_Assert.Eq (T.Num_Tables_Updated_History.Get_Count, 1);
+         Packed_U32_Assert.Eq (T.Num_Tables_Updated_History.Get (1), (Value => 1));
 
          -- No failures:
          Boolean_Assert.Eq (T.Table_Update_Failure_History.Is_Empty, True);
@@ -352,9 +347,11 @@ package body Parameter_Table_Router_Tests.Implementation is
          -- Total events: 1 Receiving_New_Table + 1 Table_Received + 1 Table_Updated = 3
          Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 3);
 
-         -- Total DPs: 5 from Set_Up + 3 Num_Packets_Received + 1 Num_Tables_Updated + 3 Last_Table_Received = 12
-         Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 12);
+         -- Total DPs: 3 Num_Packets_Received + 1 Num_Tables_Updated + 3 Last_Table_Received = 7
+         Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 7);
       end;
+      -- TODO this test never checks output of the parameter memory regions to the correct
+      -- indexes? This is a router, we need to be checking that logic here.
 
       Task_Exit := True;
    end Test_Nominal_Segmented_Upload;
@@ -394,8 +391,11 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Table_Received + 1 Table_Updated = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Updated + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Updated + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
+
+      -- TODO this test never checks output of the parameter memory regions to the correct
+      -- indexes? This is a router, we need to be checking that logic here.
 
       Task_Exit := True;
    end Test_Unsegmented_Upload;
@@ -441,13 +441,16 @@ package body Parameter_Table_Router_Tests.Implementation is
          Boolean_Assert.Eq (Region_1.Region.Address /= System.Null_Address, True);
          Boolean_Assert.Eq (Region_2.Region.Address /= System.Null_Address, True);
          Boolean_Assert.Eq (Region_3.Region.Address /= System.Null_Address, True);
+         -- TODO why is length never checked? Whenever in this test we are checking
+         -- a parmaters memory region we need to make sure the length has been computed
+         -- by the component correctly
       end;
 
       -- Total events: 1 Table_Received + 1 Table_Updated = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Updated + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Updated + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
 
       Task_Exit := True;
    end Test_Multi_Destination_Order;
@@ -476,6 +479,9 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Dispatch_All, 1);
 
       Natural_Assert.Eq (T.Packet_Ignored_History.Get_Count, 2);
+      -- TODO ^ cool man, why the hell are you not testing the data that comes back 
+      -- with the event. it should be the CCSDS header. YOU NEED TO CHECK THIS. This is
+      -- a terrible, widespread issue that needs addressing for most of your event checks.
       -- Reject counter should be 2:
       Packed_U32_Assert.Eq (T.Num_Packets_Rejected_History.Get (T.Num_Packets_Rejected_History.Get_Count), (Value => 2));
 
@@ -485,8 +491,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 2 Packet_Ignored = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 2*(Num_Packets_Rejected + Num_Packets_Received + Last_Table_Received) = 5 + 6 = 11
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 11);
+      -- Total DPs: 2*(Num_Packets_Rejected + Num_Packets_Received + Last_Table_Received) = 6
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 6);
    end Test_Packet_Ignored;
 
    -- Test_Too_Small_Table: FirstSegment with less than 2 bytes.
@@ -507,8 +513,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Too_Small_Table = 1
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Rejected + 1 Num_Packets_Received + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Rejected + 1 Num_Packets_Received + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
    end Test_Too_Small_Table;
 
    -- Test_Buffer_Overflow: Data exceeding buffer capacity.
@@ -545,8 +551,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Receiving_New_Table + 1 Staging_Buffer_Overflow = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + pkt1(Num_Packets_Received + Last_Table_Received) + pkt2(Num_Packets_Rejected + Num_Packets_Received + Last_Table_Received) = 5 + 2 + 3 = 10
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 10);
+      -- Total DPs: pkt1(Num_Packets_Received + Last_Table_Received) + pkt2(Num_Packets_Rejected + Num_Packets_Received + Last_Table_Received) = 2 + 3 = 5
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
    end Test_Buffer_Overflow;
 
    -- Test_Unrecognized_Table_Id: Complete table with unknown ID.
@@ -575,8 +581,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Table_Received + 1 Unrecognized_Table_Id = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
    end Test_Unrecognized_Table_Id;
 
    -- Test_Destination_Failure: Downstream returns failure status.
@@ -619,8 +625,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Table_Received + 1 Table_Update_Failure = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
 
       Task_Exit := True;
    end Test_Destination_Failure;
@@ -658,8 +664,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Table_Received + 1 Table_Update_Timeout = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
 
       Task_Exit := True;
    end Test_Destination_Timeout;
@@ -704,8 +710,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Table_Received + 1 Table_Update_Failure = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
 
       Task_Exit := True;
    end Test_Partial_Failure_Stops;
@@ -753,8 +759,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Loading_Table + 1 Table_Loaded = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
 
       Task_Exit := True;
    end Test_Load_Table_Nominal;
@@ -786,8 +792,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 No_Load_Source = 1
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
    end Test_Load_Table_No_Load_Source;
 
    -- Test_Load_Table_Unrecognized: Load command for unknown table ID.
@@ -813,8 +819,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Unrecognized_Table_Id = 1
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
    end Test_Load_Table_Unrecognized;
 
    -- Test_Load_Table_Failure: Load fails during Get or Set.
@@ -864,12 +870,15 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- So let's just test the Get failure path which we already verified above.
       -- The Set failure path is already tested by Test_Destination_Failure which
       -- covers the same underlying Send_And_Wait code path.
+      --
+      -- TODO ^ the comment above feels like an agent thinking? can we remove or make
+      -- intelligable?
 
       -- Total events: 1 Loading_Table + 1 Table_Load_Failure = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
 
       Task_Exit := True;
    end Test_Load_Table_Failure;
@@ -919,8 +928,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Loading_All + 3 Loading_Table + 3 Table_Loaded + 1 All_Loaded = 8
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 8);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
 
       Task_Exit := True;
    end Test_Load_All_Nominal;
@@ -976,8 +985,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Loading_All + 3 Loading_Table + 1 Table_Load_Failure + 2 Table_Loaded + 1 All_Loaded = 8
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 8);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
 
       Task_Exit := True;
    end Test_Load_All_Partial_Failure;
@@ -1017,6 +1026,10 @@ package body Parameter_Table_Router_Tests.Implementation is
    begin
       -- Directly invoke the dropped handler to test it:
       T.Component_Instance.Command_T_Recv_Async_Dropped (Cmd);
+      -- ^ TODO this is an anti-pattern. We can't just call the
+      -- function directly. Please fill up the queue similar to how it was done in 
+      -- Test_Packet_Dropped, and then send a command manually which should
+      -- force this method to be called by the component, NOT YOU.
 
       -- Verify Command_Dropped event:
       Natural_Assert.Eq (T.Command_Dropped_History.Get_Count, 1);
@@ -1024,8 +1037,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Command_Dropped = 1
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
    end Test_Command_Dropped;
 
    -- Test_Invalid_Command: Send command with corrupted arguments.
@@ -1052,8 +1065,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Invalid_Command_Received_History.Get_Count, 1);
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
    end Test_Invalid_Command;
 
    -- Test_Load_From_Destination_Failure: Upload table where non-Load_From succeeds
@@ -1101,8 +1114,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Table_Received + 1 Table_Update_Failure = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 8
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 8);
+      -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Invalid + 1 Last_Table_Received = 3
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
 
       Task_Exit := True;
    end Test_Load_From_Destination_Failure;
@@ -1152,8 +1165,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Loading_Table + 1 Table_Update_Failure = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
-      -- Total DPs: 5 from Set_Up + 0 = 5
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
+      -- Total DPs: 0 (Set_Up not called)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
 
       Task_Exit := True;
    end Test_Load_Command_Set_Failure;
