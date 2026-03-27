@@ -1,0 +1,9 @@
+---
+description: Events for the CCSDS Echo component.
+events:
+  - name: Packet_Dropped
+    description: A packet could not be sent because the downstream queue is full. The dropped packet's header is included.
+    param_type: Packet_Header.T
+  - name: Packet_Truncated
+    description: A CCSDS packet was truncated during echo because it exceeded the maximum echo packet payload size. The parameter is the original CCSDS packet length in bytes.
+    param_type: Packed_U16.T
