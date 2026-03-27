@@ -5,22 +5,31 @@ package body Arm_State is
       --
       -- Functions that provide read-only access to the private data:
       --
-      function Get_State (The_Timeout : out Packed_Arm_Timeout.Arm_Timeout_Type) return Command_Protector_Enums.Armed_State.E is
+      function Get_State return Command_Protector_Enums.Armed_State.E is
       begin
-         The_Timeout := Timeout;
          return State;
       end Get_State;
+
+      function Get_Timeout return Packed_Arm_Timeout.Arm_Timeout_Type is
+      begin
+         return Timeout;
+      end Get_Timeout;
 
       --
       -- Procedures requiring full mutual exclusion:
       --
       -- Arm the system and provide a timeout value:
       procedure Arm (New_Timeout : in Packed_Arm_Timeout.Arm_Timeout_Type) is
+         use Packed_Arm_Timeout;
       begin
-         -- Arm the system
-         State := Command_Protector_Enums.Armed_State.Armed;
-         -- Set the timeout:
-         Timeout := New_Timeout;
+         -- Only arm if timeout is positive; a zero timeout is meaningless
+         -- and would create a stuck Armed state that never times out.
+         if New_Timeout > Arm_Timeout_Type'First then
+            -- Arm the system
+            State := Command_Protector_Enums.Armed_State.Armed;
+            -- Set the timeout:
+            Timeout := New_Timeout;
+         end if;
       end Arm;
 
       -- Unarm the system and cancel the timeout:
@@ -30,7 +39,7 @@ package body Arm_State is
          -- Unarm the system
          State := Command_Protector_Enums.Armed_State.Unarmed;
          -- Set the timeout to zero:
-         Timeout := Arm_Timeout_Type'First;
+         Timeout := 0;
       end Unarm;
 
       -- Decrement the timeout, and transition to the unarmed state if the
@@ -57,6 +66,11 @@ package body Arm_State is
                      State := Command_Protector_Enums.Armed_State.Unarmed;
                      Timed_Out := True;
                   end if;
+               else
+                  -- Armed with zero timeout — defensive measure to prevent
+                  -- a stuck Armed state. Force transition to Unarmed.
+                  State := Command_Protector_Enums.Armed_State.Unarmed;
+                  Timed_Out := True;
                end if;
 
             when Unarmed =>
