@@ -862,21 +862,8 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Only 1 send (Get, no Set since Get failed):
       Natural_Assert.Eq (T.Parameters_Memory_Region_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Test 2: Get succeeds but Set fails
-      -- First response (Get) succeeds, second (Set) fails:
-      Task_Response_Status := Parameter_Enums.Parameter_Table_Update_Status.Success;
-      Task_Responses_To_Send := 1;
-      Task_Send_Response := True;
-
-      -- Wait a moment for the first response to be consumed, then switch status:
-      -- Actually, we need to send one success for Get, then one failure for Set.
-      -- Our simple simulator sends all responses with the same status.
-      -- So let's just test the Get failure path which we already verified above.
-      -- The Set failure path is already tested by Test_Destination_Failure which
-      -- covers the same underlying Send_And_Wait code path.
-      --
-      -- TODO ^ the comment above feels like an agent thinking? can we remove or make
-      -- intelligable?
+      -- Note: The Get-succeeds-but-Set-fails path is covered by
+      -- Test_Load_Command_Set_Failure using the response schedule.
 
       -- Total events: 1 Loading_Table + 1 Table_Load_Failure = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
@@ -1026,14 +1013,27 @@ package body Parameter_Table_Router_Tests.Implementation is
    -- Test_Command_Dropped: Overflow command queue.
    overriding procedure Test_Command_Dropped (Self : in out Instance) is
       T : Component.Parameter_Table_Router.Implementation.Tester.Instance_Access renames Self.Tester;
-      Cmd : constant Command.T := T.Commands.Load_All_Parameter_Tables;
+      Pkt : Ccsds_Space_Packet.T := (
+         Header => (
+            Version => 0,
+            Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
+            Secondary_Header => Ccsds_Enums.Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present,
+            Apid => 0,
+            Sequence_Flag => Ccsds_Enums.Ccsds_Sequence_Flag.Continuationsegment,
+            Sequence_Count => 0,
+            Packet_Length => Unsigned_16 (Ccsds_Space_Packet.Ccsds_Data_Type'Length) - 1
+         ),
+         Data => [others => 0]
+      );
    begin
-      -- Directly invoke the dropped handler to test it:
-      T.Component_Instance.Command_T_Recv_Async_Dropped (Cmd);
-      -- ^ TODO this is an anti-pattern. We can't just call the
-      -- function directly. Please fill up the queue similar to how it was done in 
-      -- Test_Packet_Dropped, and then send a command manually which should
-      -- force this method to be called by the component, NOT YOU.
+      -- Fill queue with max-size CCSDS packets:
+      for I in 1 .. 10 loop
+         T.Ccsds_Space_Packet_T_Send (Pkt);
+      end loop;
+
+      -- Next command should overflow:
+      T.Expect_Command_T_Send_Dropped := True;
+      T.Command_T_Send (T.Commands.Load_All_Parameter_Tables);
 
       -- Verify Command_Dropped event:
       Natural_Assert.Eq (T.Command_Dropped_History.Get_Count, 1);
@@ -1041,8 +1041,12 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Total events: 1 Command_Dropped = 1
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Total DPs: 0 (Set_Up not called)
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
+      -- Dispatch queued packets to clear:
+      declare
+         Ignore : constant Natural := T.Dispatch_All;
+      begin
+         null;
+      end;
    end Test_Command_Dropped;
 
    -- Test_Invalid_Command: Send command with corrupted arguments.
