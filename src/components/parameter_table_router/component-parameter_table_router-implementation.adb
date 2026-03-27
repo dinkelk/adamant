@@ -241,28 +241,11 @@ package body Component.Parameter_Table_Router.Implementation is
       return Self.Do_Table_Load (Found, Load_From_Idx);
    end Load_Table;
 
-   -- Load a single table if it has a Load_From source.
-   -- Silently skips tables without Load_From (returns True).
-   function Load_Table_If_Available (Self : in out Instance; Table_Id : in Parameter_Types.Parameter_Table_Id) return Boolean is
-      Found : Router_Table_Entry;
-      Load_From_Idx : Connector_Types.Connector_Index_Type;
-   begin
-      -- This function is only called from Do_Load_All_Parameter_Tables which
-      -- iterates entries from the binary tree itself. The search must always
-      -- succeed because the Table_Id was just retrieved from the tree:
-      pragma Assert (Self.Find_Table_Entry (Table_Id, Found));
-
-      if not Find_Load_From_Index (Found.Destinations, Load_From_Idx) then
-         return True;
-      end if;
-
-      return Self.Do_Table_Load (Found, Load_From_Idx);
-   end Load_Table_If_Available;
-
    -- Execute Load_All logic, shared between command and Set_Up.
    -- Returns True if all table loads succeeded.
    function Do_Load_All_Parameter_Tables (Self : in out Instance) return Boolean is
       All_Succeeded : Boolean := True;
+      Load_From_Idx : Connector_Types.Connector_Index_Type;
    begin
       Self.Event_T_Send_If_Connected (Self.Events.Loading_All_Parameter_Tables (Self.Sys_Time_T_Get));
 
@@ -270,8 +253,11 @@ package body Component.Parameter_Table_Router.Implementation is
          declare
             Tbl_Entry : constant Router_Table_Entry := Self.Table.Get (Idx);
          begin
-            if not Self.Load_Table_If_Available (Tbl_Entry.Table_Id) then
-               All_Succeeded := False;
+            -- Skip entries without a Load_From destination:
+            if Find_Load_From_Index (Tbl_Entry.Destinations, Load_From_Idx) then
+               if not Self.Do_Table_Load (Tbl_Entry, Load_From_Idx) then
+                  All_Succeeded := False;
+               end if;
             end if;
          end;
       end loop;
