@@ -14,7 +14,8 @@ with Interfaces; use Interfaces;
 with Packed_U32.Assertion; use Packed_U32.Assertion;
 with Parameter_Enums; use Parameter_Enums.Parameter_Table_Update_Status;
 with Parameter_Table_Id.Assertion; use Parameter_Table_Id.Assertion;
-with Parameter_Table_Operation_Failure_Info;
+with Parameter_Table_Operation_Failure_Info.Assertion; use Parameter_Table_Operation_Failure_Info.Assertion;
+with Parameter_Table_Timeout_Info.Assertion; use Parameter_Table_Timeout_Info.Assertion;
 with Parameter_Table_Router_Types; use Parameter_Table_Router_Types;
 with Parameter_Types;
 with Parameters_Memory_Region;
@@ -600,12 +601,11 @@ package body Parameter_Table_Router_Tests.Implementation is
 
       -- Verify Table_Update_Failure event with correct info:
       Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
-      declare
-         Failure : constant Parameter_Table_Operation_Failure_Info.T := T.Table_Update_Failure_History.Get (1);
-      begin
-         Parameter_Table_Id_Assert.Eq ((Id => Failure.Table_Id), (Id => 10));
-         pragma Assert (Failure.Release.Status = Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error);
-      end;
+      Parameter_Table_Operation_Failure_Info_Assert.Eq (T.Table_Update_Failure_History.Get (1), (
+         Table_Id => 10,
+         Connector_Index => 1,
+         Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
+      ));
 
       -- Verify no Table_Updated event (it failed):
       Boolean_Assert.Eq (T.Table_Updated_History.Is_Empty, True);
@@ -644,7 +644,10 @@ package body Parameter_Table_Router_Tests.Implementation is
 
       -- Verify Table_Update_Timeout event with correct info:
       Natural_Assert.Eq (T.Table_Update_Timeout_History.Get_Count, 1);
-      Parameter_Table_Id_Assert.Eq ((Id => T.Table_Update_Timeout_History.Get (1).Table_Id), (Id => 10));
+      Parameter_Table_Timeout_Info_Assert.Eq (T.Table_Update_Timeout_History.Get (1), (
+         Table_Id => 10,
+         Connector_Index => 1
+      ));
 
       -- Verify no Table_Updated event:
       Boolean_Assert.Eq (T.Table_Updated_History.Is_Empty, True);
@@ -684,8 +687,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Verify only 1 send occurred (stopped after first failure):
       Natural_Assert.Eq (T.Parameters_Memory_Region_T_Recv_Sync_History.Get_Count, 1);
 
-      -- Verify failure event:
+      -- Verify failure event with correct info:
       Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
+      Parameter_Table_Operation_Failure_Info_Assert.Eq (T.Table_Update_Failure_History.Get (1), (
+         Table_Id => 3,
+         Connector_Index => 1,
+         Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
+      ));
 
       -- Verify no Table_Updated event:
       Boolean_Assert.Eq (T.Table_Updated_History.Is_Empty, True);
@@ -826,7 +834,11 @@ package body Parameter_Table_Router_Tests.Implementation is
 
       -- Verify Table_Load_Failure event (Is_Load path) with correct info:
       Natural_Assert.Eq (T.Table_Load_Failure_History.Get_Count, 1);
-      Parameter_Table_Id_Assert.Eq ((Id => T.Table_Load_Failure_History.Get (1).Table_Id), (Id => 10));
+      Parameter_Table_Operation_Failure_Info_Assert.Eq (T.Table_Load_Failure_History.Get (1), (
+         Table_Id => 10,
+         Connector_Index => 2,
+         Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
+      ));
 
       -- Verify command failure:
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
@@ -919,8 +931,9 @@ package body Parameter_Table_Router_Tests.Implementation is
       Task_Exit : aliased Boolean := False;
       Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
    begin
-      -- First table's Get will fail. The component continues to the next table.
-      -- Schedule: 1 failure (table 10 Get) + 5 successes (table 1: Get+Set, table 3: Get+2*Set)
+      -- Tree is sorted by ID: 1, 3, 4, 10. Table 4 has no Load_From (skipped).
+      -- First table (ID 1) Get will fail. The component continues to remaining tables.
+      -- Schedule: 1 failure (table 1 Get) + 5 successes (table 3: Get+2*Set, table 10: Get+Set)
       -- Total: 6 responses
       Schedule_Length := 6;
       Schedule_Index := 0;
@@ -940,8 +953,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Verify All_Parameter_Tables_Loaded event (always emitted even on partial failure):
       Natural_Assert.Eq (T.All_Parameter_Tables_Loaded_History.Get_Count, 1);
 
-      -- Verify Table_Load_Failure for the first table:
+      -- Verify Table_Load_Failure for the first table (ID 1, Get from idx 2 fails):
       Natural_Assert.Eq (T.Table_Load_Failure_History.Get_Count, 1);
+      Parameter_Table_Operation_Failure_Info_Assert.Eq (T.Table_Load_Failure_History.Get (1), (
+         Table_Id => 1,
+         Connector_Index => 2,
+         Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
+      ));
 
       -- Verify the other 2 tables loaded successfully:
       Natural_Assert.Eq (T.Table_Loaded_History.Get_Count, 2);
@@ -1069,8 +1087,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Table_Updated should NOT fire (Load_From failed):
       Boolean_Assert.Eq (T.Table_Updated_History.Is_Empty, True);
 
-      -- Table_Update_Failure should fire for the Load_From destination:
+      -- Table_Update_Failure should fire for the Load_From destination (idx 2):
       Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
+      Parameter_Table_Operation_Failure_Info_Assert.Eq (T.Table_Update_Failure_History.Get (1), (
+         Table_Id => 10,
+         Connector_Index => 2,
+         Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
+      ));
 
       -- Invalid table count incremented:
       Packed_U32_Assert.Eq (T.Num_Tables_Invalid_History.Get (T.Num_Tables_Invalid_History.Get_Count), (Value => 1));
@@ -1109,8 +1132,13 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Table_Loaded should NOT fire (Set failed):
       Boolean_Assert.Eq (T.Table_Loaded_History.Is_Empty, True);
 
-      -- Table_Update_Failure should fire for the Set destination:
+      -- Table_Update_Failure should fire for the Set destination (idx 1, Working_Params):
       Natural_Assert.Eq (T.Table_Update_Failure_History.Get_Count, 1);
+      Parameter_Table_Operation_Failure_Info_Assert.Eq (T.Table_Update_Failure_History.Get (1), (
+         Table_Id => 10,
+         Connector_Index => 1,
+         Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
+      ));
 
       -- Command should fail:
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
