@@ -22,7 +22,7 @@ with Parameter_Table_Timeout_Info.Assertion; use Parameter_Table_Timeout_Info.As
 with Parameter_Table_Router_Types; use Parameter_Table_Router_Types;
 with Parameter_Types;
 with Parameters_Memory_Region;
-with Parameters_Memory_Region.Assertion; use Parameters_Memory_Region.Assertion;
+-- Parameters_Memory_Region fields checked individually (Operation, Region.Length, Region.Address)
 with System; use System;
 with Test_Assembly_Parameter_Table_Router_Table;
 
@@ -271,14 +271,16 @@ package body Parameter_Table_Router_Tests.Implementation is
       Natural_Assert.Eq (T.Loading_All_Parameter_Tables_History.Get_Count, 1);
       -- Verify All_Parameter_Tables_Loaded event:
       Natural_Assert.Eq (T.All_Parameter_Tables_Loaded_History.Get_Count, 1);
-      -- Verify Loading_Table events (one per loadable table):
+      -- Verify Loading_Table events (one per loadable table, sorted by ID: 1, 3, 10):
       Natural_Assert.Eq (T.Loading_Table_History.Get_Count, 3);
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (1), (Id => 1));
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (2), (Id => 3));
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (3), (Id => 10));
       -- Verify Table_Loaded events (one per loadable table):
       Natural_Assert.Eq (T.Table_Loaded_History.Get_Count, 3);
-      -- TODO ^ it is not sufficient in unit tests to just check that an event
-      -- was produced. You must ALWAYS check the value of the event via .Get
-      -- and use packed record assertion packages to check. please correct this
-      -- in the entire test file. This is lazy.
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (1), (Id => 1));
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (2), (Id => 3));
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (3), (Id => 10));
 
       -- Total events: 1 Loading_All + 1 All_Loaded + 3 Loading_Table + 3 Table_Loaded = 8
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 8);
@@ -356,9 +358,25 @@ package body Parameter_Table_Router_Tests.Implementation is
 
          -- Total DPs: 3 Num_Packets_Received + 1 Num_Tables_Updated + 3 Last_Table_Received = 7
          Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 7);
+
+         -- Verify routing: 2 sends (non-LF idx 1 first, then LF idx 2)
+         -- First segment: 10 bytes payload stored in buffer (after stripping 2-byte ID).
+         -- Continuation: 10 bytes. Last: 10 bytes. Total = 30 bytes.
+         Natural_Assert.Eq (T.Parameters_Memory_Region_T_Recv_Sync_History.Get_Count, 2);
+         declare
+            use Parameter_Enums.Parameter_Table_Operation_Type;
+            Region_1 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (1);
+            Region_2 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (2);
+         begin
+            -- Both should be Set operations with correct length:
+            Boolean_Assert.Eq (Region_1.Operation = Set, True);
+            Natural_Assert.Eq (Region_1.Region.Length, 30);
+            Boolean_Assert.Eq (Region_1.Region.Address /= Null_Address, True);
+            Boolean_Assert.Eq (Region_2.Operation = Set, True);
+            Natural_Assert.Eq (Region_2.Region.Length, 30);
+            Boolean_Assert.Eq (Region_2.Region.Address /= Null_Address, True);
+         end;
       end;
-      -- TODO this test never checks output of the parameter memory regions to the correct
-      -- indexes? This is a router, we need to be checking that logic here.
 
       Task_Exit := True;
    end Test_Nominal_Segmented_Upload;
@@ -384,10 +402,12 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Unsegmented goes directly to Complete_Table (no New_Table step),
       -- so Receiving_New_Table is NOT emitted:
       Boolean_Assert.Eq (T.Receiving_New_Table_History.Is_Empty, True);
-      -- Verify Table_Received event:
+      -- Verify Table_Received event with ID:
       Natural_Assert.Eq (T.Table_Received_History.Get_Count, 1);
-      -- Verify Table_Updated event:
+      Parameter_Table_Id_Assert.Eq (T.Table_Received_History.Get (1), (Id => 10));
+      -- Verify Table_Updated event with ID:
       Natural_Assert.Eq (T.Table_Updated_History.Get_Count, 1);
+      Parameter_Table_Id_Assert.Eq (T.Table_Updated_History.Get (1), (Id => 10));
 
       -- Verify 1 packet received DP:
       Packed_U32_Assert.Eq (T.Num_Packets_Received_History.Get (T.Num_Packets_Received_History.Get_Count), (Value => 1));
@@ -395,14 +415,27 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Verify 1 table updated:
       Packed_U32_Assert.Eq (T.Num_Tables_Updated_History.Get (T.Num_Tables_Updated_History.Get_Count), (Value => 1));
 
+      -- Verify routing: 2 sends for table ID 10 (non-LF then LF).
+      -- Unsegmented payload is 10 bytes, stored in buffer (no Table ID) = 10 bytes.
+      Natural_Assert.Eq (T.Parameters_Memory_Region_T_Recv_Sync_History.Get_Count, 2);
+      declare
+         use Parameter_Enums.Parameter_Table_Operation_Type;
+         Region_1 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (1);
+         Region_2 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (2);
+      begin
+         Boolean_Assert.Eq (Region_1.Operation = Set, True);
+         Natural_Assert.Eq (Region_1.Region.Length, 10);
+         Boolean_Assert.Eq (Region_1.Region.Address /= Null_Address, True);
+         Boolean_Assert.Eq (Region_2.Operation = Set, True);
+         Natural_Assert.Eq (Region_2.Region.Length, 10);
+         Boolean_Assert.Eq (Region_2.Region.Address /= Null_Address, True);
+      end;
+
       -- Total events: 1 Table_Received + 1 Table_Updated = 2
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
 
       -- Total DPs: 1 Num_Packets_Received + 1 Num_Tables_Updated + 1 Last_Table_Received = 3
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
-
-      -- TODO this test never checks output of the parameter memory regions to the correct
-      -- indexes? This is a router, we need to be checking that logic here.
 
       Task_Exit := True;
    end Test_Unsegmented_Upload;
@@ -430,27 +463,30 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Verify 3 sends occurred:
       Natural_Assert.Eq (T.Parameters_Memory_Region_T_Recv_Sync_History.Get_Count, 3);
 
-      -- Verify Table_Updated:
+      -- Verify Table_Received and Table_Updated events with ID:
+      Natural_Assert.Eq (T.Table_Received_History.Get_Count, 1);
+      Parameter_Table_Id_Assert.Eq (T.Table_Received_History.Get (1), (Id => 3));
       Natural_Assert.Eq (T.Table_Updated_History.Get_Count, 1);
+      Parameter_Table_Id_Assert.Eq (T.Table_Updated_History.Get (1), (Id => 3));
 
-      -- Verify the sends are Set operations:
+      -- Verify the sends are Set operations with correct region length.
+      -- Unsegmented payload is 10 bytes, stored in buffer = 10 bytes.
       declare
          use Parameter_Enums.Parameter_Table_Operation_Type;
          Region_1 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (1);
          Region_2 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (2);
          Region_3 : constant Parameters_Memory_Region.T := T.Parameters_Memory_Region_T_Recv_Sync_History.Get (3);
       begin
-         -- All should be Set operations:
+         -- All should be Set operations with correct length and non-null address:
          Boolean_Assert.Eq (Region_1.Operation = Set, True);
+         Natural_Assert.Eq (Region_1.Region.Length, 10);
+         Boolean_Assert.Eq (Region_1.Region.Address /= Null_Address, True);
          Boolean_Assert.Eq (Region_2.Operation = Set, True);
+         Natural_Assert.Eq (Region_2.Region.Length, 10);
+         Boolean_Assert.Eq (Region_2.Region.Address /= Null_Address, True);
          Boolean_Assert.Eq (Region_3.Operation = Set, True);
-         -- Verify addresses are non-null (data from staging buffer):
-         Boolean_Assert.Eq (Region_1.Region.Address /= System.Null_Address, True);
-         Boolean_Assert.Eq (Region_2.Region.Address /= System.Null_Address, True);
-         Boolean_Assert.Eq (Region_3.Region.Address /= System.Null_Address, True);
-         -- TODO why is length never checked? Whenever in this test we are checking
-         -- a parmaters memory region we need to make sure the length has been computed
-         -- by the component correctly
+         Natural_Assert.Eq (Region_3.Region.Length, 10);
+         Boolean_Assert.Eq (Region_3.Region.Address /= Null_Address, True);
       end;
 
       -- Total events: 1 Table_Received + 1 Table_Updated = 2
@@ -600,6 +636,7 @@ package body Parameter_Table_Router_Tests.Implementation is
 
       -- Verify Table_Received event (table was completed):
       Natural_Assert.Eq (T.Table_Received_History.Get_Count, 1);
+      Parameter_Table_Id_Assert.Eq (T.Table_Received_History.Get (1), (Id => 999));
 
       -- Verify Unrecognized_Table_Id event:
       Natural_Assert.Eq (T.Unrecognized_Table_Id_History.Get_Count, 1);
@@ -924,11 +961,17 @@ package body Parameter_Table_Router_Tests.Implementation is
       -- Verify All_Parameter_Tables_Loaded event:
       Natural_Assert.Eq (T.All_Parameter_Tables_Loaded_History.Get_Count, 1);
 
-      -- Verify Loading_Table events (3 loadable tables):
+      -- Verify Loading_Table events (sorted by ID: 1, 3, 10):
       Natural_Assert.Eq (T.Loading_Table_History.Get_Count, 3);
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (1), (Id => 1));
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (2), (Id => 3));
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (3), (Id => 10));
 
-      -- Verify Table_Loaded events (3 loadable tables):
+      -- Verify Table_Loaded events:
       Natural_Assert.Eq (T.Table_Loaded_History.Get_Count, 3);
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (1), (Id => 1));
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (2), (Id => 3));
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (3), (Id => 10));
 
       -- Verify command success:
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
@@ -987,8 +1030,16 @@ package body Parameter_Table_Router_Tests.Implementation is
          Release => (Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Parameter_Enums.Parameter_Table_Update_Status.Parameter_Error)
       ));
 
-      -- Verify the other 2 tables loaded successfully:
+      -- Verify Loading_Table events for all 3 loadable tables:
+      Natural_Assert.Eq (T.Loading_Table_History.Get_Count, 3);
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (1), (Id => 1));
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (2), (Id => 3));
+      Parameter_Table_Id_Assert.Eq (T.Loading_Table_History.Get (3), (Id => 10));
+
+      -- Verify the other 2 tables loaded successfully (IDs 3 and 10):
       Natural_Assert.Eq (T.Table_Loaded_History.Get_Count, 2);
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (1), (Id => 3));
+      Parameter_Table_Id_Assert.Eq (T.Table_Loaded_History.Get (2), (Id => 10));
 
       -- Verify command failure (because one table failed):
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
@@ -1039,7 +1090,7 @@ package body Parameter_Table_Router_Tests.Implementation is
    -- Test_Command_Dropped: Overflow command queue.
    overriding procedure Test_Command_Dropped (Self : in out Instance) is
       T : Component.Parameter_Table_Router.Implementation.Tester.Instance_Access renames Self.Tester;
-      Pkt : Ccsds_Space_Packet.T := (
+      Pkt : constant Ccsds_Space_Packet.T := (
          Header => (
             Version => 0,
             Packet_Type => Ccsds_Enums.Ccsds_Packet_Type.Telemetry,
