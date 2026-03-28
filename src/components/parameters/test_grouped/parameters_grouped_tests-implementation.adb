@@ -447,4 +447,63 @@ package body Parameters_Grouped_Tests.Implementation is
       end;
    end Test_Grouped_Fetch_Value_Mismatch;
 
+   overriding procedure Test_Grouped_Update_Second_Component_Stage_Fails (Self : in out Instance) is
+      use Parameter_Enums.Parameter_Update_Status;
+      use Parameter_Enums.Parameter_Operation_Type;
+      T : Component.Parameters.Implementation.Tester.Instance_Access renames Self.Tester;
+      -- Entry_ID 0 is the grouped I32 parameter shared by Component_A and Component_B.
+      Param_Entry : constant Parameter_Table_Entry.T := (Header => (Id => 0, Buffer_Length => 4), Buffer => [0 => 0, 1 => 0, 2 => 0, 3 => 42, others => 0]);
+      Cmd : Command.T;
+   begin
+      -- Set Component_B to return a bad status on stage only. Component_A will succeed staging.
+      -- This tests the case where the first component in the group stages successfully but
+      -- the second component fails, ensuring the command returns Failure and no update is committed.
+      T.Component_B.Override_Parameter_Return (Status => Validation_Error, Length => 0);
+
+      pragma Assert (T.Commands.Update_Parameter (Param_Entry, Cmd) = Success);
+      T.Command_T_Send (Cmd);
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- The command should fail because Component_B rejected the stage:
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Update_Parameter_Id, Status => Failure));
+
+      -- Check events - Component_A's stage should succeed (ID 2), but Component_B's stage should fail (ID 4):
+      Natural_Assert.Eq (T.Parameter_Stage_Failed_History.Get_Count, 1);
+      Parameter_Operation_Status_Assert.Eq (T.Parameter_Stage_Failed_History.Get (1), (Operation => Stage, Status => Validation_Error, Id => 4));
+
+      -- No update should have been committed, so no packet dump should occur:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- No update events should have fired:
+      Natural_Assert.Eq (T.Parameter_Update_Failed_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Parameter_Update_Success_History.Get_Count, 0);
+
+      -- Now verify that Component_A's staged values were NOT committed by doing a dump.
+      -- The dump should show the original default values, not the staged value of 42.
+      T.Component_B.Disable_Parameter_Return_Override;
+      T.Command_T_Send (T.Commands.Dump_Parameters);
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Parameters_Id, Status => Success));
+
+      -- Verify packet shows original default value (-56), not the staged value (42):
+      declare
+         Pkt : constant Packet.T := T.Packet_T_Recv_Sync_History.Get (1);
+         Table_Bytes : Test_Grouped_Params_Record.Serialization.Byte_Array;
+         Crc : Crc_16.Crc_16_Type;
+      begin
+         Table_Bytes :=
+            Test_Grouped_Params_Record.Serialization.To_Byte_Array
+               ((Crc_Calculated => [0, 0], Header => (Crc_Table => [0, 0], Version => 0.0), Component_A_Parameter_I32 => (Value => -56), Component_A_Parameter_U16 => (Value => 15),
+                  Component_C_The_Tick => ((1, 2), 3)));
+         Crc := Crc_16.Compute_Crc_16 (Table_Bytes (Table_Bytes'First + Crc_16.Crc_16_Type'Length + Parameter_Table_Header.Crc_Section_Length .. Table_Bytes'Last));
+         Table_Bytes :=
+            Test_Grouped_Params_Record.Serialization.To_Byte_Array
+               ((Crc_Calculated => Crc, Header => (Crc_Table => [0, 0], Version => 0.0), Component_A_Parameter_I32 => (Value => -56), Component_A_Parameter_U16 => (Value => 15),
+                  Component_C_The_Tick => ((1, 2), 3)));
+         Byte_Array_Assert.Eq (Pkt.Buffer (0 .. Pkt.Header.Buffer_Length - 1), Table_Bytes);
+      end;
+   end Test_Grouped_Update_Second_Component_Stage_Fails;
+
 end Parameters_Grouped_Tests.Implementation;
