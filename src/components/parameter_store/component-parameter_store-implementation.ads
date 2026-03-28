@@ -6,7 +6,7 @@
 with Command;
 with Parameters_Memory_Region;
 
--- The Parameters Component is responsible for storing and managing access to a memory region holding a parameter table. The managed memory region is usually located in nonvolatile storage and can serve as the backup or the default parameter values to use at startup for the system.
+-- The Parameter Store component is responsible for storing and managing access to a memory region holding a parameter table. The managed memory region is usually located in nonvolatile storage and can serve as the backup or the default parameter values to use at startup for the system.
 package Component.Parameter_Store.Implementation is
 
    -- The component class instance record:
@@ -52,7 +52,7 @@ private
    overriding procedure Command_T_Recv_Async (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T);
-   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region?
+   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region.
    overriding procedure Parameters_Memory_Region_T_Recv_Async (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
    -- This procedure is called when a Parameters_Memory_Region_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Parameters_Memory_Region_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
