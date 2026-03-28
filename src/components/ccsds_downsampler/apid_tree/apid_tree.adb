@@ -25,11 +25,15 @@ package body Apid_Tree is
       for Id of Downsample_List.all loop
          -- Make sure we don't add multiple of the same apid
          Search_Status := Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0)), Ignore_2, Ignore_1);
-         pragma Assert (not Search_Status, "Downsampler tree cannot add multiple nodes of the same APID.");
+         if Search_Status then
+            raise Constraint_Error with "Downsampler tree cannot add multiple nodes of the same APID.";
+         end if;
 
          Add_Status := Self.Downsample_Entry.Add (((Apid => Id.Apid, Filter_Factor => Id.Filter_Factor, Filter_Count => 0)));
          -- Make sure we don't get a failure for some reason
-         pragma Assert (Add_Status, "Downsampler tree too small to hold all APIDs in the input list.");
+         if not Add_Status then
+            raise Constraint_Error with "Downsampler tree too small to hold all APIDs in the input list.";
+         end if;
       end loop;
    end Init;
 
@@ -68,8 +72,13 @@ package body Apid_Tree is
                      Count := Self.Num_Filtered_Packets;
                   end if;
             end case;
-            -- If we found the entry in the tree, then make sure we update with the new count for that entry
-            Fetched_Entry.Filter_Count := @ + 1;
+            -- If we found the entry in the tree, then make sure we update with the new count for that entry.
+            -- Use modular arithmetic bounded by Filter_Factor to prevent Unsigned_16 wrap-around issues.
+            if Fetched_Entry.Filter_Factor > 0 then
+               Fetched_Entry.Filter_Count := (@ + 1) mod Fetched_Entry.Filter_Factor;
+            else
+               Fetched_Entry.Filter_Count := @ + 1;
+            end if;
             Self.Downsample_Entry.Set (Tree_Index, Fetched_Entry);
       end case;
 
