@@ -14,14 +14,18 @@ package body Binary_Tree is
       procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Element_Array, Name => Element_Array_Access);
    begin
       Free_If_Testing (Self.Tree);
+      Self.Tree := null;
       Self.Clear;
    end Destroy;
 
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
    function Add (Self : in out Instance; Element : in Element_Type) return Boolean is
    begin
+      -- Guard against uninitialized tree:
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Add called before Init");
+
       -- Make sure tree is not full:
-      if Self.Size >= Self.Tree'Last then
+      if Self.Size >= Self.Tree'Length then
          return False;
       end if;
 
@@ -35,6 +39,9 @@ package body Binary_Tree is
             if Element < Self.Tree (Index) then
                Insert_Index := Index;
                exit;
+            elsif not (Self.Tree (Index) < Element) then
+               -- Element is equal (not less and not greater) — reject duplicate
+               return False;
             end if;
          end loop;
 
@@ -60,6 +67,7 @@ package body Binary_Tree is
 
    function Remove (Self : in out Instance; Element_Index : in Positive) return Boolean is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Remove called before Init");
       -- Make sure index is in tree:
       if Element_Index > Self.Size then
          return False;
@@ -81,11 +89,24 @@ package body Binary_Tree is
 
    -- Search for element in tree. This is done in O(log n) where n is the current size of the tree.
    function Search (Self : in Instance; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive) return Boolean is
-      Low_Index : Natural := Self.Tree'First;
-      High_Index : Natural := Self.Size;
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Search called before Init");
+
+      declare
+         Low_Index : Natural := Self.Tree'First;
+         High_Index : Natural := Self.Size;
+      begin
       -- Ensure size is as expected
-      pragma Assert (Self.Size <= Self.Tree'Last - Self.Tree'First + 1);
+      pragma Assert (Self.Size <= Self.Tree'Length);
+
+      -- Early return for empty tree to avoid any edge-case concerns with
+      -- index arithmetic (High_Index = 0, Low_Index = 1 is safe with Natural,
+      -- but being explicit improves clarity).
+      if Self.Size = 0 then
+         Element_Index := Self.Tree'First;
+         Element_Found := Element;
+         return False;
+      end if;
 
       -- Perform binary search on sorted list:
       while Low_Index <= High_Index loop
@@ -93,7 +114,7 @@ package body Binary_Tree is
             Mid_Index : constant Positive := Low_Index + ((High_Index - Low_Index) / 2);
             Current_Element : Element_Type renames Self.Tree (Mid_Index);
          begin
-            if Current_Element > Element then
+            if Element < Current_Element then
                High_Index := Mid_Index - 1;
             elsif Current_Element < Element then
                Low_Index := Mid_Index + 1;
@@ -110,16 +131,37 @@ package body Binary_Tree is
       Element_Found := Element;
 
       return False;
+      end;
    end Search;
 
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Get called before Init");
+      if Element_Index > Self.Size then
+         raise Constraint_Error with "Binary_Tree.Get: Element_Index out of bounds";
+      end if;
       return Self.Tree (Element_Index);
    end Get;
 
-   procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) is
+   function Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) return Boolean is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Set called before Init");
+      -- Bounds check:
+      if Element_Index > Self.Size then
+         return False;
+      end if;
+
+      -- Check that the new element maintains the sorted invariant:
+      -- It must be >= the previous element (if any) and <= the next element (if any).
+      if Element_Index > 1 and then Element < Self.Tree (Element_Index - 1) then
+         return False;
+      end if;
+      if Element_Index < Self.Size and then Self.Tree (Element_Index + 1) < Element then
+         return False;
+      end if;
+
       Self.Tree (Element_Index) := Element;
+      return True;
    end Set;
 
    procedure Clear (Self : in out Instance) is
@@ -134,6 +176,7 @@ package body Binary_Tree is
 
    function Get_Capacity (Self : in Instance) return Positive is
    begin
+      pragma Assert (Self.Tree /= null, "Binary_Tree.Get_Capacity called before Init");
       return Self.Tree'Length;
    end Get_Capacity;
 
