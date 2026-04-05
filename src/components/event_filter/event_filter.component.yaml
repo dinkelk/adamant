@@ -8,7 +8,7 @@ execution: passive
 with:
   - Event_Types
 init:
-  description:
+  description: Initializes the event filter with the given ID range and optionally a list of event IDs to filter by default.
   parameters:
     - name: Event_Id_Start_Range
       type: Event_Types.Event_Id
