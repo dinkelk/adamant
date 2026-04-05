@@ -42,9 +42,21 @@ package body Component.Tick_Divider.Implementation is
                -- is disabled, thus it should not be included in the calculation.
                Divider := Self.Dividers (Index);
                if Divider > 0 then
-                  Self.Max_Count := @ * Divider;
+                  declare
+                     Wide : constant Interfaces.Unsigned_64 :=
+                       Interfaces.Unsigned_64 (Self.Max_Count) * Interfaces.Unsigned_64 (Divider);
+                  begin
+                     pragma Assert (Wide < Interfaces.Unsigned_64 (Interfaces.Unsigned_32'Last),
+                       "Max_Count overflow: product of divisors exceeds Unsigned_32 range!");
+                     Self.Max_Count := Interfaces.Unsigned_32 (Wide);
+                  end;
                end if;
             end loop;
+
+            -- If all dividers are zero (all connectors disabled), Max_Count remains 1.
+            -- This is a degenerate but safe case: the internal counter cycles as
+            -- (0+1) mod 1 = 0, so it stays at 0 perpetually. No connectors fire
+            -- because all dividers are zero, so this is functionally harmless.
 
             -- Make sure Max_Count doesn't overflow on increment (leave room for +1).
             pragma Assert (Self.Max_Count < Interfaces.Unsigned_32'Last);
