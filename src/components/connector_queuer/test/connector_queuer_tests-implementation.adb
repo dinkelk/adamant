@@ -95,9 +95,10 @@ package body Connector_Queuer_Tests.Implementation is
       T.Expect_T_Send_Dropped := True;
       T.T_Send (((13, 13), 13));
 
-      -- Check events:
+      -- Check events and drop count:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 1);
+      Natural_Assert.Eq (T.T_Send_Dropped_Count, 1);
 
       -- Expect tick to be passed through now.
       Natural_Assert.Eq (T.Dispatch_All, 3);
@@ -106,5 +107,72 @@ package body Connector_Queuer_Tests.Implementation is
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (2), ((9, 11), 13));
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (3), ((15, 15), 15));
    end Test_Full_Queue;
+
+   overriding procedure Test_Multiple_Drops (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+   begin
+      -- Fill the queue (capacity is 3):
+      T.T_Send (((1, 1), 1));
+      T.T_Send (((2, 2), 2));
+      T.T_Send (((3, 3), 3));
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 0);
+
+      -- Drop first message:
+      T.Expect_T_Send_Dropped := True;
+      T.T_Send (((4, 4), 4));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 1);
+      Natural_Assert.Eq (T.T_Send_Dropped_Count, 1);
+
+      -- Drop second message:
+      T.Expect_T_Send_Dropped := True;
+      T.T_Send (((5, 5), 5));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 2);
+      Natural_Assert.Eq (T.T_Send_Dropped_Count, 2);
+
+      -- Drop third message:
+      T.Expect_T_Send_Dropped := True;
+      T.T_Send (((6, 6), 6));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 3);
+      Natural_Assert.Eq (T.T_Send_Dropped_Count, 3);
+
+      -- Drain the queue and verify original items came through in FIFO order:
+      Natural_Assert.Eq (T.Dispatch_All, 3);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((1, 1), 1));
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (2), ((2, 2), 2));
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (3), ((3, 3), 3));
+   end Test_Multiple_Drops;
+
+   overriding procedure Test_Partial_Dispatch (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+   begin
+      -- Enqueue three items:
+      T.T_Send (((1, 2), 3));
+      T.T_Send (((4, 5), 6));
+      T.T_Send (((7, 8), 9));
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 0);
+
+      -- Dispatch only the first item:
+      Natural_Assert.Eq (T.Dispatch_N (1), 1);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((1, 2), 3));
+
+      -- Dispatch the next item:
+      Natural_Assert.Eq (T.Dispatch_N (1), 1);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 2);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (2), ((4, 5), 6));
+
+      -- Dispatch remaining:
+      Natural_Assert.Eq (T.Dispatch_N (5), 1);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (3), ((7, 8), 9));
+
+      -- Nothing left to dispatch:
+      Natural_Assert.Eq (T.Dispatch_N (1), 0);
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
+   end Test_Partial_Dispatch;
 
 end Connector_Queuer_Tests.Implementation;
