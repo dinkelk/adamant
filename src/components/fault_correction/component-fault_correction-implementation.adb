@@ -89,7 +89,9 @@ package body Component.Fault_Correction.Implementation is
    ---------------------------------------
    function Get_Fault_Response_Table_Index (Self : in out Instance; Id : in Fault_Types.Fault_Id; Index : out Fault_Response_Table_Index) return Boolean with
       -- The output Index should always be in range of the fault response table.
-      Post => (Index >= Self.Fault_Response_Table.all'First and then Index <= Self.Fault_Response_Table.all'Last)
+      Post => (if Get_Fault_Response_Table_Index'Result then
+                  (Index >= Self.Fault_Response_Table.all'First and then Index <= Self.Fault_Response_Table.all'Last)
+               else True)
    is
       -- Form lookup entry:
       Lookup_Entry : Fault_Response_Lookup_Entry;
@@ -254,18 +256,28 @@ package body Component.Fault_Correction.Implementation is
          declare
             The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
             Param_Buffer : Fault_Types.Parameter_Buffer_Type := [others => 0];
+            -- Clamp copy length to the static buffer size to prevent Constraint_Error
+            -- if Arg.Header.Param_Buffer_Length exceeds the static parameter buffer capacity.
+            Copy_Len : constant Natural := Natural'Min (
+               Natural (Arg.Header.Param_Buffer_Length),
+               Param_Buffer'Length
+            );
          begin
             -- Copy over info from fault into statically sized fault type for serialization into info event:
-            Param_Buffer (Param_Buffer'First .. Param_Buffer'First + Arg.Header.Param_Buffer_Length - 1) :=
-               Arg.Param_Buffer (Arg.Param_Buffer'First .. Arg.Param_Buffer'First + Arg.Header.Param_Buffer_Length - 1);
+            if Copy_Len > 0 then
+               Param_Buffer (Param_Buffer'First .. Param_Buffer'First + Copy_Len - 1) :=
+                  Arg.Param_Buffer (Arg.Param_Buffer'First .. Arg.Param_Buffer'First + Copy_Len - 1);
+            end if;
             Self.Event_T_Send_If_Connected (Self.Events.Fault_Received (The_Time, (Header => Arg.Header, Param_Buffer => Param_Buffer)));
             -- Send response event if necessary:
             if Response_Sent then
                Self.Event_T_Send_If_Connected (Self.Events.Fault_Response_Sent (The_Time, Table_Entry.Command_Response.Header));
             end if;
 
-            -- Send data products if necessary:
-            Self.Fault_Counter := @ + 1;
+            -- Send data products if necessary. Saturate at max to avoid silent wraparound.
+            if Self.Fault_Counter < Interfaces.Unsigned_16'Last then
+               Self.Fault_Counter := @ + 1;
+            end if;
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Fault_Counter (The_Time, (Value => Self.Fault_Counter)));
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Last_Fault_Id_Received (The_Time, (Id => Arg.Header.Id)));
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Time_Of_Last_Fault_Received (The_Time, Arg.Header.Time));
@@ -294,12 +306,22 @@ package body Component.Fault_Correction.Implementation is
       ));
    end Fault_T_Recv_Async_Dropped;
 
+   ---------------------------------------
+   -- Invoker connector dropped handlers:
+   ---------------------------------------
+   -- This procedure is called when a Command_T_Send message is dropped due to a full queue.
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is
+   begin
+      -- A fault correction command was lost — this is critical since it is the component's primary safety function.
+      Self.Event_T_Send_If_Connected (Self.Events.Fault_Response_Command_Dropped (Self.Sys_Time_T_Get, Arg.Header));
+   end Command_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------
    -- Description:
    --    These are the commands for the Fault Correction component.
-   -- Enable a fault response for the provided ID. This will only succeed if another response with the same Fault ID is not already enabled.
+   -- Enable a fault response for the provided ID. If the response is currently disabled, it transitions to nominal. If already in any other state, no change is made.
    overriding function Enable_Fault_Response (Self : in out Instance; Arg : in Packed_Fault_Id.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
       -- See if we have an entry for the provided fault ID.
