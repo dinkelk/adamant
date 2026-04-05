@@ -5,6 +5,7 @@
 -- Component Tester Include:
 with Component.Interrupt_Pender.Implementation.Tester;
 with Tick;
+with Tick_Interrupt_Handler;
 
 -- This is a unit test suite for the Interrupt Pender component. It tests the component in a Linux environment, responding to signals.
 package Tests.Implementation is
@@ -19,7 +20,7 @@ private
    overriding procedure Test_Interrupt_Handling (Self : in out Instance);
 
    -- Instantiate generic component:
-   package Component_Package is new Component.Interrupt_Pender (Tick.T);
+   package Component_Package is new Component.Interrupt_Pender (Tick.T, Tick_Interrupt_Handler.Set_Tick_Time);
    package Component_Implementation_Package is new Component_Package.Implementation;
    package Component_Tester_Package is new Component_Implementation_Package.Tester;
 
