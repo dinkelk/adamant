@@ -34,7 +34,7 @@ init:
       description: When a sequence loads or spans or calls another sequence, the command sequencer will call this function to formulate the correct sequence load command for the assembly. Since the specifics of sequence loading often varies on a mission by mission basis, this function allows the encoding of that mission specific behavior by the user.
     - name: Packet_Period
       type: Interfaces.Unsigned_16
-      description: The initial packet rate for the sequencer summary packet in ticks. A value of 0 disabled the packet.
+      description: The initial packet rate for the sequencer summary packet in ticks. A value of 0 disables the packet.
     - name: Continue_On_Command_Failure
       type: Boolean
       description: If set to True, then the sequence engines will continue to execute even if a sent command fails. If set to False, then the engines will halt with an error status if a sent command fails.
@@ -48,7 +48,7 @@ connectors:
   - description: The schedule invokee connector. This is used to detect sequence timeout errors, meter out the checking of telemetry for sequence conditionals, and determine when to resume a sequence after a relative or absolute wait.
     type: Tick.T
     kind: recv_async
-  - description: Command responses from sent commands are received on this connector, allowed subsequent commands in a sequence to be sent out. Note that during initialization a Register_Source message needs to be sent via this connector for each engine, providing a unique source identifier. This source identifier will be used for each engine when sending out commands after initialization. If using the command router, you should set up the command router to include a unique arrayed connector entry for each engine that needs to be registered.
+  - description: Command responses from sent commands are received on this connector, allowing subsequent commands in a sequence to be sent out. Note that during initialization a Register_Source message needs to be sent via this connector for each engine, providing a unique source identifier. This source identifier will be used for each engine when sending out commands after initialization. If using the command router, you should set up the command router to include a unique arrayed connector entry for each engine that needs to be registered.
     type: Command_Response.T
     kind: recv_async
   - description: The command receive connector. Commands received on this connector are executed by the sequencer itself, ie. halting a sequence.

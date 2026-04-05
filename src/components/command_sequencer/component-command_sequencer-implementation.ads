@@ -6,6 +6,7 @@
 with Tick;
 with Command_Response;
 with Command;
+with Command_Types;
 with Sequence_Load;
 with Seq;
 with Seq_Types;
@@ -29,7 +30,7 @@ package Component.Command_Sequencer.Implementation is
    -- Num_Engines : Seq_Types.Num_Engines_Type - The number of engines allocated in the sequencer. This determines the number of sequences the component can run in parallel.
    -- Stack_Size : Seq_Types.Stack_Depth_Type - The size of the stack allocated for each engine in entries. Each stack entry contains a single running sequence, and additional stack entries can be used for subsequence calls. A value of 5 here would allow a sequence to call subsequences up to 5 levels deep.
    -- Create_Sequence_Load_Command_Function : Create_Sequence_Load_Command_Access - When a sequence loads or spans or calls another sequence, the command sequencer will call this function to formulate the correct sequence load command for the assembly. Since the specifics of sequence loading often varies on a mission by mission basis, this function allows the encoding of that mission specific behavior by the user.
-   -- Packet_Period : Interfaces.Unsigned_16 - The initial packet rate for the sequencer summary packet in ticks. A value of 0 disabled the packet.
+   -- Packet_Period : Interfaces.Unsigned_16 - The initial packet rate for the sequencer summary packet in ticks. A value of 0 disables the packet.
    -- Continue_On_Command_Failure : Boolean - If set to True, then the sequence engines will continue to execute even if a sent command fails. If set to False, then the engines will halt with an error status if a sent command fails.
    -- Timeout_Limit : Natural - The number of ticks to wait before timing out sequencer operations such as waiting on a command response or subsequence load. If a timeout of this type occurs the engine will transition to an error state. A value of zero disables these timeouts.
    -- Instruction_Limit : Positive - The maximum number of sequence instructions we allow the sequence to execute without hitting a pausing action such as sending a command, waiting on telemetry, or waiting for a relative or absolute time. The purpose of this parameter is to prevent a sequence from entering an infinite execution loop which would cause the entire component task to hang indefinitely. You should set the value to some maximum number of instructions that you never expect any of your compiled sequences to hit.
@@ -75,6 +76,9 @@ private
       -- Function access to the mission specific function which returns the sequence load command
       -- for the assembly.
       Create_Sequence_Load_Command_Function : Create_Sequence_Load_Command_Access := null;
+      -- Cached load command ID, computed once during Init to avoid constructing a full
+      -- Command.T on the stack every time a command response is processed.
+      Cached_Load_Command_Id : Command_Types.Command_Id := Command_Types.Command_Id'First;
    end record;
 
    ---------------------------------------
@@ -96,7 +100,7 @@ private
    overriding procedure Tick_T_Recv_Async (Self : in out Instance; Arg : in Tick.T);
    -- This procedure is called when a Tick_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Tick_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Tick.T);
-   -- Command responses from sent commands are received on this connector, allowed subsequent commands in a sequence to be sent out.
+   -- Command responses from sent commands are received on this connector, allowing subsequent commands in a sequence to be sent out.
    overriding procedure Command_Response_T_Recv_Async (Self : in out Instance; Arg : in Command_Response.T);
    -- This procedure is called when a Command_Response_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_Response_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command_Response.T);
@@ -113,9 +117,9 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Sequence_Load_Return_T_Send message is dropped due to a full queue.
-   overriding procedure Sequence_Load_Return_T_Send_Dropped (Self : in out Instance; Arg : in Sequence_Load_Return.T) is null;
+   overriding procedure Sequence_Load_Return_T_Send_Dropped (Self : in out Instance; Arg : in Sequence_Load_Return.T);
    -- This procedure is called when a Command_T_Send message is dropped due to a full queue.
-   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is null;
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
