@@ -100,7 +100,7 @@ package body Logger_Tests.Implementation is
       Natural_Assert.Eq (T.Mode_History.Get_Count, 1);
       Logger_Mode_Assert.Eq (T.Mode_History.Get (1).Current_Mode, Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       The_Tick := ((1, 2), 3);
       T.T_Send (The_Tick);
       Bytes_To_Compare (Idx .. Idx + Tick_32.Serialization.Serialized_Length - 1) := Tick_32.Serialization.To_Byte_Array (The_Tick);
@@ -346,7 +346,7 @@ package body Logger_Tests.Implementation is
       Natural_Assert.Eq (T.Mode_History.Get_Count, 1);
       Logger_Mode_Assert.Eq (T.Mode_History.Get (1).Current_Mode, Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       The_Tick := ((1, 2), 3);
       T.T_Send (The_Tick);
       Bytes_To_Compare (Idx .. Idx + Tick_32.Serialization.Serialized_Length - 1) := Tick_32.Serialization.To_Byte_Array (The_Tick);
@@ -585,7 +585,7 @@ package body Logger_Tests.Implementation is
       Natural_Assert.Eq (T.Mode_History.Get_Count, 2);
       Logger_Mode_Assert.Eq (T.Mode_History.Get (2).Current_Mode, Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       The_Tick := ((1, 2), 3);
       T.T_Send (The_Tick);
       The_Tick := ((4, 5), 6);
@@ -792,6 +792,43 @@ package body Logger_Tests.Implementation is
       Init_Some_3;
       Init_Some_4;
    end Test_Init;
+
+   overriding procedure Test_Dump_Empty_Enabled (Self : in out Instance) is
+      use Byte_Array_Pointer.Packed;
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+   begin
+      -- Initialize the component as enabled but send no data:
+      T.Component_Instance.Init (Size => 50, Initial_Mode => Logger_Mode.Enabled);
+      Self.Tester.Component_Instance.Set_Up;
+
+      -- Verify initial state:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
+      Logger_Mode_Assert.Eq (T.Mode_History.Get (1).Current_Mode, Logger_Mode.Enabled);
+
+      -- Dump the full log on an empty, enabled buffer:
+      T.Command_T_Send (T.Commands.Dump_Log);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Log_Id, Status => Success));
+      -- Only meta data should be dumped (no data pointers since buffer is empty):
+      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 1);
+      Check_Meta_Dump (T.Memory_Dump_Recv_Sync_History.Get (1), (Head => 0, Count => 0, Size => 50));
+
+      -- Dump newest on empty buffer:
+      T.Command_T_Send (T.Commands.Dump_Newest_Data ((Length => 10)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Newest_Data_Id, Status => Success));
+      -- Only meta data, no data pointer:
+      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 2);
+      Check_Meta_Dump (T.Memory_Dump_Recv_Sync_History.Get (2), (Head => 0, Count => 0, Size => 50));
+
+      -- Dump oldest on empty buffer:
+      T.Command_T_Send (T.Commands.Dump_Oldest_Data ((Length => 10)));
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 3);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (3), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Oldest_Data_Id, Status => Success));
+      -- Only meta data, no data pointer:
+      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 3);
+      Check_Meta_Dump (T.Memory_Dump_Recv_Sync_History.Get (3), (Head => 0, Count => 0, Size => 50));
+   end Test_Dump_Empty_Enabled;
 
    overriding procedure Test_Invalid_Command (Self : in out Instance) is
       T : Component_Tester_Package.Instance_Access renames Self.Tester;

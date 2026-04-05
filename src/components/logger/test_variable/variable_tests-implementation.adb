@@ -97,7 +97,7 @@ package body Variable_Tests.Implementation is
       -- Initialize the component:
       T.Component_Instance.Init (Bytes => Log_Bytes'Unchecked_Access, Meta_Data => Meta_Data'Unchecked_Access, Initial_Mode => Logger_Mode.Enabled);
 
-      -- Send some data to the logger while it is disabled:
+      -- Send some data to the logger while it is enabled:
       Var := (0, [0 => 1, 1 => 2, 2 => 3, others => 9]);
       T.T_Send (Var);
       Put_Line (Basic_Types.Representation.Image (Log_Bytes));
@@ -274,10 +274,10 @@ package body Variable_Tests.Implementation is
       Natural_Assert.Eq (T.Log_Attempt_Failed_History.Get_Count, 4);
 
       -- Check errors:
-      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (1), (21 + 1, Serialization_Failure));
-      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (2), (255 + 1, Serialization_Failure));
-      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (3), (22 + 1, Serialization_Failure));
-      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (4), (23 + 1, Serialization_Failure));
+      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (1), (0, Serialization_Failure));
+      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (2), (0, Serialization_Failure));
+      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (3), (0, Serialization_Failure));
+      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (4), (0, Serialization_Failure));
 
       -- Request a meta data event:
       T.Command_T_Send (T.Commands.Send_Meta_Data_Event);
@@ -288,6 +288,8 @@ package body Variable_Tests.Implementation is
       -- Make sure no data was logged:
       Logger_Info_Assert.Eq (T.Log_Info_Update_History.Get (1), ((Head => 0, Count => 4, Size => 50), Current_Mode => Logger_Mode.Enabled));
 
+      -- Finalize before reinitializing to properly tear down the previous instance:
+      T.Component_Instance.Final;
       -- Reinitialize the component to have tiny log:
       T.Component_Instance.Init (Size => 5, Initial_Mode => Logger_Mode.Enabled);
 
@@ -311,7 +313,7 @@ package body Variable_Tests.Implementation is
       -- Check errors:
       Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (5), (5 + 1, Too_Full));
       Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (6), (6 + 1, Too_Full));
-      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (7), (255 + 1, Serialization_Failure));
+      Logger_Error_Assert.Eq (T.Log_Attempt_Failed_History.Get (7), (0, Serialization_Failure));
 
       -- Request a meta data event:
       T.Command_T_Send (T.Commands.Send_Meta_Data_Event);

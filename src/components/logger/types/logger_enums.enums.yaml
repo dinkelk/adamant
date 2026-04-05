@@ -21,4 +21,4 @@ enums:
         description: Logging failed due to a serialization error.
       - name: Too_Full
         value: 2
-        description: Logging failed because the log was too full to fit the data.
+        description: Logging failed because the data is larger than the entire log buffer capacity.
