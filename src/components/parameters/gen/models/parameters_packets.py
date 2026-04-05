@@ -83,9 +83,13 @@ class parameters_packets(packets):
                 model_name = None
 
                 # Step 1: Find the Parameter_Manager connected to this component instance.
-                # Use "is" (object identity) rather than "==" because the base model class
-                # defines __eq__ as filename comparison, which would match all instances of
-                # the same component type. "is" correctly distinguishes individual instances.
+                # IMPORTANT: Use "is" (object identity) rather than "==" because the base
+                # model class defines __eq__ as filename comparison, which would match all
+                # instances of the same component type. "is" correctly distinguishes
+                # individual instances. This relies on the model loader maintaining stable
+                # object references throughout the assembly resolution lifecycle. If model
+                # loading is ever changed to create fresh copies of component objects,
+                # "is" will silently fail and fall through to the generic fallback below.
                 param_manager = None
                 for conn in self.assembly.connections:
                     if (

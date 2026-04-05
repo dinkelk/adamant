@@ -6,7 +6,7 @@
 with Command;
 with Crc_16;
 
--- The Parameters Component is responsible for updating and reporting the values of the "active" parameters being used in the system. The component does not contain a parameter table itself. Instead it acts as an interface for the rest of the system to component's internal staged parameters. The component allows updating of parameters through a table upload (via Memory_Region.T) or updating of individual parameter values by command. The component also provides a command to fetch all of the parameters held within components and produce a packet with the fetched values. The component can be configured to produce this packet automatically any time a parameter change is requested.
+-- The Parameters Component is responsible for staging, updating, and reporting the values of the "active" parameters being used in the system. The component does not contain a parameter table itself. Instead it acts as an interface for the rest of the system to component's internal staged parameters. The component allows the staging and updating of parameters through a table upload (via Memory_Region_T_Recv_Async) or updating of individual parameter values by command. The component also provides a command to fetch all of the parameters held within components and produce a packet with the fetched values. The component can be configured to produce this packet automatically any time a parameter change is requested.
 package Component.Parameters.Implementation is
 
    -- The component class instance record:
@@ -73,7 +73,7 @@ private
    overriding procedure Command_T_Recv_Async (Self : in out Instance; Arg : in Command.T);
    -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T);
-   -- When a memory region is received on this connector it can either be a parameter table that is used to stage and update the parameters of all connected components, or it can be a memory region that is used to store the current value of the parameters stored within the component. The operation field determines which logic is run. For a "set" operation, the memory region length MUST match the length of the managed parameter table, otherwise the update will not be processed.
+   -- When a memory region is received on this connector it can either be a parameter table that is used to stage and update the parameters of all connected components, or it can be a memory region that is used to store the current value of the parameters stored within the component. The operation field determines which logic is run. For either operation, the memory region length MUST match the length of the managed parameter table, otherwise the operation will not be processed.
    overriding procedure Parameters_Memory_Region_T_Recv_Async (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
    -- This procedure is called when a Parameters_Memory_Region_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Parameters_Memory_Region_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region.T);
@@ -84,7 +84,9 @@ private
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Parameters_Memory_Region_Release_T_Send message is dropped due to a full queue.
-   overriding procedure Parameters_Memory_Region_Release_T_Send_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T) is null;
+   -- A dropped memory region release means the memory will never be freed, causing a resource leak.
+   -- We attempt to send an event to alert operators, acknowledging the event itself could also be dropped.
+   overriding procedure Parameters_Memory_Region_Release_T_Send_Dropped (Self : in out Instance; Arg : in Parameters_Memory_Region_Release.T);
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
    overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
    -- This procedure is called when a Event_T_Send message is dropped due to a full queue.
