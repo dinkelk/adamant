@@ -1,0 +1,13 @@
+---
+description: This is a unit test suite for the CCSDS Echo component.
+tests:
+  - name: Test_Nominal_Echo
+    description: This unit test verifies that a CCSDS packet received on the sync connector is echoed as an Adamant packet on the send connector with correct content and timestamp.
+  - name: Test_Packet_Content_Fidelity
+    description: This unit test verifies that the echoed packet data exactly matches the input CCSDS packet data.
+  - name: Test_Truncation_Behavior
+    description: This unit test verifies behavior when a CCSDS packet larger than the echo packet capacity is received, ensuring truncation occurs and an event is emitted.
+  - name: Test_Disconnected_Send_Connector
+    description: This unit test verifies that the component does not raise an error when the send connector is not connected.
+  - name: Test_Packet_Dropped
+    description: This unit test verifies that when Packet_T_Send_Dropped is invoked, a Packet_Dropped event is emitted.
