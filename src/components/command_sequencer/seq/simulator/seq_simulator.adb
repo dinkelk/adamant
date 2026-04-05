@@ -10,6 +10,8 @@ with Telemetry_Record;
 with Packed_U32;
 with Seq_Print.Representation;
 with Sys_Time;
+with Ada.Unchecked_Deallocation;
+with Ada.Exceptions;
 
 package body Seq_Simulator is
    use Seq_Error;
@@ -19,7 +21,13 @@ package body Seq_Simulator is
    -- We can handle up to 512 KB sized sequence.
    Max_Sequence_Size : constant Natural := 524_288;
 
-   function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Boolean is
+   -- Sentinel value meaning "load into any available engine."
+   Any_Engine : constant Sequence_Engine_Id := Sequence_Engine_Id'Last;
+
+   -- Sentinel value meaning "load into any available engine."
+   Any_Engine : constant Sequence_Engine_Id := Sequence_Engine_Id'Last;
+
+   function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Init_Status is
       The_Source_Id : Command_Source_Id := Start_Source_Id;
    begin
       Self.Seq_Engines := new Seq_Engine_Array (Sequence_Engine_Id'First .. Sequence_Engine_Id'First + Num_Engines - 1);
@@ -30,11 +38,25 @@ package body Seq_Simulator is
          Self.Seq_Engines (Id).Set_Source_Id (The_Source_Id);
          The_Source_Id := @ + 1;
       end loop;
-      return True;
+      return Success;
    exception
-      when others =>
-         return False;
+      when Storage_Error =>
+         Put_Line ("Initialize failed: allocation error");
+         return Allocation_Error;
+      when E : others =>
+         Put_Line ("Initialize failed: "
+                    & Ada.Exceptions.Exception_Information (E));
+         return Configuration_Error;
    end Initialize;
+
+   procedure Free_Engines is new Ada.Unchecked_Deallocation (Seq_Engine_Array, Seq_Engine_Array_Access);
+
+   procedure Destroy (Self : in out Instance) is
+   begin
+      if Self.Seq_Engines /= null then
+         Free_Engines (Self.Seq_Engines);
+      end if;
+   end Destroy;
 
    function Load_Sequence_In_Memory (Path : in String; Buffer : in Basic_Types.Byte_Array_Access; Sequence : out Memory_Region.T) return Boolean is
       package Io is new Ada.Sequential_Io (Basic_Types.Byte);
@@ -45,6 +67,12 @@ package body Seq_Simulator is
    begin
       Open (File, In_File, Path);
       while not End_Of_File (File) loop
+         if Sequence_Size > Buffer'Last then
+            Close (File);
+            Put_Line ("Error: Sequence file exceeds maximum size of"
+                       & Natural'Image (Max_Sequence_Size) & " bytes.");
+            return False;
+         end if;
          Read (File, Data);
          Buffer (Sequence_Size) := Data;
          Sequence_Size := @ + 1;
@@ -55,7 +83,14 @@ package body Seq_Simulator is
    exception
       when Ada.IO_Exceptions.Name_Error =>
          return False;
+      when others =>
+         if Is_Open (File) then
+            Close (File);
+         end if;
+         return False;
    end Load_Sequence_In_Memory;
+
+   procedure Free is new Ada.Unchecked_Deallocation (Basic_Types.Byte_Array, Basic_Types.Byte_Array_Access);
 
    procedure Simulate (Self : in out Instance; Filepath : in String; To_Load : in Sequence_Engine_Id; Engine_Time_S : in Interfaces.Unsigned_32) is
       Sequence : Memory_Region.T;
@@ -66,11 +101,21 @@ package body Seq_Simulator is
       Instr_Limit : constant Positive := 10_000;
       Pc : Seq_Position;
    begin
+      -- Validate engine ID is within allocated range
+      if To_Load not in Self.Seq_Engines.all'Range then
+         Put_Line ("Error: Engine ID" & To_Load'Image
+                    & " is out of range. Valid range:"
+                    & Self.Seq_Engines.all'First'Image & " .."
+                    & Self.Seq_Engines.all'Last'Image);
+         return;
+      end if;
+
       Buffer := new Basic_Types.Byte_Array (0 .. Max_Sequence_Size - 1);
 
       -- Attempt to load a sequence into a memory region
       if Load_Sequence_In_Memory (Filepath, Buffer, Sequence) = False then
          Put_Line ("Could not load given sequence: " & Filepath);
+         Free (Buffer);
          return;
       end if;
       Put_Line ("Sequence was loaded into memory!");
@@ -78,6 +123,11 @@ package body Seq_Simulator is
 
       Load_State := Self.Seq_Engines (To_Load).Load (Sequence);
       Put_Line ("Engine loaded with state: " & Load_State'Image);
+      if Load_State /= Success then
+         Put_Line ("Failed to load sequence into engine. Aborting.");
+         Free (Buffer);
+         return;
+      end if;
       New_Line;
       while True loop
          Exec_State := Self.Seq_Engines (To_Load).Execute (Instr_Limit, Time);
@@ -87,6 +137,7 @@ package body Seq_Simulator is
             when Unloaded =>
                Put_Line ("Simulation for engine" & To_Load'Image & " has finished!");
                New_Line;
+               Free (Buffer);
                return;
             when Wait_Relative =>
                Put_Line (ASCII.HT & "Waiting for: " & Trim (Self.Seq_Engines (To_Load).Get_Wakeup_Time.Seconds'Image, Ada.Strings.Left));
@@ -97,16 +148,23 @@ package body Seq_Simulator is
                Put_Line (ASCII.HT & "Waiting until: " & Trim (Self.Seq_Engines (To_Load).Get_Wakeup_Time.Seconds'Image, Ada.Strings.Left));
                Put (ASCII.HT & "Enter current time >>> ");
                declare
-                  New_Time : constant Sys_Time.T := (Interfaces.Unsigned_32'Value (Get_Line), 0);
+                  Line : constant String := Get_Line;
                begin
-                  if Self.Seq_Engines (To_Load).Is_Done_Waiting (New_Time) = Done then
-                     Put_Line (ASCII.HT & "Sequence woke up! Updating system time!");
-                     Time.Seconds := New_Time.Seconds;
-                     New_Line;
-                  else
-                     Put_Line (ASCII.HT & "Sequence didn't wake up!");
-                     New_Line;
-                  end if;
+                  declare
+                     New_Time : constant Sys_Time.T := (Interfaces.Unsigned_32'Value (Line), 0);
+                  begin
+                     if Self.Seq_Engines (To_Load).Is_Done_Waiting (New_Time) = Done then
+                        Put_Line (ASCII.HT & "Sequence woke up! Updating system time!");
+                        Time.Seconds := New_Time.Seconds;
+                        New_Line;
+                     else
+                        Put_Line (ASCII.HT & "Sequence didn't wake up!");
+                        New_Line;
+                     end if;
+                  end;
+               exception
+                  when Constraint_Error =>
+                     Put_Line ("Invalid input: " & Line & ". Please enter a numeric value.");
                end;
             when Wait_Command =>
                Put_Line (Command.Representation.To_Tuple_String (Self.Seq_Engines (To_Load).Get_Command));
@@ -130,7 +188,15 @@ package body Seq_Simulator is
                   Put_Line (ASCII.HT & "Is a new value required?: " & Trim (Tlm.New_Value_Required'Image, Ada.Strings.Left));
 
                   Put (ASCII.HT & "Enter a telemetry value >>> ");
-                  In_Value := Interfaces.Unsigned_32'Value (Get_Line);
+                  declare
+                     Tlm_Line : constant String := Get_Line;
+                  begin
+                     In_Value := Interfaces.Unsigned_32'Value (Tlm_Line);
+                  exception
+                     when Constraint_Error =>
+                        Put_Line ("Invalid input: " & Tlm_Line & ". Please enter a numeric value.");
+                        In_Value := 0;
+                  end;
                   declare
                      Tlm_Record : Packed_U32.T := (Value => In_Value);
                      Tlm_Value : Basic_Types.Poly_32_Type with Import, Convention => Ada, Address => Tlm_Record'Address;
@@ -141,7 +207,14 @@ package body Seq_Simulator is
                   if State = Wait_Telemetry_Value then
                      Put_Line (ASCII.HT & "Timeout at: " & Trim (The_Timeout.Seconds'Image, Ada.Strings.Left));
                      Put (ASCII.HT & "Enter time for this telemetry value >>> ");
-                     Time.Seconds := Interfaces.Unsigned_32'Value (Get_Line);
+                     declare
+                        Time_Line : constant String := Get_Line;
+                     begin
+                        Time.Seconds := Interfaces.Unsigned_32'Value (Time_Line);
+                     exception
+                        when Constraint_Error =>
+                           Put_Line ("Invalid input: " & Time_Line & ". Please enter a numeric value.");
+                     end;
                      New_Line;
                   else
                      Put_Line (ASCII.HT & "No timeout on this action.");
@@ -164,14 +237,21 @@ package body Seq_Simulator is
                begin
                   -- If loading into another engine
                   if Self.Seq_Engines (To_Load).Get_Load_Destination /= To_Load then
-                     if Self.Seq_Engines (To_Load).Get_Load_Destination = 255 then
+                     if Self.Seq_Engines (To_Load).Get_Load_Destination = Any_Engine then
                         Put (ASCII.HT & "Any engine load, please enter an engine to load into >>> ");
                         declare
-                           New_Id : constant Sequence_Engine_Id := Sequence_Engine_Id'Value (Get_Line);
+                           Id_Line : constant String := Get_Line;
                         begin
-                           New_Line;
-                           Self.Seq_Engines (New_Id).Set_Arguments (Self.Seq_Engines (To_Load).Get_Arguments);
-                           Self.Simulate (File_Path, New_Id, Time.Seconds);
+                           declare
+                              New_Id : constant Sequence_Engine_Id := Sequence_Engine_Id'Value (Id_Line);
+                           begin
+                              New_Line;
+                              Self.Seq_Engines (New_Id).Set_Arguments (Self.Seq_Engines (To_Load).Get_Arguments);
+                              Self.Simulate (File_Path, New_Id, Time.Seconds);
+                           end;
+                        exception
+                           when Constraint_Error =>
+                              Put_Line ("Invalid input: " & Id_Line & ". Please enter a valid engine ID.");
                         end;
 
                      else
@@ -189,6 +269,8 @@ package body Seq_Simulator is
                                                 -- Attempt to load a sequence into a memory region
                         if Load_Sequence_In_Memory (File_Path, New_Buffer, New_Sequence) = False then
                            Put_Line (ASCII.HT & "Could not load given sequence: " & File_Path);
+                           Free (New_Buffer);
+                           Free (Buffer);
                            return;
                         end if;
                         Put_Line (ASCII.HT & "Sequence was loaded into memory!");
@@ -207,10 +289,12 @@ package body Seq_Simulator is
                Put_Line (ASCII.HT & "The runtime error code is: " & Trim (Self.Seq_Engines (To_Load).Get_Seq_Error_Code'Image, Ada.Strings.Left));
                Put_Line (ASCII.HT & "The error occurred at pc: " & Trim (Self.Seq_Engines (To_Load).Get_Lowest_Child_Position'Image, Ada.Strings.Left));
                New_Line;
+               Free (Buffer);
                return;
             when Kill_Engines =>
                Put_Line (ASCII.HT & "Kill_Engine encountered.");
                New_Line;
+               Free (Buffer);
                return;
             when Print =>
                Put_Line (ASCII.HT & "Print encountered.");
