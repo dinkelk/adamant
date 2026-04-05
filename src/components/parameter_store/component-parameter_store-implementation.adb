@@ -35,9 +35,11 @@ package body Component.Parameter_Store.Implementation is
    -- Crc the parameter table bytes. The table bytes passed in MUST be the exact size as the parameter table:
    function Crc_Parameter_Table (Self : in Instance; Table_Bytes : in Basic_Types.Byte_Array) return Crc_16.Crc_16_Type is
    begin
-      -- This function assumes that the provided data is the exact length of the parameter table. Length
-      -- checks should be performed before calling this function:
-      pragma Assert (Table_Bytes'Length = Self.Bytes.all'Length);
+      -- Verify that the provided data is the exact length of the parameter table. Using an explicit
+      -- check rather than pragma Assert ensures defense-in-depth even if assertions are disabled.
+      if Table_Bytes'Length /= Self.Bytes.all'Length then
+         raise Program_Error with "Crc_Parameter_Table called with incorrect table length";
+      end if;
 
       -- Some checks to make sure parameter table header constants make sense. This will fail if the
       -- header packed record and constants are malformed.
@@ -65,8 +67,13 @@ package body Component.Parameter_Store.Implementation is
             Pkt : Packet.T;
             Stat : constant Serialization_Status := Self.Packets.Stored_Parameters (Self.Sys_Time_T_Get, Computed_Crc & Self.Bytes.all, Pkt);
          begin
-            -- Send the packet:
-            pragma Assert (Stat = Success, "This should never fail since we checked at Init that self.bytes.all could fit cleanly within a Packet.T type.");
+            -- Verify serialization succeeded. Using an explicit check rather than pragma Assert
+            -- ensures this safety check is not silently skipped if assertions are disabled in
+            -- a release build. This should never fail since Init verifies that the parameter
+            -- table fits within a Packet.T type.
+            if Stat /= Success then
+               return;
+            end if;
             Self.Packet_T_Send (Pkt);
          end;
 
@@ -87,7 +94,7 @@ package body Component.Parameter_Store.Implementation is
       Self.Command_Response_T_Send_If_Connected ((Source_Id => Arg.Header.Source_Id, Registration_Id => Self.Command_Reg_Id, Command_Id => Arg.Header.Id, Status => Stat));
    end Command_T_Recv_Async;
 
-   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region?
+   -- When a memory region is received on this connector it is assumed that it contains a memory region that is the same size as the managed region.
    overriding procedure Parameters_Memory_Region_T_Recv_Async (Self : in out Instance; Arg : in Parameters_Memory_Region.T) is
       use Parameter_Enums.Parameter_Table_Operation_Type;
       use Parameter_Enums.Parameter_Table_Update_Status;
