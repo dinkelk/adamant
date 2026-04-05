@@ -149,10 +149,14 @@ package body Component.Sequence_Store.Implementation is
       -- will not go over the end of the memory region, since we have checked the memory region's length
       -- in the Init, and ensured they are all at least as large as this header.
       Slot_Header : constant Sequence_Store_Slot_Header.T with Import, Convention => Ada, Address => Self.Slots.all (Slot_Index).Address;
+      -- Compute the maximum allowable length for the sequence data within this slot.
+      -- This guards against a corrupted MRAM Length field that could cause an out-of-bounds read.
+      Max_Sequence_Length : constant Natural := Self.Slots.all (Slot_Index).Length - Num_Slot_Meta_Bytes;
+      Clamped_Length : constant Natural := Natural'Min (Slot_Header.Seq_Header.Length, Max_Sequence_Length);
    begin
-      -- Return the address of the beginning of the sequence header and compute the length by using the memory
-      -- region length which includes the size of the sequence header itself.
-      return (Address => Slot_Header.Seq_Header'Address, Length => Slot_Header.Seq_Header.Length);
+      -- Return the address of the beginning of the sequence header and compute the length by using the
+      -- clamped memory region length which includes the size of the sequence header itself.
+      return (Address => Slot_Header.Seq_Header'Address, Length => Clamped_Length);
    end Get_Sequence_Memory_Region;
 
    -- Given a slot number return the maximum sized memory region that could store a   sequence header and sequence data at this slot.
@@ -287,38 +291,35 @@ package body Component.Sequence_Store.Implementation is
 
       -- We need to make sure none of the sequence slot memory regions overlap. If they do, this is
       -- a user error and should be caught here.
-      for Idx in Self.Slots.all'Range loop
-         for Jdx in Self.Slots.all'Range loop
-            -- Don't compare the same memory region against itself.
-            if Idx /= Jdx then
-               declare
-                  use System.Storage_Elements;
-                  A : Memory_Region.T renames Self.Slots.all (Idx);
-                  B : Memory_Region.T renames Self.Slots.all (Jdx);
-                  A_Start : System.Address renames A.Address;
-                  A_Stop : constant System.Address := A.Address + Storage_Offset (A.Length - 1);
-                  B_Start : System.Address renames B.Address;
-                  B_Stop : constant System.Address := B.Address + Storage_Offset (B.Length - 1);
-                  -- Calculate offset between start addresses. Note: that there is no
-                  -- > or < operators supplied for System.Address, so we use subtraction
-                  -- instead to convert the offset to a Storage_Offset which supports these
-                  -- comparison operators.
-                  Offset : constant Storage_Offset := A_Start - B_Start;
-               begin
-                  -- Check assumptions, make sure regions are not zero length:
-                  pragma Assert ((A_Stop - A_Start) > 0, "Bug in init.");
-                  pragma Assert ((B_Stop - B_Start) > 0, "Bug in init.");
+      for Idx in Self.Slots.all'First .. Self.Slots.all'Last - 1 loop
+         for Jdx in Idx + 1 .. Self.Slots.all'Last loop
+            declare
+               use System.Storage_Elements;
+               A : Memory_Region.T renames Self.Slots.all (Idx);
+               B : Memory_Region.T renames Self.Slots.all (Jdx);
+               A_Start : System.Address renames A.Address;
+               A_Stop : constant System.Address := A.Address + Storage_Offset (A.Length - 1);
+               B_Start : System.Address renames B.Address;
+               B_Stop : constant System.Address := B.Address + Storage_Offset (B.Length - 1);
+               -- Calculate offset between start addresses. Note: that there is no
+               -- > or < operators supplied for System.Address, so we use subtraction
+               -- instead to convert the offset to a Storage_Offset which supports these
+               -- comparison operators.
+               Offset : constant Storage_Offset := A_Start - B_Start;
+            begin
+               -- Check assumptions, make sure regions are not zero length:
+               pragma Assert ((A_Stop - A_Start) > 0, "Bug in init.");
+               pragma Assert ((B_Stop - B_Start) > 0, "Bug in init.");
 
-                  -- Check for overlap:
-                  if Offset > 0 then
-                     -- "a" region must be after "b" region.
-                     pragma Assert ((A_Start - B_Stop) > 0, "Regions overlap.");
-                  else
-                     -- "a" region must be before "b" region.
-                     pragma Assert ((B_Start - A_Stop) > 0, "Regions overlap.");
-                  end if;
-               end;
-            end if;
+               -- Check for overlap:
+               if Offset > 0 then
+                  -- "a" region must be after "b" region.
+                  pragma Assert ((A_Start - B_Stop) > 0, "Regions overlap.");
+               else
+                  -- "a" region must be before "b" region.
+                  pragma Assert ((B_Start - A_Stop) > 0, "Regions overlap.");
+               end if;
+            end;
          end loop;
       end loop;
 
@@ -477,12 +478,15 @@ package body Component.Sequence_Store.Implementation is
                                  Slot_Bytes : Slot_Byte_Array with Import, Convention => Ada, Address => Slot_Sequence_Region.Address;
                                  Ignore_Stat : Command_Execution_Status.E;
                               begin
-                                 -- Modify the sequence validity and write it back in the header.
+                                 -- OK do the actual copy first, before marking the slot as valid.
+                                 -- This ordering ensures that if power is lost during the copy,
+                                 -- the slot header will not yet indicate Valid, preventing
+                                 -- an inconsistent state in MRAM (incomplete data marked as valid).
+                                 Slot_Bytes (0 .. Sequence_Size - 1) := Sequence_Bytes;
+
+                                 -- Now that the data copy is complete, mark the slot as valid.
                                  Slot_Header.Slot_Info.Validity := Valid;
                                  Self.Set_Slot_Header (Arg.Slot, Slot_Header);
-
-                                 -- OK do the actual copy:
-                                 Slot_Bytes (0 .. Sequence_Size - 1) := Sequence_Bytes;
 
                                  -- Throw info event:
                                  Self.Event_T_Send_If_Connected (Self.Events.Wrote_Sequence_To_Slot (Self.Sys_Time_T_Get, (Store => Arg, Header => Self.Get_Slot_Header (Arg.Slot))));
