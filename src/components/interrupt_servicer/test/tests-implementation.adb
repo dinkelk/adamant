@@ -101,6 +101,9 @@ package body Tests.Implementation is
       Tick_Assert.Eq (T.Interrupt_Data_Type_Recv_Sync_History.Get (4), (T.System_Time, 4));
       Tick_Assert.Eq (T.Interrupt_Data_Type_Recv_Sync_History.Get (5), (T.System_Time, 5));
 
+      -- Make sure the time connector was called exactly 5 times:
+      Natural_Assert.Eq (T.Sys_Time_T_Return_History.Get_Count, 5);
+
       -- Terminate the task:
       Ada.Synchronous_Task_Control.Set_True (Component_Signal);
       Sleep_A_Bit;
@@ -108,5 +111,52 @@ package body Tests.Implementation is
       Sleep_A_Bit;
 
    end Test_Interrupt_Handling;
+
+   overriding procedure Test_Burst_Interrupts (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+      Interrupt_Id : Ada.Interrupts.Interrupt_ID renames Component_Tester_Package.Interrupt_Id;
+
+      -- Function to sleep for a while to yield the processor.
+      procedure Sleep_A_Bit is
+         Wait_Time : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Microseconds (500_000);
+         End_Time : constant Ada.Real_Time.Time := Ada.Real_Time.Clock + Wait_Time;
+      begin
+         delay until End_Time;
+      end Sleep_A_Bit;
+
+      -- Create a local task for the Interrupt Service component to execute:
+      Component_Signal : aliased Ada.Synchronous_Task_Control.Suspension_Object;
+      Task_Info : aliased Task_Types.Task_Info;
+      My_Component_Task : Component.Active_Task (Task_Info'Unchecked_Access, T.Component_Instance'Unrestricted_Access, Component_Signal'Access, System.Priority'Last, 30_000, 3_000);
+   begin
+      -- Make sure that no data has been sent:
+      Boolean_Assert.Eq (T.Interrupt_Data_Type_Recv_Sync_History.Is_Empty, True);
+
+      -- Start the task:
+      Ada.Synchronous_Task_Control.Set_True (Component_Signal);
+
+      -- Generate 3 interrupts in rapid succession without sleeping:
+      Interrupt_Sender.Generate_Interrupt (Interrupt_Id);
+      Interrupt_Sender.Generate_Interrupt (Interrupt_Id);
+      Interrupt_Sender.Generate_Interrupt (Interrupt_Id);
+
+      -- Now sleep to let the component task process all pending interrupts:
+      Sleep_A_Bit;
+      Sleep_A_Bit;
+      Sleep_A_Bit;
+
+      -- We expect at least 1 interrupt to be processed. Due to the nature of
+      -- binary semaphore signaling, rapid-fire interrupts may coalesce, so
+      -- we check that we received between 1 and 3 items:
+      Natural_Assert.Ge (T.Interrupt_Data_Type_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Le (T.Interrupt_Data_Type_Recv_Sync_History.Get_Count, 3);
+
+      -- Terminate the task:
+      Ada.Synchronous_Task_Control.Set_True (Component_Signal);
+      Sleep_A_Bit;
+      Interrupt_Sender.Generate_Interrupt (Interrupt_Id);
+      Sleep_A_Bit;
+
+   end Test_Burst_Interrupts;
 
 end Tests.Implementation;

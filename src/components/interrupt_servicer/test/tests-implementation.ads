@@ -19,6 +19,9 @@ private
    -- This unit test sends many interrupts to the Interrupt Servicer component and expects it to produce ticks.
    overriding procedure Test_Interrupt_Handling (Self : in out Instance);
 
+   -- This unit test sends multiple interrupts in rapid succession without sleeping between them to verify no signals are lost under burst conditions.
+   overriding procedure Test_Burst_Interrupts (Self : in out Instance);
+
    -- Instantiate generic component:
    package Component_Package is new Component.Interrupt_Servicer (Tick.T, Tick_Interrupt_Handler.Set_Tick_Time);
    package Component_Implementation_Package is new Component_Package.Implementation;
