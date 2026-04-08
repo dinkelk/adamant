@@ -1,0 +1,8 @@
+---
+description: View that exercises _add_data_dependency_components by using a component_name_context filter. Selecting only Science_Instance should pull in Data_Collector_Instance as a direct data dependency neighbor.
+show_data_dependencies: True
+filters:
+  - name: include_science_context
+    type: component_name_context
+    include:
+      - Science_Instance

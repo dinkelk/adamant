@@ -1,0 +1,19 @@
+---
+description: View that exercises assembly_union (|) with list-valued data dependencies. One filter selects Science_Instance, the other selects Science_Monitor_Instance. Their union should include both components and all three data dependencies including the shared Sensor_1_Data.
+show_data_dependencies: True
+rule: science_components | monitor_component
+filters:
+  - name: science_components
+    type: component_name
+    include:
+      - Science_Instance
+      - Data_Collector_Instance
+      - Database_Instance
+      - Time_Instance
+  - name: monitor_component
+    type: component_name
+    include:
+      - Science_Monitor_Instance
+      - Data_Collector_Instance
+      - Database_Instance
+      - Time_Instance

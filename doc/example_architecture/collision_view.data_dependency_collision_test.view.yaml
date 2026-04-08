@@ -1,0 +1,8 @@
+---
+description: View that exercises data dependency name filters with ID collision. Filters by the shared data product (Sensor_1_Data) to verify both dependencies survive filtering.
+show_data_dependencies: True
+filters:
+  - name: include_shared_data_dependency
+    type: data_dependency_name
+    include:
+      - Data_Collector_Instance.Sensor_1_Data

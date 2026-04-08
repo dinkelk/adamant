@@ -1,0 +1,79 @@
+---
+description: Test assembly that exercises the data dependency ID collision case. Two components (Science_Instance and Science_Monitor_Instance) both depend on the same data product (Data_Collector_Instance.Sensor_1_Data).
+components:
+  - type: Example_Science
+    name: Science_Instance
+    init_base:
+      - "Queue_Size => 1000"
+    map_data_dependencies:
+      - data_dependency: Sensor_1_Reading
+        data_product: Data_Collector_Instance.Sensor_1_Data
+        stale_limit_us: 1000000
+      - data_dependency: Sensor_2_Reading
+        data_product: Data_Collector_Instance.Sensor_2_Data
+        stale_limit_us: 1000000
+  - type: Example_Science_Monitor
+    name: Science_Monitor_Instance
+    # This component shares Sensor_1_Data with Science_Instance,
+    # exercising the data dependency ID collision fix:
+    map_data_dependencies:
+      - data_dependency: Sensor_1_Reading
+        data_product: Data_Collector_Instance.Sensor_1_Data
+        stale_limit_us: 500000
+  - type: Example_Data_Collector
+    name: Data_Collector_Instance
+  - type: Example_Database
+    name: Database_Instance
+  - type: Example_Time
+    name: Time_Instance
+    discriminant:
+      - "Time_Source => Example_Time.Software"
+connections:
+  # Science connections:
+  - from_component: Science_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Science_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Database_Instance
+    to_connector: Data_Product_T_Recv_Sync
+  - from_component: Science_Instance
+    from_connector: Data_Product_Fetch_T_Request
+    to_component: Database_Instance
+    to_connector: Data_Product_Fetch_T_Service
+  # Science monitor connections:
+  - from_component: Science_Monitor_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Science_Monitor_Instance
+    from_connector: Data_Product_Fetch_T_Request
+    to_component: Database_Instance
+    to_connector: Data_Product_Fetch_T_Service
+  # Data collector connections:
+  - from_component: Data_Collector_Instance
+    from_connector: Sys_Time_T_Get
+    to_component: Time_Instance
+    to_connector: Sys_Time_T_Return
+  - from_component: Data_Collector_Instance
+    from_connector: Data_Product_T_Send
+    to_component: Database_Instance
+    to_connector: Data_Product_T_Recv_Sync
+  # Ignore unconnected connectors:
+  - from_component: ignore
+    from_connector: ignore
+    to_component: Science_Instance
+    to_connector: Tick_T_Recv_Sync
+  - from_component: ignore
+    from_connector: ignore
+    to_component: Science_Instance
+    to_connector: Command_T_Recv_Async
+  - from_component: ignore
+    from_connector: ignore
+    to_component: Science_Instance
+    to_connector: Parameter_Update_T_Modify
+  - from_component: ignore
+    from_connector: ignore
+    to_component: Science_Monitor_Instance
+    to_connector: Tick_T_Recv_Sync

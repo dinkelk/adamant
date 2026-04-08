@@ -1,0 +1,13 @@
+---
+description: View that exercises assembly_intersection (&) with list-valued data dependencies. One filter includes all data dependencies by type, the other includes only the shared Sensor_1_Data by name. Their intersection should yield only the two colliding Sensor_1_Reading entries.
+show_data_dependencies: True
+rule: all_by_type & only_sensor_1
+filters:
+  - name: all_by_type
+    type: data_dependency_type
+    include:
+      - Packed_U32.T
+  - name: only_sensor_1
+    type: data_dependency_name
+    include:
+      - Data_Collector_Instance.Sensor_1_Data

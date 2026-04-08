@@ -1,0 +1,8 @@
+---
+description: View that exercises include_data_dependency_type_filter with list-valued data dependencies. All three data dependencies are Packed_U32.T, so all should survive including the two colliding Sensor_1_Reading entries.
+show_data_dependencies: True
+filters:
+  - name: include_by_type
+    type: data_dependency_type
+    include:
+      - Packed_U32.T

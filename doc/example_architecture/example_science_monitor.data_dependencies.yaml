@@ -1,0 +1,6 @@
+---
+description: Data dependencies for the Example Science Monitor Component. Sensor_1_Reading intentionally shares a data product with the science component to test the data dependency ID collision fix.
+data_dependencies:
+  - name: Sensor_1_Reading
+    description: Sensor data value 1, monitored independently from the science component.
+    type: Packed_U32.T
