@@ -37,6 +37,8 @@ def __invoke_redo_subprocess(command, args=None, prefix_args=None):
     """
     if args is None:
         args = []
+    if isinstance(args, str):
+        args = [args]
     if prefix_args is None:
         prefix_args = []
     all_args = prefix_args + args
