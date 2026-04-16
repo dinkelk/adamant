@@ -22,10 +22,9 @@ package {{ name }}.Validation is
    -- False is returned and the Errant_Field parameter is filled in with a
    -- Natural specifying which field was out of range.
    --
-   -- The byte-array overloads accept raw bytes instead of a typed record,
-   -- avoiding implementation-defined parameter-passing behavior for composite
-   -- types that may contain invalid scalar representations (ARM 13.9.1(12)).
-   function Valid (R : in U; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
+   -- These functions accept raw bytes instead of a typed record, avoiding
+   -- implementation-defined parameter-passing behavior for composite types
+   -- that may contain invalid scalar representations (ARM 13.9.1(12)).
 {% if endianness in ["either", "big"] %}
    function Valid (Bytes : in Serialization.Byte_Array; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
 {% endif %}

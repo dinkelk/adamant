@@ -25,11 +25,9 @@ package {{ name }}.Validation is
    -- range checks on all the fields of the array. If an element is invalid,
    -- False is returned. The Errant_Field parameter is always 0.
    --
-   -- The byte-array overloads accept raw bytes instead of a typed array,
-   -- avoiding implementation-defined parameter-passing behavior for composite
-   -- types that may contain invalid scalar representations (ARM 13.9.1(12)).
-   function Valid (R : in Unconstrained; Errant_Field : out Interfaces.Unsigned_32) return Boolean;
-   -- ^ "Unpacked" can be passed into this function as well because it is a subtype of Unconstrained
+   -- These functions accept raw bytes instead of a typed array, avoiding
+   -- implementation-defined parameter-passing behavior for composite types
+   -- that may contain invalid scalar representations (ARM 13.9.1(12)).
 {% if endianness in ["either", "big"] %}
    -- Valid function accepting a byte array. Optionally, a first or last index can be passed in to only check
    -- a portion of the array, otherwise the entire array is checked for validity.
