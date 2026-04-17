@@ -103,10 +103,11 @@ package body Event_Filter_Entry_Tests.Implementation is
          Start_List : constant Event_Id_List := [2, 5];
       begin
          Event_Filter.Init (Event_Id_Start => 7, Event_Id_Stop => 2, Event_Filter_List => Start_List);
+         -- If we reach here, the expected exception was not raised
+         Assert (False, "Expected assertion failure for invalid Event ID range, but Init succeeded");
       exception
-         -- Expecting the assert to be thrown here:
          when others =>
-            Assert (True, "Invalid Event ID Range assert failed!");
+            null; -- Expected: assertion fired for invalid range
       end Invalid_Init_Range;
 
    begin
@@ -625,6 +626,21 @@ package body Event_Filter_Entry_Tests.Implementation is
 
       State_Filter_Status := Event_Filter.Filter_Event (7);
       Event_Filter_Status_Assert.Eq (State_Filter_Status, Filtered);
+
+      -- Test counter behavior when globally disabled (Issue 4.4)
+      -- The unfiltered counter should still increment when globally disabled
+      declare
+         Unfiltered_Before : constant Unsigned_32 := Event_Filter.Get_Event_Unfiltered_Count;
+      begin
+         Event_Filter.Set_Global_Enable_State (Global_Filter_State.Disabled);
+         State_Filter_Status := Event_Filter.Filter_Event (4); -- would be filtered if enabled
+         Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
+         State_Filter_Status := Event_Filter.Filter_Event (5); -- unfiltered either way
+         Event_Filter_Status_Assert.Eq (State_Filter_Status, Unfiltered);
+         -- Both events should have incremented the unfiltered counter
+         Unsigned_32_Assert.Eq (Event_Filter.Get_Event_Unfiltered_Count, Unfiltered_Before + 2);
+         Event_Filter.Set_Global_Enable_State (Global_Filter_State.Enabled);
+      end;
 
       Event_Filter.Destroy;
       pragma Unreferenced (Event_Filter);
