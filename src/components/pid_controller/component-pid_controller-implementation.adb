@@ -53,7 +53,11 @@ package body Component.Pid_Controller.Implementation is
    overriding procedure Init (Self : in out Instance; Control_Frequency : in Short_Float; Database_Update_Period : in Unsigned_16; Moving_Average_Max_Samples : in Natural; Moving_Average_Init_Samples : in Integer := -1) is
    begin
       -- Set the control time step (period):
-      pragma Assert (Control_Frequency > 0.0, "The control frequency must be a positive floating point value.");
+      -- C4: Use a proper runtime check instead of pragma Assert, which can be
+      -- disabled in production builds with -gnatp, silently producing Inf/NaN.
+      if not (Control_Frequency > 0.0) then
+         raise Constraint_Error with "The control frequency must be a positive floating point value.";
+      end if;
       Self.Time_Step := 1.0 / Control_Frequency;
 
       -- Set the database update period:
@@ -62,7 +66,12 @@ package body Component.Pid_Controller.Implementation is
       Self.Diagnostic_Counter.Set_Count (0);
 
       -- Setup the moving average object if the max size is set to something other than 0
+      -- M1: Validate that Moving_Average_Init_Samples is >= -1 (where -1 means "use max").
+      -- Values less than -1 are not meaningful and could cause undefined behavior.
       if Moving_Average_Max_Samples > 0 then
+         if Moving_Average_Init_Samples < -1 then
+            raise Constraint_Error with "Moving_Average_Init_Samples must be >= -1, got" & Integer'Image (Moving_Average_Init_Samples);
+         end if;
          Self.Ma_Stats.Init (Sample_Storage_Size => Moving_Average_Max_Samples, Sample_Calculation_Size => Moving_Average_Init_Samples);
          Self.Use_Ma_Stats := True;
       else
@@ -96,7 +105,26 @@ package body Component.Pid_Controller.Implementation is
       end if;
 
       --
-      -- Use the updated parameters to calculate the control angle we desire
+      -- Use the updated parameters to calculate the control output.
+      --
+      -- C5: Guard against NaN/Inf inputs from failed sensors. If either input
+      -- is non-finite, skip control computation and output the feed-forward value
+      -- as a safe fallback to avoid propagating NaN through the control chain.
+      if not (Arg.Commanded_Value'Valid and then Arg.Measured_Value'Valid and then Arg.Feed_Forward_Value'Valid) then
+         -- Output only the feed-forward if it is valid, otherwise output 0.0
+         if Arg.Feed_Forward_Value'Valid then
+            Self.Control_Output_U_Send_If_Connected ((Time => Arg.Time, Output_Value => Arg.Feed_Forward_Value, Error => 0.0));
+         else
+            Self.Control_Output_U_Send_If_Connected ((Time => Arg.Time, Output_Value => 0.0, Error => 0.0));
+         end if;
+         return;
+      end if;
+
+      -- Note on discretization: The integral and derivative terms use backward-Euler
+      -- (rectangular) integration with the *previous* cycle's error. This means on the
+      -- very first iteration after First_Iteration=True, only P*error + feed_forward
+      -- contributes to the output; the I and D terms are effectively one step delayed.
+      -- This is a known and intentional property of this discretization scheme.
       --
       declare
          -- Pull out the timestamp from the input data for ease of use:
@@ -109,19 +137,24 @@ package body Component.Pid_Controller.Implementation is
          Pid_Control_Error : constant Short_Float := Arg.Commanded_Value - Arg.Measured_Value;
          -- Proportional control
          Pid_Proportional_Output : constant Short_Float := Self.P_Gain.Value * Pid_Control_Error;
-         -- Integral control
-         Pid_Integral_Output : Short_Float := Self.Control_Out_Prev_I + Self.I_Gain.Value * Self.Time_Step * Self.Control_Error_Prev;
+         -- Integral control - accumulate in Long_Float to preserve precision (C3),
+         -- then convert to Short_Float for the control output computation.
+         Pid_Integral_Accum : Long_Float := Self.Control_Out_Prev_I + Long_Float (Self.I_Gain.Value * Self.Time_Step * Self.Control_Error_Prev);
+         Pid_Integral_Output : Short_Float;
          -- Derivative control
          Pid_Derivative_Output : constant Short_Float := Self.Control_Out_Prev_D * (1.0 - (Self.N_Filter.Value * Self.Time_Step)) + (Pid_Control_Error - Self.Control_Error_Prev) * Self.D_Gain.Value * Self.N_Filter.Value;
          -- Total control output
          Pid_Control_Output : Short_Float;
       begin
          -- Limit integral wind up based on our integral limit parameters:
-         if Pid_Integral_Output > Self.I_Max_Limit.Value then
-            Pid_Integral_Output := Self.I_Max_Limit.Value;
-         elsif Pid_Integral_Output < Self.I_Min_Limit.Value then
-            Pid_Integral_Output := Self.I_Min_Limit.Value;
+         if Pid_Integral_Accum > Long_Float (Self.I_Max_Limit.Value) then
+            Pid_Integral_Accum := Long_Float (Self.I_Max_Limit.Value);
+         elsif Pid_Integral_Accum < Long_Float (Self.I_Min_Limit.Value) then
+            Pid_Integral_Accum := Long_Float (Self.I_Min_Limit.Value);
          end if;
+
+         -- Convert accumulated integral to Short_Float for output:
+         Pid_Integral_Output := Short_Float (Pid_Integral_Accum);
 
          -- Set the control output after we limit the integral term
          Pid_Control_Output := Pid_Proportional_Output + Pid_Integral_Output + Pid_Derivative_Output + Arg.Feed_Forward_Value;
@@ -132,7 +165,7 @@ package body Component.Pid_Controller.Implementation is
          -- Update the previous values here
          Self.Control_Error_Prev := Pid_Control_Error;
          Self.Control_Out_Prev_D := Pid_Derivative_Output;
-         Self.Control_Out_Prev_I := Pid_Integral_Output;
+         Self.Control_Out_Prev_I := Pid_Integral_Accum;
 
          -- Calculate the new statistics for this cycle if the object was initialized
          if Self.Use_Ma_Stats then
@@ -200,6 +233,12 @@ package body Component.Pid_Controller.Implementation is
                   -- Set timestamp:
                   Self.Diagnostic_Packet.Header.Time := Timestamp;
                end if;
+
+               -- C6: Defensive assertion to catch buffer overrun before it happens.
+               -- The overflow check above should prevent this, but an explicit assertion
+               -- makes the invariant clear and catches logic errors during development.
+               pragma Assert (Diagnostic_Packet_Index + Pid_Diagnostic_Subpacket.Max_Serialized_Length <= Self.Diagnostic_Packet.Buffer'Length,
+                  "Diagnostic packet buffer overrun: index would exceed buffer bounds");
 
                -- Fill the packet buffer with diagnostic data from this cycle:
                Self.Diagnostic_Packet.Buffer (Diagnostic_Packet_Index .. Diagnostic_Packet_Index + Pid_Diagnostic_Subpacket.Max_Serialized_Length - 1) :=
@@ -301,5 +340,35 @@ package body Component.Pid_Controller.Implementation is
       -- Throw event:
       Self.Event_T_Send_If_Connected (Self.Events.Invalid_Parameter_Received (Self.Sys_Time_T_Get, (Id => Par.Header.Id, Errant_Field_Number => Errant_Field_Number, Errant_Field => Errant_Field)));
    end Invalid_Parameter;
+
+   -----------------------------------------------
+   -- Parameter validation:
+   -----------------------------------------------
+   overriding function Validate_Parameters (
+      Self : in out Instance;
+      P_Gain : in Packed_F32.U;
+      I_Gain : in Packed_F32.U;
+      D_Gain : in Packed_F32.U;
+      N_Filter : in Packed_F32.U;
+      I_Min_Limit : in Packed_F32.U;
+      I_Max_Limit : in Packed_F32.U
+   ) return Parameter_Validation_Status.E is
+      pragma Unreferenced (P_Gain, I_Gain, D_Gain);
+   begin
+      -- C1: Validate derivative filter stability. The forward-Euler discretization
+      -- of the derivative filter is unstable when N_Filter * Time_Step >= 2.0.
+      -- Reject parameters that would cause this condition.
+      if N_Filter.Value * Self.Time_Step >= 2.0 then
+         return Parameter_Validation_Status.Invalid;
+      end if;
+
+      -- M2: Validate that I_Min_Limit <= I_Max_Limit. Inverted limits would
+      -- silently disable integral windup protection.
+      if I_Min_Limit.Value > I_Max_Limit.Value then
+         return Parameter_Validation_Status.Invalid;
+      end if;
+
+      return Parameter_Validation_Status.Valid;
+   end Validate_Parameters;
 
 end Component.Pid_Controller.Implementation;

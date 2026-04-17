@@ -55,7 +55,10 @@ private
 
       -- Previous integral and derivative values
       Control_Error_Prev : Short_Float := 0.0;
-      Control_Out_Prev_I : Short_Float := 0.0;
+      -- Use Long_Float (64-bit) for the integral accumulator to avoid
+      -- precision loss over long control runs (C3). Small I_Gain*dt*error
+      -- increments can be lost when added to a large Short_Float accumulator.
+      Control_Out_Prev_I : Long_Float := 0.0;
       Control_Out_Prev_D : Short_Float := 0.0;
 
       -- Diagnostic packet variables
@@ -147,6 +150,6 @@ private
       N_Filter : in Packed_F32.U;
       I_Min_Limit : in Packed_F32.U;
       I_Max_Limit : in Packed_F32.U
-   ) return Parameter_Validation_Status.E is (Parameter_Validation_Status.Valid);
+   ) return Parameter_Validation_Status.E;
 
 end Component.Pid_Controller.Implementation;
