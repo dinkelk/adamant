@@ -225,11 +225,11 @@ package body Memory_Packetizer_Tests.Implementation is
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (9).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 7]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (10).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 6]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (11).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 5]);
-      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (4).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
+      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (12).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (13).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 7]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (14).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 6]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (15).Buffer (Mem_Region_Length .. Packet_Buffer_Type'Last), [0 .. Packet_Data_Length - 1 => 5]);
-      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (16).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (8).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
+      Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (16).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (16).Header.Buffer_Length - 1), [0 .. Packet_Data_Length / 2 - 1 => 4]);
 
       -- Check packet address and length headers:
       Memory_Region_Assert.Eq (Memory_Region.Serialization.From_Byte_Array (T.Packet_T_Recv_Sync_History.Get (9).Buffer (0 .. Mem_Region_Length - 1)), (Bytes'Address, Packet_Data_Length));
@@ -577,10 +577,12 @@ package body Memory_Packetizer_Tests.Implementation is
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (6).Header.Sequence_Count, 2);
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (7).Header.Sequence_Count, 1);
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (8).Header.Sequence_Count, 2);
+      -- After IMPL-01 fix, untracked IDs now have incrementing sequence counts
+      -- within each dump (starting from 0 each time since they are untracked):
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (9).Header.Sequence_Count, 0);
-      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (10).Header.Sequence_Count, 0);
+      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (10).Header.Sequence_Count, 1);
       Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (11).Header.Sequence_Count, 0);
-      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Header.Sequence_Count, 0);
+      Sequence_Count_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Header.Sequence_Count, 1);
 
       -- Check packet lengths, all should be max:
       for Idx in 5 .. 12 loop
@@ -597,5 +599,49 @@ package body Memory_Packetizer_Tests.Implementation is
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (11).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (11).Header.Buffer_Length - 1), [0 .. Packet_Data_Length - 1 => 8]);
       Byte_Array_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (12).Buffer (Mem_Region_Length .. T.Packet_T_Recv_Sync_History.Get (12).Header.Buffer_Length - 1), [0 .. Packet_Data_Length - 1 => 8]);
    end Test_Max_Packet_Id_Exceeded;
+
+   overriding procedure Test_Zero_Length_Memory_Dump (Self : in out Instance) is
+      use Byte_Array_Pointer;
+      T : Component.Memory_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+      Bytes : aliased Basic_Types.Byte_Array := [0 .. 0 => 0];
+      -- Create a zero-length memory dump by using length 0:
+      Dump : constant Memory_Packetizer_Types.Memory_Dump := (Id => 42, Memory_Pointer => From_Address (Bytes'Address, 0));
+   begin
+      -- Send a zero-length memory dump:
+      T.Memory_Dump_Send (Dump);
+
+      -- Dispatch:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- No packets should have been produced:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- No events should have been thrown:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Zero_Length_Memory_Dump;
+
+   overriding procedure Test_Zero_Max_Packet_Rate (Self : in out Instance) is
+      T : Component.Memory_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Try to set max packet rate to zero via command:
+      T.Command_T_Send (T.Commands.Set_Max_Packet_Rate ((Max_Packets => 0, Period => 1)));
+
+      -- Make sure no events were thrown yet:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Empty the component queue:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- The command should have failed:
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Set_Max_Packet_Rate_Id, Status => Failure));
+
+      -- An invalid command event should have been emitted:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Invalid_Command_Received_History.Get_Count, 1);
+
+      -- No packets should have been produced:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Zero_Max_Packet_Rate;
 
 end Memory_Packetizer_Tests.Implementation;
