@@ -69,9 +69,9 @@ private
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Memory_Region_Copy_T_Send message is dropped due to a full queue.
-   overriding procedure Memory_Region_Copy_T_Send_Dropped (Self : in out Instance; Arg : in Memory_Region_Copy.T) is null;
+   overriding procedure Memory_Region_Copy_T_Send_Dropped (Self : in out Instance; Arg : in Memory_Region_Copy.T);
    -- This procedure is called when a Memory_Region_Release message is dropped due to a full queue.
-   overriding procedure Ided_Memory_Region_Release_Dropped (Self : in out Instance; Arg : in Ided_Memory_Region.T) is null;
+   overriding procedure Ided_Memory_Region_Release_Dropped (Self : in out Instance; Arg : in Ided_Memory_Region.T);
    -- This procedure is called when a Event_T_Send message is dropped due to a full queue.
    overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;
 
