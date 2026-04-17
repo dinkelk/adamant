@@ -1,5 +1,5 @@
 
--- This is a somewhat generic, unprotected binary tree for holding apids and filter factors for the downsampler component.
+-- This package provides an unprotected flat array for holding task watchdog pet entries and their associated state.
 package body Watchdog_List is
 
    -- Initialization of the task watchdog entry list

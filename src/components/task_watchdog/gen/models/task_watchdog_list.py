@@ -31,7 +31,7 @@ class task_watchdog_entry(object):
         if petter["action"] not in ["error_fault", "warn", "disabled"]:
             raise ModelException("Action not part of the prescribed enum")
         # Check that if the action is as a fault, that it has a fault id as well.
-        if petter["action"] in "error_fault" and "fault_id" not in petter:
+        if petter["action"] == "error_fault" and "fault_id" not in petter:
             raise ModelException(
                 "Action was declared as fault, but no fault Id was included: "
                 + self.connector_name
