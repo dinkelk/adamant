@@ -1,4 +1,4 @@
-with AUnit.Assertions; use AUnit.Assertions;
+with Smart_Assert; use Smart_Assert;
 with Ada.Text_IO; use Ada.Text_IO;
 
 package body History.Printable is

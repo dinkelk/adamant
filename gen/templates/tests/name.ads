@@ -8,7 +8,6 @@
 with AUnit;
 with AUnit.Test_Fixtures;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Calendar; use Ada.Calendar;
 with File_Logger;
 {% if component and not component.generic %}
 -- Component Tester Include:
@@ -47,11 +46,11 @@ package {{ name }} is
    type Test_Name_List_Type is array (Natural range 0 .. Num_Tests - 1) of Unbounded_String;
 
    Test_Name_List : constant Test_Name_List_Type :=
-   [
+   (
 {% for test in tests.values() %}
       {{ loop.index0 }} => To_Unbounded_String ("{{ test.name }}"){{ "," if not loop.last }}
 {% endfor %}
-   ];
+   );
 
 private
    -- Logging procedures:
@@ -60,8 +59,8 @@ private
    procedure Log (Self : in out Base_Instance; String_To_Log : in String);
 
    -- Fixture procedures:
-   overriding procedure Set_Up (Self : in out Base_Instance);
-   overriding procedure Tear_Down (Self : in out Base_Instance);
+   procedure Set_Up (Self : in out Base_Instance);
+   procedure Tear_Down (Self : in out Base_Instance);
 
    -- Test data and state:
    type Base_Instance is abstract new AUnit.Test_Fixtures.Test_Fixture with record
@@ -69,11 +68,9 @@ private
       Test_Name_Index : Natural := 0;
       -- File for logging
       Logger : aliased File_Logger.Instance;
-      -- Time for when the test starts to track the duration of the test
-      Start_Test_Time : Time;
 {% if component and not component.generic %}
       -- The tester component:
-      Tester : Component.{{ component.name }}.Implementation.Tester.Instance_Access;
+      Tester : aliased Component.{{ component.name }}.Implementation.Tester.Instance;
 {% endif %}
    end record;
 end {{ name }};

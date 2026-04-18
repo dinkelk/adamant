@@ -1,4 +1,4 @@
-with AUnit.Assertions; use AUnit.Assertions;
+with Smart_Assert; use Smart_Assert;
 with Safe_Deallocator;
 
 package body History is
