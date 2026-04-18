@@ -55,7 +55,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Nominal_Routing (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
    begin
       -- 5 command responses, 2 for each command registration, 1 for registration command response
@@ -179,7 +179,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Nominal_Registration (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Buffer1 : constant Command_Types.Command_Arg_Buffer_Type := [0 => 56, 1 => 57, others => 0];
       Buffer2 : constant Command_Types.Command_Arg_Buffer_Type := [0 => 13, 1 => 14, others => 0];
       A_Command : Command.T;
@@ -236,7 +236,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Routing_Errors (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
       Buffer1 : constant Command_Types.Command_Arg_Buffer_Type := [0 => 56, 1 => 57, others => 0];
       A_Command : Command.T;
@@ -311,7 +311,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Registration_Errors (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
    begin
       T.Command_T_Recv_Sync_History.Clear; -- clear registration commands from history
@@ -352,7 +352,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Full_Queue_Errors (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Buffer : constant Command_Types.Command_Arg_Buffer_Type := [0 => 56, 1 => 57, others => 92];
       A_Command : constant Command.T := ((Source_Id => 2, Id => 15, Arg_Buffer_Length => Buffer'Length), Arg_Buffer => Buffer);
 
@@ -428,7 +428,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Invalid_Argument_Length (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Noop_Command : Command.T := T.Commands.Noop;
       Noop_Arg_Command : Command.T := T.Commands.Noop_Arg ((Value => 12));
       Ignore : Natural;
@@ -516,7 +516,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Invalid_Argument_Value (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Noop_Arg_Command : Command.T := T.Commands.Noop_Arg ((Value => 0)); -- Out of range
       Ignore : Natural;
    begin
@@ -562,7 +562,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Failed_Command (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
    begin
       -- 3 command responses, 2 for each command registration, 1 for registration command response
@@ -607,7 +607,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Synchronous_Command (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
    begin
       -- 3 command responses, 2 for each command registration, 1 for registration command response
@@ -693,7 +693,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Command_Response_Forwarding (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
    begin
       -- Make sure that the command response forwarded registration was performed at initialization:
@@ -803,7 +803,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Command_Response_Forwarding_Dropped (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
    begin
       -- 3 command responses, 2 for each command registration, 1 for registration command response
       Natural_Assert.Eq (Self.Tester.Dispatch_All, 5);
@@ -825,7 +825,7 @@ package body Command_Router_Tests.Implementation is
 
    overriding procedure Test_Outgoing_Command_Dropped (Self : in out Instance) is
       use Command_Response_Status;
-      T : Component.Command_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+      T : constant Component.Command_Router.Implementation.Tester.Instance_Access := Self.Tester'Unchecked_Access;
       Ignore : Natural;
       A_Command : Command.T;
       Buffer1 : constant Command_Types.Command_Arg_Buffer_Type := [0 => 56, 1 => 57, others => 0];
