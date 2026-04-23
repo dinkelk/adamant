@@ -19,3 +19,5 @@ tests:
     description: This unit test tests error handling when updating grouped parameters by memory region upload fails.
   - name: Test_Grouped_Fetch_Value_Mismatch
     description: This unit test tests that the Parameter_Fetch_Value_Mismatch event is produced when grouped parameters have diverged values during a fetch operation.
+  - name: Test_Grouped_Update_Second_Component_Stage_Fails
+    description: This unit test tests that when the first component succeeds staging but the second component fails staging during a grouped Update_Parameter command, the command returns Failure and the first component's staged values are not committed.

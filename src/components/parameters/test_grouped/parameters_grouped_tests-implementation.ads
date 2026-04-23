@@ -39,6 +39,10 @@ private
    -- This unit test tests that the Parameter_Fetch_Value_Mismatch event is produced
    -- when grouped parameters have diverged values during a fetch operation.
    overriding procedure Test_Grouped_Fetch_Value_Mismatch (Self : in out Instance);
+   -- This unit test tests that when the first component succeeds staging but the
+   -- second component fails staging during a grouped Update_Parameter command, the
+   -- command returns Failure and the first component's staged values are not committed.
+   overriding procedure Test_Grouped_Update_Second_Component_Stage_Fails (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Parameters_Grouped_Tests.Base_Instance with record

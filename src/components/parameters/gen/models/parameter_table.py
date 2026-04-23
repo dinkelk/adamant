@@ -289,10 +289,7 @@ class parameter_table(assembly_submodel):
             self.parameters[table_entry.name] = table_entry
             # Append to component dictionary for all parameters in this entry
             for param in table_entry.parameters:
-                try:
-                    self.components[param.component.instance_name] = param.component
-                except KeyError:
-                    pass
+                self.components[param.component.instance_name] = param.component
 
         # Track dependencies as we go
         dependencies = []
@@ -470,7 +467,18 @@ class parameter_table(assembly_submodel):
         # the parameter model at template render time, after the assembly has set them.
         for table_entry in self.parameters.values():
             for param in table_entry.parameters:
-                param.component_id = self.destinations[param.component.instance_name][0]
+                indexes = self.destinations[param.component.instance_name]
+                if len(indexes) > 1:
+                    raise ModelException(
+                        'Component "'
+                        + param.component.instance_name
+                        + '" is connected to "'
+                        + self.parameters_instance_name
+                        + '" on multiple indexes: '
+                        + str(indexes)
+                        + '. Each parameterized component must have exactly one connection.'
+                    )
+                param.component_id = indexes[0]
 
         # Remove duplicate dependencies
         self.dependencies = list(set(self.dependencies))
@@ -495,20 +503,12 @@ class parameter_table(assembly_submodel):
                 if not submodel.parameter_table_resolved:
                     continue
 
-                # Collect all parameters from this other table
+                # Collect all parameters from this other table.
+                # We only collect here — duplicate detection among other tables is handled
+                # when those tables run their own _check_duplicate_parameters_across_tables.
                 for table_entry in submodel.parameters.values():
                     for param in table_entry.parameters:
-                        param_name = param.name
-                        if param_name in other_table_parameters:
-                            # This parameter already exists in another table!
-                            prev_table_name, prev_entry_id = other_table_parameters[param_name]
-                            raise ModelException(
-                                f'Parameter "{param_name}" appears in multiple parameter tables. '
-                                f'It is present in parameter table "{prev_table_name}" (Entry_ID {prev_entry_id}) '
-                                f'and also in parameter table "{submodel.name}" (Entry_ID {table_entry.entry_id}). '
-                                f'Each parameter can only be managed by one Parameters component instance.'
-                            )
-                        other_table_parameters[param_name] = (submodel.name, table_entry.entry_id)
+                        other_table_parameters[param.name] = (submodel.name, table_entry.entry_id)
 
         # Now check if any of OUR parameters conflict with those in other tables
         for table_entry in self.parameters.values():
