@@ -751,7 +751,7 @@ class assembly(subassembly):
         for subassembly in self.subassemblies.values():
             self.submodel_files.extend(subassembly.submodel_files)
 
-        # Load all submodels dynamically:
+        # Load all submodels dynamically.
         submodels = list(
             filter(
                 None,
@@ -759,7 +759,7 @@ class assembly(subassembly):
                     model_loader.try_load_model_of_subclass(
                         f, parent_class=assembly_submodel
                     )
-                    for f in list(set(self.submodel_files))
+                    for f in dict.fromkeys(self.submodel_files)
                 ],
             )
         )
