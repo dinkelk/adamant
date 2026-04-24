@@ -753,7 +753,7 @@ class assembly(subassembly):
         for subassembly in self.subassemblies.values():
             self.submodel_files.extend(subassembly.submodel_files)
 
-        # Load all submodels dynamically:
+        # Load all submodels dynamically.
         submodels = list(
             filter(
                 None,
@@ -761,7 +761,7 @@ class assembly(subassembly):
                     model_loader.try_load_model_of_subclass(
                         f, parent_class=assembly_submodel
                     )
-                    for f in list(set(self.submodel_files))
+                    for f in dict.fromkeys(self.submodel_files)
                 ],
             )
         )
@@ -997,7 +997,7 @@ class assembly(subassembly):
                 self.dependencies += [c.full_filename] + c.get_dependencies()
             for m in submodels:
                 self.dependencies.extend([m.full_filename] + m.get_dependencies())
-            self.dependencies = list(set(self.dependencies))
+            self.dependencies = list(dict.fromkeys(self.dependencies))
 
             # FOR DEBUG ONLY
             # Print a histogram of connection types in the assembly:
