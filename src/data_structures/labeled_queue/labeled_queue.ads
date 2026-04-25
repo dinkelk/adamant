@@ -1,6 +1,7 @@
 with Circular_Buffer.Labeled_Queue;
 with Basic_Types;
 with Ada.Synchronous_Task_Control;
+with Ada.Strings.Text_Buffers;
 with Serializer_Types;
 
 -- This is a protected (thread safe) queue that supports the pushing,
@@ -298,12 +299,17 @@ private
       Queue : Labeled_Queue_Package.Instance;
    end Protected_Queue;
 
+   procedure Put_Image (
+      Buffer : in out Ada.Strings.Text_Buffers.Root_Buffer_Type'Class;
+      Arg    : in Instance);
+
    -- The queue instance contains an unprotected queue type, a binary semaphore for mutual exclusion,
    -- and two suspension objects to provide synchronization (blocking operations) when trying to pop/peek
    -- from an empty queue or trying to push to a full queue.
    type Instance is tagged limited record
       Queue : Protected_Queue;
       Not_Full, Not_Empty : Ada.Synchronous_Task_Control.Suspension_Object;
-   end record;
+   end record
+      with Put_Image => Put_Image;
 
 end Labeled_Queue;

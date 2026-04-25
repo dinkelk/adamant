@@ -9,6 +9,7 @@ with Command;
 with Router_Table;
 with Interfaces;
 with Protected_Variables;
+with Ada.Strings.Text_Buffers;
 with Command_Router_Commands;
 
 -- This component routes commands to the appropriate component for execution.
@@ -24,6 +25,10 @@ package Component.Command_Router.Implementation is
    not overriding procedure Final (Self : in out Instance);
 
 private
+
+   procedure Put_Image (
+      Buffer : in out Ada.Strings.Text_Buffers.Root_Buffer_Type'Class;
+      Arg    : in Instance);
 
    -- Protected counter type for safely incrementing counts among threads.
    package Protected_U16_Counter is new Protected_Variables.Generic_Protected_Counter (Interfaces.Unsigned_16);
@@ -41,7 +46,8 @@ private
       -- An instance of the command router command sending object. This is used for
       -- self testing the command response forwarding feature of the command router.
       Commands : Command_Router_Commands.Instance;
-   end record;
+   end record
+      with Put_Image => Put_Image;
 
    ---------------------------------------
    -- Set Up Procedure

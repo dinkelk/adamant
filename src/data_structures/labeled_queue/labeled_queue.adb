@@ -1,5 +1,13 @@
 package body Labeled_Queue is
 
+   procedure Put_Image (
+      Buffer : in out Ada.Strings.Text_Buffers.Root_Buffer_Type'Class;
+      Arg    : in Instance) is
+      pragma Unreferenced (Arg);
+   begin
+      Buffer.Put ("<Labeled_Queue.Instance>");
+   end Put_Image;
+
    protected body Protected_Queue is
 
       procedure Init (Size : in Natural) is

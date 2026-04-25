@@ -7,6 +7,14 @@ with Command_Registration;
 
 package body Component.Command_Router.Implementation is
 
+   procedure Put_Image (
+      Buffer : in out Ada.Strings.Text_Buffers.Root_Buffer_Type'Class;
+      Arg    : in Instance) is
+      pragma Unreferenced (Arg);
+   begin
+      Buffer.Put ("<Command_Router.Instance>");
+   end Put_Image;
+
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
