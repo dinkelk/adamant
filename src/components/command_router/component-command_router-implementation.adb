@@ -28,6 +28,13 @@ package body Component.Command_Router.Implementation is
    begin
       -- Free the router table:
       Self.Table.Destroy;
+
+      -- Reset Command_Success_Count so callers that re-Init across
+      -- scenarios (e.g. cross-compiled tests where the static Tester
+      -- storage is reused) see a clean count after Final/Init.
+      -- Init stays minimal; per Adamant convention tear-down state
+      -- is reset in Final.
+      Self.Command_Success_Count := 0;
    end Final;
 
    overriding procedure Set_Up (Self : in out Instance) is
