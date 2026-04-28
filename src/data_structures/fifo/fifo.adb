@@ -4,13 +4,29 @@ package body Fifo is
    -- Public function bodies:
    procedure Init (Self : in out Instance; Depth : in Positive) is
    begin
-      Self.Items := new Fifo_Items (Natural'First .. Natural'First + Depth - 1);
+      -- Skip the heap allocation if the buffer is already bound. After
+      -- Destroy on Linux, Items is null and we allocate fresh; after
+      -- Destroy on bareboard, Safe_Deallocator was a no-op so Items is
+      -- still bound and we reuse it. Destroy is responsible for
+      -- resetting state so the Instance "looks newly Init'd"; this
+      -- branch only covers allocation.
+      if Self.Items = null then
+         Self.Items := new Fifo_Items (Natural'First .. Natural'First + Depth - 1);
+      end if;
+      -- Init Depth must match prior Init/Destroy cycle on bareboard reuse.
+      pragma Assert (Self.Items'Length = Depth);
    end Init;
 
    procedure Destroy (Self : in out Instance) is
       procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Fifo_Items, Name => Fifo_Items_Access);
    begin
       Free_If_Testing (Self.Items);
+      -- Reset state so the Instance looks freshly-Init'd. On Linux
+      -- this is redundant (the next Init reallocates anyway); on
+      -- bareboard it is required, since the buffer survives Destroy.
+      Self.Head := Natural'First;
+      Self.Count := Natural'First;
+      Self.Max_Count := Natural'First;
    end Destroy;
 
    procedure Clear (Self : in out Instance) is

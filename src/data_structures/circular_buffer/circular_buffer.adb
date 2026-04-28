@@ -3,14 +3,30 @@ with Interfaces;
 
 package body Circular_Buffer is
 
+   use type Basic_Types.Byte_Array_Access;
+
    --
    -- Subprograms for Base
    --
 
    procedure Init (Self : in out Base; Size : in Natural) is
    begin
-      Self.Bytes := new Basic_Types.Byte_Array (0 .. Size - 1);
-      Self.Allocated := True;
+      -- Skip the heap allocation if the buffer is already bound by a
+      -- prior self-allocating Init. After Destroy on Linux, Bytes is
+      -- null and we allocate fresh; after Destroy on bareboard,
+      -- Safe_Deallocator was a no-op so Bytes is still bound and we
+      -- reuse it. Destroy is responsible for resetting state so the
+      -- Instance "looks newly Init'd"; this branch only covers
+      -- allocation.
+      if Self.Bytes = null then
+         Self.Bytes := new Basic_Types.Byte_Array (0 .. Size - 1);
+         Self.Allocated := True;
+      end if;
+      -- Init (Size) must not follow Init (Bytes) on the same Instance
+      -- without an intervening Destroy on Linux.
+      pragma Assert (Self.Allocated);
+      -- Init Size must match prior Init/Destroy cycle on bareboard reuse.
+      pragma Assert (Self.Bytes'Length = Size);
    end Init;
 
    procedure Init (Self : in out Base; Bytes : in not null Basic_Types.Byte_Array_Access) is
@@ -26,8 +42,19 @@ package body Circular_Buffer is
    begin
       if Self.Allocated then
          Free_If_Testing (Self.Bytes);
+         -- On Linux, Free_If_Testing nulls Self.Bytes and the next
+         -- Init will allocate fresh; flip Allocated to match. On
+         -- bareboard the call is a no-op so Bytes stays bound and
+         -- Allocated stays True for the next Init to reuse.
+         if Self.Bytes = null then
+            Self.Allocated := False;
+         end if;
       end if;
+      -- Reset positional state. Max_Count is outside Clear's
+      -- contract so reset it directly. Derived Queue_Base.Destroy
+      -- compensates for any state Base.Clear does not cover.
       Self.Clear;
+      Self.Max_Count := 0;
    end Destroy;
 
    procedure Clear (Self : in out Base) is
@@ -497,6 +524,16 @@ package body Circular_Buffer is
       -- Clear the item count:
       Self.Item_Count := 0;
    end Clear;
+
+   overriding procedure Destroy (Self : in out Queue_Base) is
+   begin
+      -- Base.Destroy uses static dispatch on Self.Clear, so it only
+      -- resets Head/Count via Base.Clear -- not Item_Count. Compensate
+      -- here. Item_Max_Count is outside Clear's contract entirely.
+      Base (Self).Destroy;
+      Self.Item_Count := 0;
+      Self.Item_Max_Count := 0;
+   end Destroy;
 
    --
    -- Subprograms for Queue
