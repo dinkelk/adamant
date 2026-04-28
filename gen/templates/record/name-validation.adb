@@ -21,8 +21,41 @@ package body {{ name }}.Validation is
    pragma Warnings (Off, "formal parameter ""Bytes"" is not referenced");
    function Valid (Bytes : in Serialization.Byte_Array; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
    pragma Warnings (On, "formal parameter ""Bytes"" is not referenced");
+      -- GCC RISC-V codegen workaround. The pattern below -- overlay
+      -- the *typed* packed value `T` onto the byte buffer, then read
+      -- multi-byte fields through the overlay -- is the only shape in
+      -- Adamant where this codegen bug surfaces. For fields that are
+      -- 32 bits or wider (e.g. Short_Float, Unsigned_32 inside a
+      -- packed record), GCC's RISC-V backend emits a single `lw`
+      -- against the overlay's address, ignoring the `Alignment => 1`
+      -- aspect; `-mstrict-align` does not change the emit. When
+      -- `Bytes` arrives 1-byte aligned (which is universal for
+      -- parameter-table and packet-buffer slices, since they are
+      -- packed and start at any byte offset within their containing
+      -- record), the load traps with mcause=4 (load address misaligned).
+      --
+      -- Why it is *not* widespread in Adamant despite Address-overlays
+      -- being common: the dominant pattern is the inverse direction --
+      -- Serializer's From/To_Byte_Array overlays a `Byte_Array` view
+      -- on top of a typed value `T` and assigns whole arrays, so the
+      -- compiler emits byte-by-byte copies and never a multi-byte
+      -- typed read against a misaligned address. The trapping pattern
+      -- (typed overlay onto an externally-aligned byte buffer + scalar
+      -- read through the overlay) is essentially confined to these
+      -- generated Validation packages.
+      --
+      -- Workaround: copy `Bytes` into an aliased local with explicit
+      -- 4-byte alignment, then overlay the typed view onto the copy.
+      -- The copy itself is `Byte_Array := Byte_Array` (byte-by-byte,
+      -- alignment-safe); subsequent reads through the overlay see a
+      -- 4-byte-aligned source. Costs one stack copy of the input
+      -- buffer per Validation entry point. Remove this aligned-local
+      -- pattern once the underlying GCC bug is fixed (track via
+      -- `doc/alignment-repro/` in the consuming project).
+      Aligned_Bytes : aliased Serialization.Byte_Array := Bytes;
+      for Aligned_Bytes'Alignment use 4;
       -- Overlay the byte array with the packed record for field access.
-      R : T with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      R : T with Import, Convention => Ada, Address => Aligned_Bytes'Address;
 {% for include in variable_length_type_includes %}
 {% if include not in ["Interfaces"] %}
       use {{ include }};
@@ -172,8 +205,11 @@ package body {{ name }}.Validation is
    pragma Warnings (Off, "formal parameter ""Bytes"" is not referenced");
    function Valid_Le (Bytes : in Serialization_Le.Byte_Array; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
    pragma Warnings (On, "formal parameter ""Bytes"" is not referenced");
+      -- Aligned local copy (see Valid above for the rationale).
+      Aligned_Bytes : aliased Serialization_Le.Byte_Array := Bytes;
+      for Aligned_Bytes'Alignment use 4;
       -- Overlay the byte array with the packed record for field access.
-      R : T_Le with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      R : T_Le with Import, Convention => Ada, Address => Aligned_Bytes'Address;
 {% for include in variable_length_type_includes %}
 {% if include not in ["Interfaces"] %}
       use {{ include }};
@@ -324,8 +360,11 @@ package body {{ name }}.Validation is
 {% if unpacked_types %}
       use Byte_Array_Util;
 {% endif %}
+      -- Aligned local copy (see Valid above for the rationale).
+      Aligned_Bytes : aliased Serialization.Byte_Array := Bytes;
+      for Aligned_Bytes'Alignment use 4;
       -- Overlay the byte array with the packed record for field access.
-      Src : T with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      Src : T with Import, Convention => Ada, Address => Aligned_Bytes'Address;
       To_Return : Basic_Types.Poly_Type := [others => 0];
    begin
       case Field is
@@ -378,8 +417,11 @@ package body {{ name }}.Validation is
 {% if unpacked_types %}
       use Byte_Array_Util;
 {% endif %}
+      -- Aligned local copy (see Valid above for the rationale).
+      Aligned_Bytes : aliased Serialization_Le.Byte_Array := Bytes;
+      for Aligned_Bytes'Alignment use 4;
       -- Overlay the byte array with the packed record for field access.
-      Src : T_Le with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      Src : T_Le with Import, Convention => Ada, Address => Aligned_Bytes'Address;
       To_Return : Basic_Types.Poly_Type := [others => 0];
    begin
       case Field is
