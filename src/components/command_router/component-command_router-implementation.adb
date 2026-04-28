@@ -28,6 +28,11 @@ package body Component.Command_Router.Implementation is
    begin
       -- Free the router table:
       Self.Table.Destroy;
+
+      -- Reset internal state for cross unit testing.Command_Success_Count so the Instance looks freshly-
+      -- Init'd after Final. Required for the bareboard cross unit
+      -- testing.
+      Self.Command_Success_Count := 0;
    end Final;
 
    overriding procedure Set_Up (Self : in out Instance) is
