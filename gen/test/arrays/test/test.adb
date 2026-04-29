@@ -15,6 +15,11 @@ with Complex_Array_Le.C; use Complex_Array_Le.C;
 with Eight_Bit_Type_Array.Validation;
 with Unaligned_Array.Validation;
 with Enum_Array.Validation;
+with Float_Array.Validation;
+with Complex_Float_Array.Validation;
+with Complex_Array_Le.Validation;
+with Float_Array;
+with Complex_Float_Array;
 with Simple_Array.Assertion; use Simple_Array.Assertion;
 with Float_Array.Assertion; use Float_Array.Assertion;
 with Complex_Array.Assertion; use Complex_Array.Assertion;
@@ -579,5 +584,248 @@ begin
       end loop;
       Put_Line ("passed.");
    end;
+   Put_Line ("");
+
+   ---------------------------------------------------------------------
+   -- Misalignment-resilience tests for Validation autocode
+   --
+   -- Per Ada 2022 RM 13.3(13/3):
+   --   "If an Address is specified, it is the programmer's
+   --   responsibility to ensure that the address is valid and
+   --   appropriate for the entity and its use; otherwise, program
+   --   execution is erroneous."
+   --   (http://www.ada-auth.org/standards/22rm/html/RM-13-3.html)
+   --
+   -- That umbrella covers any of: trapping (RV32 `flw` -> mcause=4),
+   -- silently returning garbage (some pipelined cores), or returning
+   -- the right answer (x86_64). Adamant's Validation autocode keeps
+   -- us out of the erroneous case for packed-array types whose
+   -- elements are byte-aligned (Short_Float, Unsigned_32, etc.) by
+   -- one of three strategies, depending on call site:
+   --   - direct overlay when Bytes' address already satisfies
+   --     T'Alignment (Valid fast path)
+   --   - aligned local copy when it doesn't (Valid slow path)
+   --   - per-field slice-copy in Get_Field for byte-aligned elements
+   --
+   -- These tests exercise the validation autocode at every byte
+   -- alignment offset (0 = aligned, 1/2/3 = misaligned), so a future
+   -- regression that re-introduces an Address-overlay onto an
+   -- under-aligned address fails here rather than only showing up
+   -- at integration time on a CPU that interprets RM 13.3(13/3) as
+   -- "trap" (cross targets) instead of "succeed quietly" (host).
+   -- Run with -gnatVa so any misaligned-FP-load runtime check in
+   -- s-fatgen is exercised; on RV32 cross the s-fatgen check raises
+   -- Program_Error which the validation handler converts to
+   -- "return False" -- see exception clause in Valid above.
+   ---------------------------------------------------------------------
+   Put_Line ("Validation misalignment tests: ");
+   declare
+      --  Big buffer, explicitly 4-aligned. Slicing it at byte offsets
+      --  0..3 gives known-aligned and known-misaligned start addresses
+      --  for the embedded Serialization.Byte_Array overlays below.
+      --  Sized to comfortably hold the largest array exercised here
+      --  (Complex_Float_Array, ~325 bytes) plus 4 bytes of slack for
+      --  the offset.
+      Big : aliased Basic_Types.Byte_Array (0 .. 511) := [others => 0];
+      for Big'Alignment use 4;
+
+      -- Helper: produce a Boolean image that fits in a single token.
+      function B_Img (V : Boolean) return String is (if V then "TRUE" else "FALSE");
+   begin
+      ----------------------------------------------------------------
+      -- Float_Array: 12 x Short_Float, F32 -- byte-aligned 4-byte
+      -- elements. This is the case the cross-test bug originally
+      -- surfaced through. Slice-copy path in Get_Field; runtime
+      -- alignment check in Valid.
+      ----------------------------------------------------------------
+      Put ("  Float_Array @ each offset 0..3: ");
+      declare
+         -- All elements 1.5 (0x3FC00000 BE). Valid floats.
+         F_Bytes : constant Float_Array.Serialization.Byte_Array :=
+            Float_Array.Serialization.To_Byte_Array ([others => 1.5]);
+      begin
+         for Offset in 0 .. 3 loop
+            -- Copy known bytes to the buffer at this byte offset.
+            Big (Offset .. Offset + F_Bytes'Length - 1) := F_Bytes;
+            declare
+               -- Overlay the Serialization.Byte_Array view at the
+               -- offset. Runtime address depends on Offset:
+               --   Offset 0 -> 4-aligned (Big is 4-aligned)
+               --   Offset 1, 2, 3 -> misaligned by that many bytes.
+               Slice : Float_Array.Serialization.Byte_Array
+                  with Import, Convention => Ada,
+                       Address => Big (Offset)'Address;
+               Errant : Unsigned_32 := 0;
+               Ok : constant Boolean := Float_Array.Validation.Valid (Slice, Errant);
+            begin
+               pragma Assert (Ok, "Float_Array.Valid returned False at offset" & Offset'Image);
+               -- Verify Get_Field reads the correct bytes for each
+               -- field index regardless of alignment.
+               for Idx in 1 .. Float_Array.Length loop
+                  declare
+                     Got : constant Basic_Types.Poly_Type :=
+                        Float_Array.Validation.Get_Field (Slice, Unsigned_32 (Idx));
+                  begin
+                     -- Short_Float 1.5 widens to 0x3FC00000 in the
+                     -- Poly_Type's native byte order (LE on host),
+                     -- so the polytype tail bytes should be
+                     -- [00 00 00 00 00 00 C0 3F].
+                     pragma Assert (Got = [0, 0, 0, 0, 0, 0, 16#C0#, 16#3F#],
+                                    "Float_Array.Get_Field wrong at offset" & Offset'Image
+                                    & " idx" & Idx'Image);
+                  end;
+               end loop;
+            end;
+            -- Zero the buffer back out for the next offset's copy.
+            Big (Offset .. Offset + F_Bytes'Length - 1) := [others => 0];
+         end loop;
+      end;
+      Put_Line ("ok.");
+
+      ----------------------------------------------------------------
+      -- Simple_Array: 17 x Short_Int (range 1..999), U16 -- byte-
+      -- aligned 2-byte elements. Validates that the runtime check
+      -- works when T'Alignment is 4 (Short_Int's underlying type)
+      -- but element stride is 2.
+      ----------------------------------------------------------------
+      Put ("  Simple_Array (valid + invalid) @ each offset 0..3: ");
+      declare
+         Valid_Bytes : constant Simple_Array.Serialization.Byte_Array :=
+            Simple_Array.Serialization.To_Byte_Array ([others => 5]);
+         -- Element 2 is 0x0001 = 1 (valid), element 3 is 0x01FF = 511
+         -- (valid), element ... actually craft byte 0,1=0,1 (1,
+         -- valid) and bytes 2,3=0,1 (still 1)... we want one invalid
+         -- element. Field 3 byte-pattern 0xFFFF = 65535, out of
+         -- range 1..999.
+         Invalid_Bytes : Simple_Array.Serialization.Byte_Array :=
+            Valid_Bytes;
+      begin
+         -- Make element index 2 (1-indexed: field 3) invalid:
+         -- bytes [4..5] of the buffer hold the third element (16-bit BE).
+         Invalid_Bytes (4) := 16#FF#;
+         Invalid_Bytes (5) := 16#FF#;
+
+         for Offset in 0 .. 3 loop
+            -- Valid path
+            Big (Offset .. Offset + Valid_Bytes'Length - 1) := Valid_Bytes;
+            declare
+               Slice : Simple_Array.Serialization.Byte_Array
+                  with Import, Convention => Ada, Address => Big (Offset)'Address;
+               Errant : Unsigned_32 := 0;
+            begin
+               pragma Assert (Simple_Array.Validation.Valid (Slice, Errant),
+                              "Simple_Array.Valid (valid) at offset" & Offset'Image);
+            end;
+            Big (Offset .. Offset + Valid_Bytes'Length - 1) := [others => 0];
+
+            -- Invalid path
+            Big (Offset .. Offset + Invalid_Bytes'Length - 1) := Invalid_Bytes;
+            declare
+               Slice : Simple_Array.Serialization.Byte_Array
+                  with Import, Convention => Ada, Address => Big (Offset)'Address;
+               Errant : Unsigned_32 := 0;
+               Ok : constant Boolean := Simple_Array.Validation.Valid (Slice, Errant);
+            begin
+               pragma Assert (not Ok, "Simple_Array.Valid (invalid) at offset" & Offset'Image
+                              & " returned " & B_Img (Ok));
+               pragma Assert (Errant = 3, "Simple_Array errant_field wrong at offset"
+                              & Offset'Image & " got " & Errant'Image);
+               -- Get_Field on the offending index. Var is Short_Int
+               -- (Natural, 32-bit) holding 0xFFFF; on a little-endian
+               -- host its memory bytes are [0xFF, 0xFF, 0x00, 0x00].
+               -- Safe_Right_Copy puts Src into the last N positions of
+               -- Dest, so Poly_Type[4..7] = those 4 bytes.
+               pragma Assert (Simple_Array.Validation.Get_Field (Slice, 3)
+                              = [0, 0, 0, 0, 16#FF#, 16#FF#, 0, 0],
+                              "Simple_Array.Get_Field wrong at offset" & Offset'Image);
+            end;
+            Big (Offset .. Offset + Invalid_Bytes'Length - 1) := [others => 0];
+         end loop;
+      end;
+      Put_Line ("ok.");
+
+      ----------------------------------------------------------------
+      -- Unaligned_Array: 8 x Short_Int (range 0..999), U10 -- sub-
+      -- byte-aligned (10-bit element). The template uses the direct
+      -- overlay path here (no slice-copy, no runtime check needed
+      -- since GNAT bit-extracts these). This test ensures that path
+      -- still produces correct results across alignment offsets.
+      ----------------------------------------------------------------
+      Put ("  Unaligned_Array @ each offset 0..3: ");
+      declare
+         U_Valid : constant Unaligned_Array.Serialization.Byte_Array :=
+            Unaligned_Array.Serialization.To_Byte_Array ([others => 7]);
+      begin
+         for Offset in 0 .. 3 loop
+            Big (Offset .. Offset + U_Valid'Length - 1) := U_Valid;
+            declare
+               Slice : Unaligned_Array.Serialization.Byte_Array
+                  with Import, Convention => Ada, Address => Big (Offset)'Address;
+               Errant : Unsigned_32 := 0;
+            begin
+               pragma Assert (Unaligned_Array.Validation.Valid (Slice, Errant),
+                              "Unaligned_Array.Valid (valid) at offset" & Offset'Image);
+            end;
+            Big (Offset .. Offset + U_Valid'Length - 1) := [others => 0];
+         end loop;
+      end;
+      Put_Line ("ok.");
+
+      ----------------------------------------------------------------
+      -- Complex_Float_Array: array of records-with-floats. Exercises
+      -- the packed-element delegation path (R(Idx)'Address -> inner
+      -- Validation.Valid) with a record element whose own validation
+      -- reads multi-byte fields. This is the chain the rate_control
+      -- bug originally surfaced through (record validation delegated
+      -- to inner array validation on a misaligned slice).
+      ----------------------------------------------------------------
+      Put ("  Complex_Float_Array @ each offset 0..3: ");
+      declare
+         CF_Bytes : constant Complex_Float_Array.Serialization.Byte_Array :=
+            Complex_Float_Array.Serialization.To_Byte_Array (
+               [others => (Yo => 17, F => (One => 5, Two => 21.5, Three => 50.2345))]);
+      begin
+         for Offset in 0 .. 3 loop
+            Big (Offset .. Offset + CF_Bytes'Length - 1) := CF_Bytes;
+            declare
+               Slice : Complex_Float_Array.Serialization.Byte_Array
+                  with Import, Convention => Ada, Address => Big (Offset)'Address;
+               Errant : Unsigned_32 := 0;
+            begin
+               pragma Assert (Complex_Float_Array.Validation.Valid (Slice, Errant),
+                              "Complex_Float_Array.Valid at offset" & Offset'Image);
+            end;
+            Big (Offset .. Offset + CF_Bytes'Length - 1) := [others => 0];
+         end loop;
+      end;
+      Put_Line ("ok.");
+
+      ----------------------------------------------------------------
+      -- Complex_Array_Le: little-endian record-element array.
+      -- Exercises the LE validation path (Valid_Le / Get_Field_Le)
+      -- with the same misaligned-slice pattern.
+      ----------------------------------------------------------------
+      Put ("  Complex_Array_Le @ each offset 0..3: ");
+      declare
+         CL_Bytes : constant Complex_Array_Le.Serialization_Le.Byte_Array :=
+            Complex_Array_Le.Serialization_Le.To_Byte_Array (
+               [others => (One => 0, Two => 19, Three => 5)]);
+      begin
+         for Offset in 0 .. 3 loop
+            Big (Offset .. Offset + CL_Bytes'Length - 1) := CL_Bytes;
+            declare
+               Slice : Complex_Array_Le.Serialization_Le.Byte_Array
+                  with Import, Convention => Ada, Address => Big (Offset)'Address;
+               Errant : Unsigned_32 := 0;
+            begin
+               pragma Assert (Complex_Array_Le.Validation.Valid_Le (Slice, Errant),
+                              "Complex_Array_Le.Valid_Le at offset" & Offset'Image);
+            end;
+            Big (Offset .. Offset + CL_Bytes'Length - 1) := [others => 0];
+         end loop;
+      end;
+      Put_Line ("ok.");
+   end;
+   Put_Line ("passed.");
    Put_Line ("");
 end Test;
