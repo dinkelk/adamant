@@ -108,6 +108,48 @@ class array(type):
                 + "total packed array itself must be byte aligned."
             )
 
+        # Compute the alignment GNAT will pick for this packed array's
+        # T (and T_Le) types. The validation autocode uses this as a
+        # static literal in `with Alignment => ...` aspects on local
+        # Byte_Array copies that are then overlaid by `R : T`; without
+        # it, the overlay violates RM 13.3(13/3) at runtime alignments
+        # smaller than T's. Empirically GNAT picks:
+        #   - packed-record element: 1 (the element's own Alignment=>1)
+        #   - byte-aligned primitive: element.size_in_bytes
+        #   - sub-byte primitive:     next_pow2(ceil(total_bits/8))
+        # The validation template emits a `pragma Compile_Time_Error`
+        # at every overlay site that fails the build if our static
+        # literal is < T'Alignment or not a multiple of T'Alignment,
+        # so any future GNAT change to this rule fails loudly at
+        # compile time.
+        if self.element.is_packed_type:
+            self.required_alignment = 1
+        elif self.element.size % 8 == 0:
+            self.required_alignment = self.element.size // 8
+        else:
+            total_bytes = self.size // 8
+            # Round up to next power of 2: 1<<((x-1).bit_length()) for x>=1.
+            self.required_alignment = 1 << max(0, (total_bytes - 1).bit_length())
+
+        # Sanity-check the model: required_alignment must be a power
+        # of 2. The Compile_Time_Error in the validation template
+        # also asserts T'Alignment is a power of 2 -- if both hold
+        # then `our_literal >= T'Alignment` implies `our_literal mod
+        # T'Alignment = 0` (any pow2 >= a smaller pow2 is a multiple
+        # of it), so the safety condition is fully covered. Catch
+        # formula bugs here at generation time rather than letting a
+        # subtly-bad literal slip through to the assert site.
+        assert (
+            self.required_alignment > 0
+            and (self.required_alignment & (self.required_alignment - 1)) == 0
+        ), (
+            "Internal generator bug: required_alignment="
+            + str(self.required_alignment)
+            + " for array '"
+            + self.name
+            + "' is not a power of 2"
+        )
+
         # Make sure the array does not contain a variable length type:
         if self.variable_length:
             raise ModelException(
