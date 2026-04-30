@@ -138,15 +138,18 @@ package body {{ name }}.Validation is
       -- is non-erroneous per RM 13.3(13/3) iff
       --   our_literal >= T'Alignment           AND
       --   our_literal mod T'Alignment = 0
-      -- Ada alignments are always powers of 2, and gen/models/
-      -- array.py asserts our literal is a power of 2 too -- so the
-      -- second condition follows from the first (any pow2 >= a
-      -- smaller pow2 is a multiple of it). We only emit the first
-      -- here because GNAT folds `T'Alignment > N` to a static
-      -- expression for Compile_Time_Error but doesn't fold mod or
-      -- chained equality on T'Alignment portably (some build
-      -- profiles -- e.g. coverage builds and -gnaty-driven style
-      -- checks -- reject those as "not known at compile time").
+      -- Per the GNAT Reference Manual section 10.1 (Alignment
+      -- Clauses): "GNAT requires that all alignment clauses
+      -- specify 0 or a power of 2, and all default alignments are
+      -- always a power of 2." gen/models/array.py asserts our
+      -- literal is a power of 2 too, so the second condition
+      -- follows from the first (any pow2 >= a smaller pow2 is a
+      -- multiple of it). We only emit the first here because GNAT
+      -- folds `T'Alignment > N` to a static expression for
+      -- Compile_Time_Error but doesn't fold mod or chained
+      -- equality on T'Alignment portably (some build profiles --
+      -- e.g. coverage builds and -gnaty-driven style checks --
+      -- reject those as "not known at compile time").
       -- Over-aligning (literal > T'Alignment) is allowed -- e.g.
       -- for an 80-bit sub-byte array Linux GNAT picks
       -- T'Alignment=16 while RV32 picks 2; the model emits 16 (the

@@ -132,14 +132,18 @@ class array(type):
             self.required_alignment = 1 << max(0, (total_bytes - 1).bit_length())
 
         # Sanity-check the model: required_alignment must be a power
-        # of 2. Together with Ada's own pow2-alignments invariant,
-        # this means `our_literal >= T'Alignment` (the template's
-        # Compile_Time_Error) implies `our_literal mod T'Alignment
-        # = 0` -- any pow2 >= a smaller pow2 is a multiple of it.
-        # Catch formula bugs here at generation time. (We also tried
-        # asserting T'Alignment is pow2 in the template, but GNAT
-        # only folds that on some build profiles; fortunately
-        # alignments-are-pow2 is an Ada invariant we can rely on.)
+        # of 2. Per the GNAT Reference Manual section 10.1 (Alignment
+        # Clauses): "GNAT requires that all alignment clauses specify
+        # 0 or a power of 2, and all default alignments are always a
+        # power of 2." So T'Alignment is also pow2, and together with
+        # this assertion that means `our_literal >= T'Alignment` (the
+        # template's Compile_Time_Error) implies `our_literal mod
+        # T'Alignment = 0` -- any pow2 >= a smaller pow2 is a
+        # multiple of it. Catch formula bugs here at generation time.
+        # (We also tried asserting T'Alignment is pow2 in the
+        # template, but GNAT only folds that on some build profiles;
+        # the GNAT-RM citation above is the load-bearing guarantee
+        # for the T'Alignment side.)
         assert (
             self.required_alignment > 0
             and (self.required_alignment & (self.required_alignment - 1)) == 0
