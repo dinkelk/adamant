@@ -135,28 +135,22 @@ package body {{ name }}.Validation is
       end Valid_Through;
    begin
       -- Compile-time safety assertion. The slow-path overlay below
-      -- is non-erroneous per RM 13.3(13/3) iff our static literal
-      -- (computed in gen/models/array.py) satisfies
+      -- is non-erroneous per RM 13.3(13/3) iff
       --   our_literal >= T'Alignment           AND
       --   our_literal mod T'Alignment = 0
-      -- We can't write the second condition directly: GNAT folds
-      -- `T'Alignment > N` to a static expression but not
-      -- `N mod T'Alignment`, so it's rejected by Compile_Time_Error
-      -- on RV32. Instead we assert it in two pieces:
-      --   1. T'Alignment is a power of 2 (set membership; static).
-      --   2. T'Alignment <= our literal.
-      -- For pow2 alignments, (2) implies "our_literal is a multiple
-      -- of T'Alignment" -- any pow2 >= a smaller pow2 is a multiple
-      -- of it. Together they cover the full safety condition.
+      -- Ada alignments are always powers of 2, and gen/models/
+      -- array.py asserts our literal is a power of 2 too -- so the
+      -- second condition follows from the first (any pow2 >= a
+      -- smaller pow2 is a multiple of it). We only emit the first
+      -- here because GNAT folds `T'Alignment > N` to a static
+      -- expression for Compile_Time_Error but doesn't fold mod or
+      -- chained equality on T'Alignment portably (some build
+      -- profiles -- e.g. coverage builds and -gnaty-driven style
+      -- checks -- reject those as "not known at compile time").
       -- Over-aligning (literal > T'Alignment) is allowed -- e.g.
       -- for an 80-bit sub-byte array Linux GNAT picks
-      -- T'Alignment=16 while RV32 picks 2; the model emits 16
-      -- (the max we've seen) which over-aligns harmlessly on RV32.
-      pragma Compile_Time_Error
-        (T'Alignment /= 1 and then T'Alignment /= 2 and then T'Alignment /= 4 and then T'Alignment /= 8
-            and then T'Alignment /= 16 and then T'Alignment /= 32 and then T'Alignment /= 64
-            and then T'Alignment /= 128 and then T'Alignment /= 256,
-         "T'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
+      -- T'Alignment=16 while RV32 picks 2; the model emits 16 (the
+      -- max we've seen) which over-aligns harmlessly on RV32.
       pragma Compile_Time_Error (T'Alignment > {{ required_alignment }},
          "T'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
 
@@ -294,11 +288,6 @@ package body {{ name }}.Validation is
       -- an 80-bit sub-byte array Linux GNAT picks T_Le'Alignment=16
       -- while RV32 picks 2; the model emits 16 (the max we've
       -- seen) which over-aligns harmlessly on RV32.
-      pragma Compile_Time_Error
-        (T_Le'Alignment /= 1 and then T_Le'Alignment /= 2 and then T_Le'Alignment /= 4 and then T_Le'Alignment /= 8
-            and then T_Le'Alignment /= 16 and then T_Le'Alignment /= 32 and then T_Le'Alignment /= 64
-            and then T_Le'Alignment /= 128 and then T_Le'Alignment /= 256,
-         "T_Le'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Le'Alignment > {{ required_alignment }},
          "T_Le'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
 
@@ -364,11 +353,6 @@ package body {{ name }}.Validation is
       -- slice's alignment must satisfy T_Unconstrained's; the
       -- Compile_Time_Error below verifies our static literal does.
       Slice_Start : constant Natural := Bytes'First + (Natural (Field) - 1) * Element_Size_In_Bytes;
-      pragma Compile_Time_Error
-        (T_Unconstrained'Alignment /= 1 and then T_Unconstrained'Alignment /= 2 and then T_Unconstrained'Alignment /= 4 and then T_Unconstrained'Alignment /= 8
-            and then T_Unconstrained'Alignment /= 16 and then T_Unconstrained'Alignment /= 32 and then T_Unconstrained'Alignment /= 64
-            and then T_Unconstrained'Alignment /= 128 and then T_Unconstrained'Alignment /= 256,
-         "T_Unconstrained'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Unconstrained'Alignment > {{ required_alignment }},
          "T_Unconstrained'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
       Slice : Basic_Types.Byte_Array (0 .. Element_Size_In_Bytes - 1) :=
@@ -386,11 +370,6 @@ package body {{ name }}.Validation is
       -- elements, so we can't use the per-element slice trick from
       -- the byte-aligned branch above -- copy the full Bytes into
       -- an aligned local matching T'Alignment instead.
-      pragma Compile_Time_Error
-        (T'Alignment /= 1 and then T'Alignment /= 2 and then T'Alignment /= 4 and then T'Alignment /= 8
-            and then T'Alignment /= 16 and then T'Alignment /= 32 and then T'Alignment /= 64
-            and then T'Alignment /= 128 and then T'Alignment /= 256,
-         "T'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T'Alignment > {{ required_alignment }},
          "T'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
       Aligned_Bytes : Serialization.Byte_Array := Bytes
@@ -463,11 +442,6 @@ package body {{ name }}.Validation is
       -- The slice's alignment must satisfy T_Le_Unconstrained's; the
       -- Compile_Time_Error below verifies our static literal does.
       Slice_Start : constant Natural := Bytes'First + (Natural (Field) - 1) * Element_Size_In_Bytes;
-      pragma Compile_Time_Error
-        (T_Le_Unconstrained'Alignment /= 1 and then T_Le_Unconstrained'Alignment /= 2 and then T_Le_Unconstrained'Alignment /= 4 and then T_Le_Unconstrained'Alignment /= 8
-            and then T_Le_Unconstrained'Alignment /= 16 and then T_Le_Unconstrained'Alignment /= 32 and then T_Le_Unconstrained'Alignment /= 64
-            and then T_Le_Unconstrained'Alignment /= 128 and then T_Le_Unconstrained'Alignment /= 256,
-         "T_Le_Unconstrained'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Le_Unconstrained'Alignment > {{ required_alignment }},
          "T_Le_Unconstrained'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
       Slice : Basic_Types.Byte_Array (0 .. Element_Size_In_Bytes - 1) :=
@@ -485,11 +459,6 @@ package body {{ name }}.Validation is
       -- sub-byte elements, so we can't use the per-element slice
       -- trick from the byte-aligned branch above -- copy the full
       -- Bytes into an aligned local matching T_Le'Alignment instead.
-      pragma Compile_Time_Error
-        (T_Le'Alignment /= 1 and then T_Le'Alignment /= 2 and then T_Le'Alignment /= 4 and then T_Le'Alignment /= 8
-            and then T_Le'Alignment /= 16 and then T_Le'Alignment /= 32 and then T_Le'Alignment /= 64
-            and then T_Le'Alignment /= 128 and then T_Le'Alignment /= 256,
-         "T_Le'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Le'Alignment > {{ required_alignment }},
          "T_Le'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
       Aligned_Bytes : Serialization_Le.Byte_Array := Bytes

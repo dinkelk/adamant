@@ -132,13 +132,14 @@ class array(type):
             self.required_alignment = 1 << max(0, (total_bytes - 1).bit_length())
 
         # Sanity-check the model: required_alignment must be a power
-        # of 2. The Compile_Time_Error in the validation template
-        # also asserts T'Alignment is a power of 2 -- if both hold
-        # then `our_literal >= T'Alignment` implies `our_literal mod
-        # T'Alignment = 0` (any pow2 >= a smaller pow2 is a multiple
-        # of it), so the safety condition is fully covered. Catch
-        # formula bugs here at generation time rather than letting a
-        # subtly-bad literal slip through to the assert site.
+        # of 2. Together with Ada's own pow2-alignments invariant,
+        # this means `our_literal >= T'Alignment` (the template's
+        # Compile_Time_Error) implies `our_literal mod T'Alignment
+        # = 0` -- any pow2 >= a smaller pow2 is a multiple of it.
+        # Catch formula bugs here at generation time. (We also tried
+        # asserting T'Alignment is pow2 in the template, but GNAT
+        # only folds that on some build profiles; fortunately
+        # alignments-are-pow2 is an Ada invariant we can rely on.)
         assert (
             self.required_alignment > 0
             and (self.required_alignment & (self.required_alignment - 1)) == 0
