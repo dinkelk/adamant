@@ -108,6 +108,53 @@ class array(type):
                 + "total packed array itself must be byte aligned."
             )
 
+        # Compute the alignment GNAT will pick for this packed array's
+        # T (and T_Le) types. The validation autocode uses this as a
+        # static literal in `with Alignment => ...` aspects on local
+        # Byte_Array copies that are then overlaid by `R : T`. Without
+        # it, the overlay violates RM 13.3(13/3) at runtime alignments
+        # smaller than T's. Empirically GNAT picks:
+        #   - packed-record element: 1 (the element's own Alignment=>1)
+        #   - byte-aligned primitive: element.size_in_bytes
+        #   - sub-byte primitive:     next_pow2(ceil(total_bits/8))
+        # Note that we cannot check if our literal is
+        # exactly equal to T'Alignment, since alignment differs on
+        # different architectures. Instead we check for compatibility.
+        # The validation template emits a `pragma Compile_Time_Error`
+        # at every overlay site that fails the build if our static
+        # literal is < T'Alignment or not a multiple of T'Alignment,
+        # so any future GNAT change to this rule fails loudly at
+        # compile time.
+        if self.element.is_packed_type:
+            self.required_alignment = 1
+        elif self.element.size % 8 == 0:
+            self.required_alignment = self.element.size // 8
+        else:
+            # Non 8-bit aligned component size logic.
+            total_bytes = self.size // 8
+            # Round up to next power of 2: 1<<((x-1).bit_length()) for x>=1.
+            self.required_alignment = 1 << max(0, (total_bytes - 1).bit_length())
+
+        # Sanity-check: Required_alignment must be a power
+        # of 2. Per the GNAT Reference Manual section 10.1 (Alignment
+        # Clauses): "GNAT requires that all alignment clauses specify
+        # 0 or a power of 2, and all default alignments are always a
+        # power of 2." So T'Alignment is also pow2, and together with
+        # this assertion that means `our_literal >= T'Alignment` (the
+        # template's Compile_Time_Error) implies `our_literal mod
+        # T'Alignment = 0` -- any pow2 >= a smaller pow2 is a
+        # multiple of it.
+        assert (
+            self.required_alignment > 0
+            and (self.required_alignment & (self.required_alignment - 1)) == 0
+        ), (
+            "Required_alignment="
+            + str(self.required_alignment)
+            + " for array '"
+            + self.name
+            + "' is not a power of 2, but must be per GNAT RM 10.1"
+        )
+
         # Make sure the array does not contain a variable length type:
         if self.variable_length:
             raise ModelException(
