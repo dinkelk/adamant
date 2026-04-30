@@ -153,9 +153,9 @@ package body {{ name }}.Validation is
       -- T'Alignment=16 while RV32 picks 2; the model emits 16
       -- (the max we've seen) which over-aligns harmlessly on RV32.
       pragma Compile_Time_Error
-        (T'Alignment /= 1 and T'Alignment /= 2 and T'Alignment /= 4 and T'Alignment /= 8
-            and T'Alignment /= 16 and T'Alignment /= 32 and T'Alignment /= 64
-            and T'Alignment /= 128 and T'Alignment /= 256,
+        (T'Alignment /= 1 and then T'Alignment /= 2 and then T'Alignment /= 4 and then T'Alignment /= 8
+            and then T'Alignment /= 16 and then T'Alignment /= 32 and then T'Alignment /= 64
+            and then T'Alignment /= 128 and then T'Alignment /= 256,
          "T'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T'Alignment > {{ required_alignment }},
          "T'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
@@ -295,9 +295,9 @@ package body {{ name }}.Validation is
       -- while RV32 picks 2; the model emits 16 (the max we've
       -- seen) which over-aligns harmlessly on RV32.
       pragma Compile_Time_Error
-        (T_Le'Alignment /= 1 and T_Le'Alignment /= 2 and T_Le'Alignment /= 4 and T_Le'Alignment /= 8
-            and T_Le'Alignment /= 16 and T_Le'Alignment /= 32 and T_Le'Alignment /= 64
-            and T_Le'Alignment /= 128 and T_Le'Alignment /= 256,
+        (T_Le'Alignment /= 1 and then T_Le'Alignment /= 2 and then T_Le'Alignment /= 4 and then T_Le'Alignment /= 8
+            and then T_Le'Alignment /= 16 and then T_Le'Alignment /= 32 and then T_Le'Alignment /= 64
+            and then T_Le'Alignment /= 128 and then T_Le'Alignment /= 256,
          "T_Le'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Le'Alignment > {{ required_alignment }},
          "T_Le'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
@@ -365,9 +365,9 @@ package body {{ name }}.Validation is
       -- Compile_Time_Error below verifies our static literal does.
       Slice_Start : constant Natural := Bytes'First + (Natural (Field) - 1) * Element_Size_In_Bytes;
       pragma Compile_Time_Error
-        (T_Unconstrained'Alignment /= 1 and T_Unconstrained'Alignment /= 2 and T_Unconstrained'Alignment /= 4 and T_Unconstrained'Alignment /= 8
-            and T_Unconstrained'Alignment /= 16 and T_Unconstrained'Alignment /= 32 and T_Unconstrained'Alignment /= 64
-            and T_Unconstrained'Alignment /= 128 and T_Unconstrained'Alignment /= 256,
+        (T_Unconstrained'Alignment /= 1 and then T_Unconstrained'Alignment /= 2 and then T_Unconstrained'Alignment /= 4 and then T_Unconstrained'Alignment /= 8
+            and then T_Unconstrained'Alignment /= 16 and then T_Unconstrained'Alignment /= 32 and then T_Unconstrained'Alignment /= 64
+            and then T_Unconstrained'Alignment /= 128 and then T_Unconstrained'Alignment /= 256,
          "T_Unconstrained'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Unconstrained'Alignment > {{ required_alignment }},
          "T_Unconstrained'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
@@ -387,9 +387,9 @@ package body {{ name }}.Validation is
       -- the byte-aligned branch above -- copy the full Bytes into
       -- an aligned local matching T'Alignment instead.
       pragma Compile_Time_Error
-        (T'Alignment /= 1 and T'Alignment /= 2 and T'Alignment /= 4 and T'Alignment /= 8
-            and T'Alignment /= 16 and T'Alignment /= 32 and T'Alignment /= 64
-            and T'Alignment /= 128 and T'Alignment /= 256,
+        (T'Alignment /= 1 and then T'Alignment /= 2 and then T'Alignment /= 4 and then T'Alignment /= 8
+            and then T'Alignment /= 16 and then T'Alignment /= 32 and then T'Alignment /= 64
+            and then T'Alignment /= 128 and then T'Alignment /= 256,
          "T'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T'Alignment > {{ required_alignment }},
          "T'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
@@ -464,9 +464,9 @@ package body {{ name }}.Validation is
       -- Compile_Time_Error below verifies our static literal does.
       Slice_Start : constant Natural := Bytes'First + (Natural (Field) - 1) * Element_Size_In_Bytes;
       pragma Compile_Time_Error
-        (T_Le_Unconstrained'Alignment /= 1 and T_Le_Unconstrained'Alignment /= 2 and T_Le_Unconstrained'Alignment /= 4 and T_Le_Unconstrained'Alignment /= 8
-            and T_Le_Unconstrained'Alignment /= 16 and T_Le_Unconstrained'Alignment /= 32 and T_Le_Unconstrained'Alignment /= 64
-            and T_Le_Unconstrained'Alignment /= 128 and T_Le_Unconstrained'Alignment /= 256,
+        (T_Le_Unconstrained'Alignment /= 1 and then T_Le_Unconstrained'Alignment /= 2 and then T_Le_Unconstrained'Alignment /= 4 and then T_Le_Unconstrained'Alignment /= 8
+            and then T_Le_Unconstrained'Alignment /= 16 and then T_Le_Unconstrained'Alignment /= 32 and then T_Le_Unconstrained'Alignment /= 64
+            and then T_Le_Unconstrained'Alignment /= 128 and then T_Le_Unconstrained'Alignment /= 256,
          "T_Le_Unconstrained'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Le_Unconstrained'Alignment > {{ required_alignment }},
          "T_Le_Unconstrained'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");
@@ -486,9 +486,9 @@ package body {{ name }}.Validation is
       -- trick from the byte-aligned branch above -- copy the full
       -- Bytes into an aligned local matching T_Le'Alignment instead.
       pragma Compile_Time_Error
-        (T_Le'Alignment /= 1 and T_Le'Alignment /= 2 and T_Le'Alignment /= 4 and T_Le'Alignment /= 8
-            and T_Le'Alignment /= 16 and T_Le'Alignment /= 32 and T_Le'Alignment /= 64
-            and T_Le'Alignment /= 128 and T_Le'Alignment /= 256,
+        (T_Le'Alignment /= 1 and then T_Le'Alignment /= 2 and then T_Le'Alignment /= 4 and then T_Le'Alignment /= 8
+            and then T_Le'Alignment /= 16 and then T_Le'Alignment /= 32 and then T_Le'Alignment /= 64
+            and then T_Le'Alignment /= 128 and then T_Le'Alignment /= 256,
          "T_Le'Alignment is not a power of 2; the safety reasoning in gen/templates/array/name-validation.adb relies on this");
       pragma Compile_Time_Error (T_Le'Alignment > {{ required_alignment }},
          "T_Le'Alignment > static literal ({{ required_alignment }}); update gen/models/array.py");

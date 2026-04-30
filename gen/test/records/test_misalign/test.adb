@@ -199,7 +199,7 @@ begin
             begin
                Check (One (One'Last) = 7,
                       "Ff Get_Field One offset" & Offset'Image);
-               Check (Two'Length > 0 and Three'Length > 0,
+               Check (Two'Length > 0 and then Three'Length > 0,
                       "Ff Get_Field FP-readback offset" & Offset'Image);
             end;
          end;
@@ -225,7 +225,7 @@ begin
             begin
                Check (One (One'Last) = 7,
                       "Ff Get_Field_Le One offset" & Offset'Image);
-               Check (Two'Length > 0 and Three'Length > 0,
+               Check (Two'Length > 0 and then Three'Length > 0,
                       "Ff Get_Field_Le FP-readback offset" & Offset'Image);
             end;
          end;
