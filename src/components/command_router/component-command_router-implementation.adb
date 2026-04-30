@@ -28,6 +28,15 @@ package body Component.Command_Router.Implementation is
    begin
       -- Free the router table:
       Self.Table.Destroy;
+
+      -- Reset Command_Success_Count so the Instance looks freshly-
+      -- Init'd after Final. Required for the bareboard cross unit
+      -- test pattern where Tester_Allocator hands out the same
+      -- static Instance across scenarios; without this, the count
+      -- accumulates and breaks per-scenario assertions. Matches the
+      -- "reset state in Destroy" convention used by the FIFO,
+      -- History, and Circular_Buffer types.
+      Self.Command_Success_Count := 0;
    end Final;
 
    overriding procedure Set_Up (Self : in out Instance) is
