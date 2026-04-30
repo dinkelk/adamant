@@ -13,7 +13,7 @@ abstract project a_bareboard_base extends all "a_adamant.gpr" is
          -- Remove unused code and unused data:
          -- See: https://docs.adacore.com/gnat_ugx-docs/html/gnat_ugx/gnat_ugx/bareboard_topics.html
          ("-ffunction-sections", "-fdata-sections") &
-         -- Ravenscar is always enforced on the cortex for Adamant:
+         -- Ravenscar is enforced for Adamant on bareboard by default:
          ("-gnatec=" & a_adamant.ADAMANT_DIR & "/redo/targets/configuration_pragmas/ravenscar.adc") &
          ("-gnatec=" & a_adamant.ADAMANT_DIR & "/redo/targets/configuration_pragmas/sequential_elaboration.adc");
 

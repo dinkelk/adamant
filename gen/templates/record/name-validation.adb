@@ -18,11 +18,18 @@ with {{ include }}.Validation;
 package body {{ name }}.Validation is
 
 {% if endianness in ["either", "big"] %}
-   pragma Warnings (Off, "formal parameter ""Bytes"" is not referenced");
    function Valid (Bytes : in Serialization.Byte_Array; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
-   pragma Warnings (On, "formal parameter ""Bytes"" is not referenced");
-      -- Overlay the byte array with the packed record for field access.
-      R : T with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      -- Direct overlay onto Bytes is alignment-safe regardless of
+      -- Bytes' runtime address: T is a bit-packed record with
+      -- Alignment => 1, which matches Byte_Array's natural alignment.
+      -- Compile-time-assert this -- if a future change ever loosens
+      -- the Alignment => 1 requirement on packed records, the overlay
+      -- below would become erroneous per RM 13.3(13/3) and the build
+      -- should fail loudly at every record's Validation.adb instead
+      -- of silently producing garbage at runtime.
+      pragma Compile_Time_Error (T'Alignment /= 1,
+         "T'Alignment /= 1; the direct-overlay assumption in gen/templates/record/name-validation.adb is broken");
+      R : T with Import, Convention => Ada, Address => Bytes'Address;
 {% for include in variable_length_type_includes %}
 {% if include not in ["Interfaces"] %}
       use {{ include }};
@@ -169,11 +176,14 @@ package body {{ name }}.Validation is
 
 {% endif %}
 {% if endianness in ["either", "little"] %}
-   pragma Warnings (Off, "formal parameter ""Bytes"" is not referenced");
    function Valid_Le (Bytes : in Serialization_Le.Byte_Array; Errant_Field : out Interfaces.Unsigned_32) return Boolean is
-   pragma Warnings (On, "formal parameter ""Bytes"" is not referenced");
-      -- Overlay the byte array with the packed record for field access.
-      R : T_Le with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      -- Direct overlay onto Bytes is alignment-safe regardless of
+      -- Bytes' runtime address: T_Le is a bit-packed record with
+      -- Alignment => 1, which matches Byte_Array's natural alignment.
+      -- See Valid above for the Compile_Time_Error rationale.
+      pragma Compile_Time_Error (T_Le'Alignment /= 1,
+         "T_Le'Alignment /= 1; the direct-overlay assumption in gen/templates/record/name-validation.adb is broken");
+      R : T_Le with Import, Convention => Ada, Address => Bytes'Address;
 {% for include in variable_length_type_includes %}
 {% if include not in ["Interfaces"] %}
       use {{ include }};
@@ -325,7 +335,10 @@ package body {{ name }}.Validation is
       use Byte_Array_Util;
 {% endif %}
       -- Overlay the byte array with the packed record for field access.
-      Src : T with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      -- See Valid above for the Compile_Time_Error rationale.
+      pragma Compile_Time_Error (T'Alignment /= 1,
+         "T'Alignment /= 1; the direct-overlay assumption in gen/templates/record/name-validation.adb is broken");
+      Src : T with Import, Convention => Ada, Address => Bytes'Address;
       To_Return : Basic_Types.Poly_Type := [others => 0];
    begin
       case Field is
@@ -379,7 +392,10 @@ package body {{ name }}.Validation is
       use Byte_Array_Util;
 {% endif %}
       -- Overlay the byte array with the packed record for field access.
-      Src : T_Le with Import, Convention => Ada, Address => Bytes'Address, Alignment => 1;
+      -- See Valid above for the Compile_Time_Error rationale.
+      pragma Compile_Time_Error (T_Le'Alignment /= 1,
+         "T_Le'Alignment /= 1; the direct-overlay assumption in gen/templates/record/name-validation.adb is broken");
+      Src : T_Le with Import, Convention => Ada, Address => Bytes'Address;
       To_Return : Basic_Types.Poly_Type := [others => 0];
    begin
       case Field is
