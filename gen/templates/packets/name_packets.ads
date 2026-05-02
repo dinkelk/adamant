@@ -60,6 +60,20 @@ package {{ name }} is
 
 {% endif %}
    -----------------------------------------------
+   -- Sequence count reset:
+   -----------------------------------------------
+   -- Reset every packet's running sequence count back to zero. The
+   -- per-packet *_Sequence_Count fields are initialized to 0 only by
+   -- record-default initialization, which fires on heap allocation.
+   -- Components that share a static instance across scenarios (the
+   -- cross-test fixture's Tester_Allocator, for example) should call
+   -- this from their Final to keep sequence counts deterministic; in
+   -- flight, the counts are intentionally monotonic and this should
+   -- not be invoked.
+   not overriding procedure Reset_Sequence_Counts (Self : in out Instance);
+
+
+   -----------------------------------------------
    -- Getter function for global packet IDs:
    -----------------------------------------------
 {% for p in packets %}
