@@ -126,6 +126,20 @@ package body Component.Event_Limiter.Implementation is
    end Init;
 
    ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  record-default initialization fires only on heap allocation.
+   --  Tear_Down_Test calls Final to put the instance back into a
+   --  freshly-Init'd state for the next scenario.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Event_Array.Destroy;
+      Self.Total_Event_Limited_Count := 0;
+   end Final;
+
+   ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
    -- This is the base tick for the component. Upon reception the component will decrement the count of each ID unless it is already 0. Every tick, an event of what has been filtered will be sent.
