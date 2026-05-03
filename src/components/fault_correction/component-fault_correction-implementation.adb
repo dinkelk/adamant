@@ -81,7 +81,12 @@ package body Component.Fault_Correction.Implementation is
       );
    begin
       Free_If_Testing (Self.Fault_Response_Table);
+      Self.Fault_Response_Table := null;
       Self.Fault_Response_Lookup.Destroy;
+      --  Per-scenario state for cross-test reuse: the fault counter
+      --  relies on record-default initialization that fires only on
+      --  heap allocation, so without this it leaks between scenarios.
+      Self.Fault_Counter := Interfaces.Unsigned_16'First;
    end Final;
 
    ---------------------------------------
