@@ -269,9 +269,22 @@ package body Component.Event_Packetizer.Implementation is
       Self.Partial_Packet_Timeout := Partial_Packet_Timeout;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  partial-packet timeout state, the next-tick flag, and the
+   --  previous-bytes-available cache rely on record-default
+   --  initialization that fires only on heap allocation, so without
+   --  this reset they leak between scenarios. The packet generator's
+   --  per-packet sequence counts also need to be reset for tests
+   --  that assert on Sequence_Count values.
    not overriding procedure Destroy (Self : in out Instance) is
    begin
       Self.Packet_Array.Destroy;
+      Self.Partial_Packet_Count := 0;
+      Self.Partial_Packet_Timeout := 0;
+      Self.Send_Packet_Next_Tick := False;
+      Self.Previous_Bytes_Available := Natural'Last;
+      Self.Packets.Reset_Sequence_Counts;
    end Destroy;
 
    ---------------------------------------

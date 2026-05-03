@@ -36,6 +36,14 @@ package Component.Tick_Divider.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Dividers : in not null Divider_Array_Type_Access; Tick_Source : in Tick_Source_Type := Internal);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:

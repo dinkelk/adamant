@@ -102,6 +102,21 @@ package body Component.Event_Filter.Implementation is
       Self.Send_Event_State_Packet.Set_Var (False);
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  internal counters, embedded Event_Filter_Entry state, and the
+   --  packet generator's per-packet sequence counts all rely on
+   --  record-default initialization that only fires on heap
+   --  allocation, so without this reset they leak between scenarios.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Event_Entries.Destroy;
+      Self.Total_Event_Filtered_Count := Unsigned_32'First;
+      Self.Total_Event_Unfiltered_Count := Unsigned_32'First;
+      Self.Send_Event_State_Packet.Set_Var (False);
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
