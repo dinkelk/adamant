@@ -145,6 +145,24 @@ package body Component.Parameters.Implementation is
       pragma Assert (Self.Parameter_Table_Length + Crc_16.Crc_16_Type'Length <= Packet_Types.Packet_Buffer_Type'Length, "The parameter table must not be larger than the maximum size packet!");
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  CRC, version, update time, computed lengths, and the packet
+   --  generator's sequence counts all rely on record-default
+   --  initialization that fires only on heap allocation. Init
+   --  recomputes the length fields but does not touch the CRC or
+   --  the version/time fields, so without this reset they leak.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Stored_Crc := [0, 0];
+      Self.Table_Version := 0.0;
+      Self.Table_Update_Time := 0;
+      Self.Parameter_Table_Data_Length := 0;
+      Self.Parameter_Table_Length := 0;
+      Self.Entries := null;
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    overriding procedure Set_Up (Self : in out Instance) is
       use Parameter_Enums.Parameter_Table_Update_Status;
    begin
