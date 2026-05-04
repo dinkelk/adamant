@@ -57,6 +57,11 @@ package body Parameter_Store_Tests.Implementation is
    begin
       -- Free component heap:
       Self.Tester.Final_Base;
+      -- Reset per-scenario component state for cross-test reuse:
+      -- the bareboard Tester is a static singleton, so without this
+      -- the packet generator's Sequence_Count carries over from the
+      -- prior scenario.
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
