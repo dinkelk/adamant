@@ -12,6 +12,16 @@ package Component.Example_Component.Implementation is
    -- The component class instance record:
    type Instance is new Example_Component.Base_Instance with private;
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario; the bareboard Tester is a static singleton
+   -- across scenarios so the record-default Counter := 0 only fires
+   -- once at elaboration.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:
