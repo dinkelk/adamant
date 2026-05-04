@@ -189,8 +189,13 @@ package body Event_Packetizer_Tests.Implementation is
       end loop;
 
       -- Send one more event and then tick to overflow current packet and
-      -- expect this packet to be emitted:
-      T.Event_T_Send (Event_3);
+      -- expect this packet to be emitted. Use Event_2 (the same event
+      -- being filled into the packet) so the trigger reliably overflows
+      -- the buffer regardless of (Packet_Buffer_Length mod Event_2_size).
+      -- A smaller event like Event_3 fits in the trailing slack space
+      -- under some Packet_Buffer_Size configs (e.g. 1004 leaves 14
+      -- trailing bytes; Event_3 at 12 bytes fits and never triggers).
+      T.Event_T_Send (Event_2);
       T.Tick_T_Send (A_Tick);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 3);
       Natural_Assert.Eq (T.Events_Packet_History.Get_Count, 3);

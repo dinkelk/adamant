@@ -55,6 +55,11 @@ package body Component.Event_Packetizer.Implementation is
          Num_Packets_Full := 0;
          Events_Dropped := 0;
          New_Packets_Dropped := False;
+         --  Mark uninitialized so post-Destroy Insert_Event drops events
+         --  rather than dereferencing the freed Packets pointer. The
+         --  bareboard Uninitialized scenario reuses the static Tester
+         --  after Initialized was previously set true.
+         Initialized := False;
       end Destroy;
 
       -- Private function which attempts to insert an event into the current
