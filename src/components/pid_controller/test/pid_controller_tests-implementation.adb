@@ -17,6 +17,7 @@ with Parameter_Enums.Assertion;
 use Parameter_Enums.Parameter_Update_Status;
 use Parameter_Enums.Assertion;
 with Pid_Diagnostic_Subpacket;
+with Packed_Natural;
 with Packet_Types;
 
 package body Pid_Controller_Tests.Implementation is
@@ -60,6 +61,12 @@ package body Pid_Controller_Tests.Implementation is
       Subpacket_Duration : Natural;
       Extra_Packets : constant Natural := 2;
       Packet_Buffer_Length : constant Natural := Packet_Buffer_Type'Length;
+      --  Number of subpackets that fit in one diagnostic packet.
+      --  Computed from the active Packet_Buffer_Size config so the
+      --  assertion below tracks the buffer rather than hard-coding
+      --  a value that's only correct for one configuration.
+      Subpackets_Per_Packet : constant Natural :=
+         Packet_Buffer_Length / Pid_Diagnostic_Subpacket.Max_Serialized_Length;
    begin
       Put_Line ("");
       Put_Line ("----------------------------------");
@@ -117,7 +124,9 @@ package body Pid_Controller_Tests.Implementation is
       T.Control_Input_U_Send (((0, 0), 1.0, 1.0, 1.0, False));
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 2);
       Natural_Assert.Eq (T.Pid_Controller_Diagnostic_Packet_History.Get_Count, 2);
-      Byte_Array_Assert.Eq (T.Pid_Controller_Diagnostic_Packet_History.Get (2).Buffer (0 .. 3), [0, 0, 0, 103]);
+      Byte_Array_Assert.Eq
+         (T.Pid_Controller_Diagnostic_Packet_History.Get (2).Buffer (0 .. 3),
+          Packed_Natural.Serialization.To_Byte_Array ((Value => Subpackets_Per_Packet)));
 
       -- Now make sure there was one more packet with just a couple sub packets
       T.Control_Input_U_Send (((0, 0), 1.0, 1.0, 1.0, False));

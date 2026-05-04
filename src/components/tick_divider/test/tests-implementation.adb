@@ -34,6 +34,11 @@ package body Tests.Implementation is
       -- tests reuse a static Tester instance and the record-default
       -- initialization fires only on heap allocation.
       Self.Tester.Component_Instance.Final;
+      -- Tester per-scenario state (e.g. Full_Queue sets the recv-sync
+      -- status to Message_Dropped) carries over the static Tester on
+      -- bareboard; restore the connector status so the next scenario
+      -- sees a fresh tester.
+      Self.Tester.Connector_Tick_T_Recv_Sync_Status := Connector_Types.Success;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
