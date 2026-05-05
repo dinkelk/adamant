@@ -7,6 +7,14 @@ with Interfaces;
 package body Component.Example_Component.Implementation is
 
    ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Counter := 0;
+   end Final;
+
+   ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
    -- This connector provides the schedule tick for the component.

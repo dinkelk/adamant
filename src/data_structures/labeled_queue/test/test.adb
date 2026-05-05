@@ -430,4 +430,6 @@ begin
    Put ("Destroy queue test... ");
    Queue.Destroy;
    Put_Line ("passed.");
+   --  Sentinel for the cross test runner (manual-test pass marker).
+   Put_Line ("=== ALL TESTS PASSED ===");
 end Test;

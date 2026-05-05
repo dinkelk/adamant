@@ -57,6 +57,11 @@ package body Parameter_Store_Tests.Implementation is
    begin
       -- Free component heap:
       Self.Tester.Final_Base;
+      -- Reset per-scenario component state for cross-test reuse:
+      -- the bareboard Tester is a static singleton, so without this
+      -- the packet generator's Sequence_Count carries over from the
+      -- prior scenario.
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
@@ -446,8 +451,13 @@ package body Parameter_Store_Tests.Implementation is
       Memory : aliased Basic_Types.Byte_Array (0 .. 99) := [others => 0];
       Region : constant Memory_Region.T := (Address => Memory'Address, Length => Memory'Length);
    begin
-      -- Send 3 commands to fill up queue.
-      Cmd.Header.Arg_Buffer_Length := Cmd.Arg_Buffer'Length;
+      -- Send 3 commands to fill up queue. Set Id above Num_Commands
+      -- (=1) so the tester's Log_Incoming_Command falls through to the
+      -- "not recognized" path. Linux happens to leave the uninit Id
+      -- as a large value (also above Num_Commands), but bareboard's
+      -- Initialize_Scalars zeroes it which is below Id_Base (=1) and
+      -- the Id - Id_Base subtraction underflows -> CONSTRAINT_ERROR.
+      Cmd.Header := (Source_Id => 0, Id => 16#FFFF#, Arg_Buffer_Length => Cmd.Arg_Buffer'Length);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);

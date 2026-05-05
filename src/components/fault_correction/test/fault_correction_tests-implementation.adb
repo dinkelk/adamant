@@ -3,6 +3,7 @@
 --------------------------------------------------------------------------------
 
 with AUnit.Assertions; use AUnit.Assertions;
+with Fault_Correction_Types;
 with Test_Assembly_Fault_Responses;
 with Test_Assembly_Fault_Responses_Status_Record.Assertion; use Test_Assembly_Fault_Responses_Status_Record.Assertion;
 with Test_Assembly_Faults;
@@ -23,6 +24,25 @@ with Interfaces; use Interfaces;
 with Fault_Header.Assertion; use Fault_Header.Assertion;
 
 package body Fault_Correction_Tests.Implementation is
+
+   -------------------------------------------------------------------------
+   -- Helpers:
+   -------------------------------------------------------------------------
+
+   --  Field-by-field Sys_Time equality check. Sys_Time_Assert.Eq's
+   --  declarative-part Message_Text construction calls Sys_Time."-"
+   --  which routes through Ada.Real_Time.Time_Of with epoch-relative
+   --  seconds. On the embedded-miv_rv32imaf-debug runtime
+   --  Ada.Real_Time.Time is system-start-tick based and cannot
+   --  represent the 1980 epoch, so Time_Of overflows and raises
+   --  CONSTRAINT_ERROR before the assertion body runs. Compare the
+   --  scalar fields directly to sidestep that path.
+   procedure Assert_Sys_Time_Eq (Actual : in Sys_Time.T; Expected : in Sys_Time.T) is
+   begin
+      Unsigned_32_Assert.Eq (Actual.Seconds, Expected.Seconds);
+      Unsigned_32_Assert.Eq (Interfaces.Unsigned_32 (Actual.Subseconds),
+                             Interfaces.Unsigned_32 (Expected.Subseconds));
+   end Assert_Sys_Time_Eq;
 
    -------------------------------------------------------------------------
    -- Fixtures:
@@ -88,13 +108,21 @@ package body Fault_Correction_Tests.Implementation is
       end Init_Duplicate;
 
       procedure Init_Too_Many is
+         --  Heap-allocate the oversized config list. Each
+         --  Fault_Response_Config is ~270 bytes (it embeds a full
+         --  Command.T with a 255-byte Arg_Buffer); a 5001-element
+         --  literal in a stack-resident array would overflow the
+         --  bareboard task stack before Init even runs. Heap
+         --  allocation puts it elsewhere; the temporary leak is
+         --  bounded to one scenario.
+         type Big_List_Access is access Fault_Correction_Types.Fault_Response_Config_List;
+         Big_List : Big_List_Access := new Fault_Correction_Types.Fault_Response_Config_List'
+            (0 .. 5000 => Test_Assembly_Fault_Responses.Component_A_Fault_1_Response);
+         pragma Unreferenced (Big_List);
       begin
-         -- Empty list not ok.
-         Self.Tester.Component_Instance.Init (Fault_Response_Configurations => [
-            0 .. 5000 => Test_Assembly_Fault_Responses.Component_A_Fault_1_Response
-         ]);
+         Self.Tester.Component_Instance.Init (Fault_Response_Configurations => Big_List.all);
          -- Should never get here:
-         Assert (False, "Init dupe dupe did not produce exception!");
+         Assert (False, "Init too-many did not produce exception!");
       exception
          -- Expecting exception to be thrown:
          when others =>
@@ -116,7 +144,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 1);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (1), (Id => 0));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 1);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (1), (0, 0));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (1), (0, 0));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 1);
       Test_Assembly_Fault_Responses_Status_Record_Assert.Eq (
          Test_Assembly_Fault_Responses_Status_Record.Serialization.From_Byte_Array (
@@ -180,7 +208,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 1);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (1), (Id => Test_Assembly_Faults.Component_A_Fault_1));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 1);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (1), (15, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (1), (15, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 1);
       Test_Assembly_Fault_Responses_Status_Record_Assert.Eq (
          Test_Assembly_Fault_Responses_Status_Record.Serialization.From_Byte_Array (
@@ -222,7 +250,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 2);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (2), (Id => Test_Assembly_Faults.Component_A_Fault_1));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 2);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (2), (15, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (2), (15, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 1); -- no change
 
       -- OK send the component a latching fault:
@@ -249,7 +277,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 3);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (3), (Id => Test_Assembly_Faults.Component_A_Fault_2));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 3);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (3), (16, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (3), (16, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 2);
       Test_Assembly_Fault_Responses_Status_Record_Assert.Eq (
          Test_Assembly_Fault_Responses_Status_Record.Serialization.From_Byte_Array (
@@ -287,7 +315,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 4);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (4), (Id => Test_Assembly_Faults.Component_A_Fault_2));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 4);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (4), (17, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (4), (17, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 2); -- No change, latched
 
       -- OK send a disabled fault:
@@ -310,7 +338,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 5);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (5), (Id => Test_Assembly_Faults.Component_B_Fault_1));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 5);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (5), (17, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (5), (17, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 2); -- No change, disabled
    end Test_Fault_Handling;
 
@@ -337,7 +365,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 1);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (1), (Id => Test_Assembly_Faults.Component_B_Fault_1));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 1);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (1), (17, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (1), (17, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 0); -- No change, disabled
 
       -- Send enable command:
@@ -394,7 +422,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 2);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (2), (Id => Test_Assembly_Faults.Component_B_Fault_1));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 2);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (2), (17, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (2), (17, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 2);
       Test_Assembly_Fault_Responses_Status_Record_Assert.Eq (
          Test_Assembly_Fault_Responses_Status_Record.Serialization.From_Byte_Array (
@@ -461,7 +489,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 3);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (3), (Id => Test_Assembly_Faults.Component_B_Fault_1));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 3);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (3), (17, 12));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (3), (17, 12));
       Natural_Assert.Eq (T.Fault_Response_Statuses_History.Get_Count, 3); -- no change
 
       -- Send enable command to enable already enabled:
@@ -705,7 +733,7 @@ package body Fault_Correction_Tests.Implementation is
       Natural_Assert.Eq (T.Last_Fault_Id_Received_History.Get_Count, 6);
       Packed_Fault_Id_Assert.Eq (T.Last_Fault_Id_Received_History.Get (6), (Id => 0));
       Natural_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get_Count, 6);
-      Sys_Time_Assert.Eq (T.Time_Of_Last_Fault_Received_History.Get (6), (0, 0));
+      Assert_Sys_Time_Eq (T.Time_Of_Last_Fault_Received_History.Get (6), (0, 0));
    end Test_Reset_Data_Products;
 
    overriding procedure Test_Unrecognized_Fault_Id (Self : in out Instance) is

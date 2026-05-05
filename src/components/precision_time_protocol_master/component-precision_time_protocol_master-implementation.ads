@@ -24,6 +24,14 @@ package Component.Precision_Time_Protocol_Master.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Sync_Period : in Positive := 1; Enabled_State : in Ptp_State.Ptp_State_Type := Ptp_State.Enabled);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:

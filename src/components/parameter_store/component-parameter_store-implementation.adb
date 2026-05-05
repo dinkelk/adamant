@@ -29,6 +29,19 @@ package body Component.Parameter_Store.Implementation is
       Self.Dump_Parameters_On_Change := Dump_Parameters_On_Change;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. The bareboard
+   --  Tester is a static singleton across scenarios, so the packet
+   --  generator's Sequence_Count carries over and the
+   --  Test_Nominal_Table_Upload assertion that a fresh dump has
+   --  Sequence_Count = 0 sees the accumulated count from prior
+   --  scenarios. Reset on tear-down to put it back to zero.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Bytes := null;
+      Self.Dump_Parameters_On_Change := False;
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    ---------------------------------------
    -- Helper functions:
    ---------------------------------------

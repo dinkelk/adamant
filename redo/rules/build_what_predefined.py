@@ -20,6 +20,8 @@ def get_predefined_targets() -> list:
         "style",
         "pretty",
         "test_all",
+        "test_renode",
+        "test_all_renode",
         "analyze_all",
         "coverage_all",
         "style_all",

@@ -33,6 +33,13 @@ package body Apid_Tree is
       end loop;
    end Init;
 
+   procedure Destroy (Self : in out Instance) is
+   begin
+      Self.Downsample_Entry.Destroy;
+      Self.Num_Filtered_Packets := Unsigned_16'First;
+      Self.Num_Passed_Packets := Unsigned_16'First;
+   end Destroy;
+
    function Filter_Packet (Self : in out Instance; Apid : in Ccsds_Apid_Type; Count : out Unsigned_16) return Filter_Action_Status is
       Fetched_Entry : Ccsds_Downsampler_Tree_Entry;
       Tree_Index : Positive;

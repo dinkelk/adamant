@@ -25,6 +25,14 @@ package Component.Memory_Manager.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Bytes : in Basic_Types.Byte_Array_Access := null; Size : in Integer := -1);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- Protected type to manage access to the memory region. This ensures thread safety should
@@ -39,6 +47,11 @@ private
       procedure Release (Self : in out Instance; Id : in Unsigned_16; State : out Memory_Manager_Enums.Memory_State.E; Status : out Release_Status);
       -- Release access, no ID needed.
       procedure Force_Release (Self : in out Instance);
+      -- Reset the protected state to its spec-defined defaults
+      -- without any side effects. Used by the component's Final to
+      -- put the arbiter back into a freshly-Init'd state for
+      -- cross-test scenario reuse.
+      procedure Reset;
       -- Get the current state of the memory access:
       function Get_State return Memory_Manager_Enums.Memory_State.E;
       function Get_Current_Id return Unsigned_16;

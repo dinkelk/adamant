@@ -37,6 +37,10 @@ package body Precision_Time_Protocol_Master_Tests.Implementation is
    begin
       -- Free component heap:
       Self.Tester.Final_Base;
+      -- Reset component state for the next scenario. Cross-compiled
+      -- tests reuse a static Tester instance and the record-default
+      -- initialization fires only on heap allocation.
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
