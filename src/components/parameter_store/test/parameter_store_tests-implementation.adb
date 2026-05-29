@@ -25,7 +25,10 @@ package body Parameter_Store_Tests.Implementation is
    -------------------------------------------------------------------------
    -- Globals:
    -------------------------------------------------------------------------
-   -- Declare memory store data:
+   -- Declare memory store data. NOTE: This is a shared mutable global between the test harness
+   -- and the component under test (via Bytes'Access passed to Init). This makes tests
+   -- order-dependent — Set_Up_Test MUST reinitialize Bytes before each test, and tests
+   -- must NOT be run in parallel. Any new test must call Set_Up_Test or manually reset Bytes.
    Bytes : aliased Basic_Types.Byte_Array := [0 .. 99 => 0];
 
    -------------------------------------------------------------------------
