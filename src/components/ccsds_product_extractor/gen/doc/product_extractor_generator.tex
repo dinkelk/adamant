@@ -25,7 +25,13 @@ The following is an example extracted product input yaml file. Model files must 
 
 \yamlcodef{../../test/test_assembly/test_products.extracted_products.yaml}
 
-The specified data products consist of everything that the user would normally be required to include when defining a data product for a component, with the addition of the offset in the packet and corresponding APID. The type is also required which must be in the form of a packed type. The last required field is the time type which is either the current time of extraction from the packet or the time contained in the packet. 
+The specified data products consist of everything that the user would normally be required to include when defining a data product for a component, with the addition of the offset in the packet and corresponding APID. The type is also required which must be in the form of a packed type. The last required field is the time type which is either the current time of extraction from the packet or the time contained in the packet.
+
+\section{Seeding Default Values at Set Up}
+
+Because the component only produces a data product when a matching packet is received, a product has no value in the data product database until its first packet arrives. Downstream consumers that fetch one of these products as a data dependency would therefore receive a \texttt{Not\_Available} status at start up. To close this gap, a product may optionally specify a \texttt{default\_at\_set\_up} value in its model entry. This is an Ada aggregate string for the product's packed type (for example \texttt{"(Value => 0)"} for a \texttt{Packed\_U32.T}). The string is dropped verbatim into the generated code and is therefore validated against the product type by the Ada compiler.
+
+When a product declares a \texttt{default\_at\_set\_up}, the generator emits a builder function for it and attaches that builder to the product's entry in the extraction list. During the component's \texttt{Set\_Up} procedure --- which runs after all components are initialized but before the rate groups begin ticking --- the component publishes one data product per declared default, stamped with the current system time. This guarantees a valid value exists in the database for every seeded product before the first packet is processed. Products that do not declare a default are not seeded, so models that omit the field retain the legacy behavior. The feature requires no change to the component's \texttt{Init} signature: the optional builder travels alongside the extraction function in the same list already passed to \texttt{Init}.
 
 \section{Example Output}
 
