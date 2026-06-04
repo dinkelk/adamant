@@ -90,4 +90,32 @@ package body {{ name }} is
 
 {% endfor %}
 {% endfor %}
+{% for data_product in set_up_default_products %}
+   -- Build the default ("seed") value for {{ data_product.name }}. The default
+   -- value string from the model is validated against the product type by the
+   -- compiler.
+   function Make_Default_{{ data_product.name }} (Id_Base : in Data_Product_Types.Data_Product_Id; Timestamp : in Sys_Time.T) return Data_Product.T is
+      Local_Id : constant Data_Product_Types.Data_Product_Id := {{ data_product.local_id }};
+      Id : constant Data_Product_Types.Data_Product_Id := Id_Base + Local_Id;
+{% if data_product.product_endian == "T_Le" %}
+      Dp : Data_Product.T := (
+         Header => (Time => Timestamp, Id => Id, Buffer_Length => {{ data_product.product_type }}.Serialization_Le.Serialized_Length),
+         Buffer => [others => 0]
+      );
+   begin
+      Dp.Buffer (Dp.Buffer'First .. Dp.Buffer'First + {{ data_product.product_type }}.Serialization_Le.Serialized_Length - 1) :=
+         {{ data_product.product_type }}.Serialization_Le.To_Byte_Array ({{ data_product.product_type }}.{{ data_product.product_endian }}'{{ data_product.default_at_set_up }});
+{% else %}
+      Dp : Data_Product.T := (
+         Header => (Time => Timestamp, Id => Id, Buffer_Length => {{ data_product.product_type }}.Serialization.Serialized_Length),
+         Buffer => [others => 0]
+      );
+   begin
+      Dp.Buffer (Dp.Buffer'First .. Dp.Buffer'First + {{ data_product.product_type }}.Serialization.Serialized_Length - 1) :=
+         {{ data_product.product_type }}.Serialization.To_Byte_Array ({{ data_product.product_type }}.{{ data_product.product_endian }}'{{ data_product.default_at_set_up }});
+{% endif %}
+      return Dp;
+   end Make_Default_{{ data_product.name }};
+
+{% endfor %}
 end {{ name }};

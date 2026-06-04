@@ -11,7 +11,7 @@ init:
     - name: Data_Product_Extraction_List
       type: Product_Extractor_Types.Extracted_Product_List_Access
       not_null: true
-      description: The list of data products that will be extracted from packets.
+      description: The list of data products that will be extracted from packets. Each product entry may optionally carry a default-value builder (see "default_at_set_up" in the extracted products model), which the component publishes during Set_Up so the product exists in the data product database before any packet is processed.
 connectors:
   - description: The connector that will receive the CCSDS space packets and extract data products if necessary
     type: Ccsds_Space_Packet.T

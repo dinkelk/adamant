@@ -18,7 +18,7 @@ package Component.Ccsds_Product_Extractor.Implementation is
    --------------------------------------------------
    --
    -- Init Parameters:
-   -- Data_Product_Extraction_List : Product_Extractor_Types.Extracted_Product_List_Access - The list of data products that will be extracted from packets.
+   -- Data_Product_Extraction_List : Product_Extractor_Types.Extracted_Product_List_Access - The list of data products that will be extracted from packets. Each entry may optionally carry a default-value builder, which the component publishes during Set_Up so the product exists in the data product database before any packet is processed.
    --
    overriding procedure Init (Self : in out Instance; Data_Product_Extraction_List : in not null Product_Extractor_Types.Extracted_Product_List_Access);
 
@@ -33,6 +33,9 @@ private
    -- The component class instance record:
    type Instance is new Ccsds_Product_Extractor.Base_Instance with record
       Extracted_Products_Tree : Ccsds_Product_Tree.Instance;
+      -- The extraction list provided at Init, retained so Set_Up can walk it to
+      -- publish any products that declared a default value. Null until Init runs.
+      Extraction_List : Product_Extractor_Types.Extracted_Product_List_Access := null;
    end record;
 
    ---------------------------------------
@@ -45,7 +48,7 @@ private
    -- safely until everything is up and running, i.e. command registration, initial
    -- data product updates. This procedure should be implemented to do these things
    -- if necessary.
-   overriding procedure Set_Up (Self : in out Instance) is null;
+   overriding procedure Set_Up (Self : in out Instance);
 
    ---------------------------------------
    -- Invokee connector primitives:
