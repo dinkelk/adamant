@@ -95,6 +95,11 @@ package body Ccsds_Product_Extractor_Tests.Implementation is
       Put_Line ("Testing Product Extractor Packets:");
       Put_Line ("----------------------------------");
 
+      -- Discard any products seeded by Set_Up (the model declares set-up defaults
+      -- for some products); this test exercises extraction-on-packet from a clean
+      -- history. Seeding behavior is covered by Test_Set_Up_Default_Seeding.
+      T.Data_Product_T_Recv_Sync_History.Clear;
+
       -- Check that we don't have any events or data products sent yet
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
@@ -229,5 +234,28 @@ package body Ccsds_Product_Extractor_Tests.Implementation is
       Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (14), Test_Dp_Received_U16 (0, 25, (50, 100)));
 
    end Test_Received_Data_Product_Packet;
+
+   overriding procedure Test_Set_Up_Default_Seeding (Self : in out Instance) is
+      T : Component.Ccsds_Product_Extractor.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      Put_Line ("");
+      Put_Line ("----------------------------------");
+      Put_Line ("Testing Set_Up Default Seeding:");
+      Put_Line ("----------------------------------");
+
+      -- The test fixture (Set_Up_Test) has already run Init followed by Set_Up.
+      -- Because Test_Product_3 and Test_Product_5 declare a "default_at_set_up" in
+      -- the model, Set_Up seeded each of them into the data product database, in
+      -- local-id order (Test_Product_3 then Test_Product_5), and nothing else.
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Each seed carries the model-defined default value, the correct data
+      -- product id, and the fresh timestamp grabbed from the system time
+      -- connector at Set_Up (which the tester returns as T.System_Time).
+      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (1), Test_Dp_Received_U32 (2, 42, T.System_Time));
+      Data_Product_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get (2), Test_Dp_Received_Natural_Le (4, 7, T.System_Time));
+
+   end Test_Set_Up_Default_Seeding;
 
 end Ccsds_Product_Extractor_Tests.Implementation;
