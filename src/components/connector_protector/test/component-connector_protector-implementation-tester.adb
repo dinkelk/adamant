@@ -11,7 +11,7 @@ package body Component.Connector_Protector.Implementation.Tester is
    begin
       -- Initialize tester heap:
       -- Connector histories:
-      Self.T_Recv_Sync_History.Init (Depth => 100);
+      Self.T_Recv_Sync_History.Init (Depth => 600);
    end Init_Base;
 
    procedure Final_Base (Self : in out Instance) is

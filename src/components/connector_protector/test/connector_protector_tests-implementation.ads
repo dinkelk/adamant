@@ -19,6 +19,9 @@ private
    -- This unit test invokes the protected connector and makes sure the arguments are passed through synchronously, as expected.
    overriding procedure Test_Protected_Call (Self : in out Instance);
 
+   -- This unit test spawns multiple tasks that concurrently invoke the protected connector and verifies all calls are serialized and none are lost.
+   overriding procedure Test_Concurrent_Protection (Self : in out Instance);
+
    -- Instantiate generic component package:
    package Component_Package is new Component.Connector_Protector (T => Tick.T);
    package Component_Implementation_Package is new Component_Package.Implementation;
