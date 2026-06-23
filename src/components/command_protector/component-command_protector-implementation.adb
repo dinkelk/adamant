@@ -50,8 +50,8 @@ package body Component.Command_Protector.Implementation is
    -- Send out data products:
    overriding procedure Set_Up (Self : in out Instance) is
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
-      Start_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-      Start_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Start_Timeout);
+      Start_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State;
+      Start_Timeout : constant Packed_Arm_Timeout.Arm_Timeout_Type := Self.Command_Arm_State.Get_Timeout;
    begin
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State (The_Time, (State => Start_State)));
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State_Timeout (The_Time, (Timeout => Start_Timeout)));
@@ -99,8 +99,7 @@ package body Component.Command_Protector.Implementation is
    overriding procedure Command_T_To_Forward_Recv_Sync (Self : in out Instance; Arg : in Command.T) is
       use Command_Protector_Enums.Armed_State;
       -- Get the armed state:
-      Ignore_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-      State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Ignore_Timeout);
+      State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State;
       -- Look up to see if this command is in the protected list:
       Id_To_Find : Command_Id renames Arg.Header.Id;
       Ignore_Found_Id : Command_Id;
@@ -120,8 +119,8 @@ package body Component.Command_Protector.Implementation is
 
             declare
                -- Get the new state:
-               New_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-               New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (New_Timeout);
+               New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State;
+               New_Timeout : constant Packed_Arm_Timeout.Arm_Timeout_Type := Self.Command_Arm_State.Get_Timeout;
                -- Timestamp:
                The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
             begin
@@ -202,8 +201,8 @@ package body Component.Command_Protector.Implementation is
       -- Send out data products and events:
       declare
          The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
-         New_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
-         New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (New_Timeout);
+         New_State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State;
+         New_Timeout : constant Packed_Arm_Timeout.Arm_Timeout_Type := Self.Command_Arm_State.Get_Timeout;
       begin
          Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State (The_Time, (State => New_State)));
          Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Armed_State_Timeout (The_Time, (Timeout => New_Timeout)));
