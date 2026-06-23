@@ -64,7 +64,7 @@ private
    ---------------------------------------
    -- This tick is used to keep track of the armed state timeout and send the data product relating the current timeout value.
    overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
-   -- Commands received on this connector will be checked against the protected command list and rejected if the system is 'unarmed'. Commands not found in the protected command list they will be forwarded.
+   -- Commands received on this connector will be checked against the protected command list and rejected if the system is 'unarmed'. Commands not found in the protected command list will be forwarded.
    overriding procedure Command_T_To_Forward_Recv_Sync (Self : in out Instance; Arg : in Command.T);
    -- The command receive connector for this component's specific commands.
    overriding procedure Command_T_Recv_Sync (Self : in out Instance; Arg : in Command.T);
