@@ -9,7 +9,9 @@ package Seq_Simulator is
 
    type Instance is tagged private;
 
-   function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Boolean;
+   type Init_Status is (Success, Allocation_Error, Configuration_Error);
+   function Initialize (Self : in out Instance; Num_Engines : in Sequence_Engine_Id; Stack_Size : in Max_Seq_Num; Start_Source_Id : in Command_Source_Id) return Init_Status;
+   procedure Destroy (Self : in out Instance);
    procedure Simulate (Self : in out Instance; Filepath : in String; To_Load : in Sequence_Engine_Id; Engine_Time_S : in Interfaces.Unsigned_32);
 
 private
