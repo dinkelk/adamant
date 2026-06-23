@@ -11,5 +11,7 @@ tests:
     description: This unit test tests the enabled/disable commands to the logger to make sure they behave as expected.
   - name: Test_Init
     description: This unit test tests initializing the log with both valid and invalid values.
+  - name: Test_Dump_Empty_Enabled
+    description: This unit test tests dump commands on an enabled but empty log to exercise the zero-length buffer edge case.
   - name: Test_Invalid_Command
     description: This unit test makes sure an invalid command is reported and ignored.
