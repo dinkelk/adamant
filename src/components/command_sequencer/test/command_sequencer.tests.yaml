@@ -40,7 +40,7 @@ tests:
   - name: Test_Set_Summary_Packet_Period
     description: This unit test tests changing the summary packet period by command.
   - name: Test_Command_Invalid_Engine
-    description: This unit test exercises commands send to invalid engine IDs and makes sure they do not execute.
+    description: This unit test exercises commands sent to invalid engine IDs and makes sure they do not execute.
   - name: Test_Invalid_Command
     description: This unit test exercises that an invalid command throws the appropriate event.
   - name: Test_Queue_Overflow

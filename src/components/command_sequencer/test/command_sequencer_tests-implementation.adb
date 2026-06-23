@@ -842,7 +842,7 @@ package body Command_Sequencer_Tests.Implementation is
       T.Component_A_Data_Product_1 := (Value => 100);
       T.Tick_T_Send (((0, 0), 0));
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      T.Event_T_Recv_Sync_History.Print;
+      -- T.Event_T_Recv_Sync_History.Print;
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
 
       -- Check the command:
