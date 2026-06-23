@@ -8,7 +8,7 @@ with Sys_Time;
 with System;
 with Ada.Interrupts.Names;
 
--- This is the Interrupt Servicer component. It is attached to an interrupt and sends out a Tick.T every time the interrupt is triggered. This component MUST be made active in order to function properly.
+-- Interrupt Servicer component tester. See component spec for description.
 generic
 package Component.Interrupt_Servicer.Implementation.Tester is
 
@@ -42,7 +42,7 @@ package Component.Interrupt_Servicer.Implementation.Tester is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- The tick send connection.
+   -- The data send connection.
    overriding procedure Interrupt_Data_Type_Recv_Sync (Self : in out Instance; Arg : in Interrupt_Data_Type);
    -- The system time is retrieved via this connector.
    overriding function Sys_Time_T_Return (Self : in out Instance) return Sys_Time.T;
