@@ -6,7 +6,7 @@
 with System;
 with Ada.Interrupts;
 
--- This is the Interrupt Listener component. It is attached to an interrupt and provides a connector which will give the caller a count. The count includes the number of times the interrupt has occurred since the last invocation of the connector. If the count reaches the maximum of a Natural, it stops incrementing. This component should be made passive in order to function properly.
+-- This is the Interrupt Listener component. It is attached to an interrupt and provides a connector which returns the latest interrupt data to the caller. Each time the interrupt fires, a user-supplied custom procedure is invoked with the internal data as an in-out parameter. External components may query the current data at any time via the return connector. This component should be made passive in order to function properly.
 generic
 package Component.Interrupt_Listener.Implementation is
 
