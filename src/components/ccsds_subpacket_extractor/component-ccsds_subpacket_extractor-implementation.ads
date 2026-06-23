@@ -30,6 +30,10 @@ private
       Start_Offset : Natural := 0;
       Stop_Offset : Natural := 0;
       Max_Subpackets_To_Extract : Integer := -1;
+      -- Counters for tracking dropped downstream messages:
+      Downstream_Packet_Drop_Count : Natural := 0;
+      Event_Send_Drop_Count : Natural := 0;
+      Packet_Send_Drop_Count : Natural := 0;
    end record;
 
    ---------------------------------------
@@ -46,10 +50,10 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Ccsds_Space_Packet_T_Send message is dropped due to a full queue.
-   overriding procedure Ccsds_Space_Packet_T_Send_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T) is null;
+   overriding procedure Ccsds_Space_Packet_T_Send_Dropped (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
    -- This procedure is called when a Event_T_Send message is dropped due to a full queue.
-   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T);
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
-   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T);
 
 end Component.Ccsds_Subpacket_Extractor.Implementation;
