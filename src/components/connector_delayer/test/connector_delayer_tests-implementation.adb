@@ -71,6 +71,9 @@ package body Connector_Delayer_Tests.Implementation is
       The_Time_2 := Clock;
       Dur := The_Time_2 - The_Time_1;
       Put_Line ("Took: " & Dur'Image);
+      -- Assert that the delay was at least the configured 1.4s:
+      pragma Assert (Dur >= Ada.Real_Time.Microseconds (1_400_000),
+         "Delay too short: expected >= 1.4s for single dispatch");
 
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((1, 2), 3));
@@ -86,6 +89,9 @@ package body Connector_Delayer_Tests.Implementation is
       The_Time_2 := Clock;
       Dur := The_Time_2 - The_Time_1;
       Put_Line ("Took: " & Dur'Image);
+      -- Assert that the delay was at least 2 x 1.4s for two dispatched items:
+      pragma Assert (Dur >= Ada.Real_Time.Microseconds (2_800_000),
+         "Delay too short: expected >= 2.8s for two dispatches");
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 3);
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (2), ((2, 4), 6));
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (3), ((3, 5), 7));
@@ -102,11 +108,44 @@ package body Connector_Delayer_Tests.Implementation is
       The_Time_2 := Clock;
       Dur := The_Time_2 - The_Time_1;
       Put_Line ("Took: " & Dur'Image);
+      -- Assert that the delay was at least 3 x 1.4s for three dispatched items:
+      pragma Assert (Dur >= Ada.Real_Time.Microseconds (4_200_000),
+         "Delay too short: expected >= 4.2s for three dispatches");
       Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 6);
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (4), ((8, 10), 12));
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (5), ((9, 11), 13));
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (6), ((15, 15), 15));
    end Test_Queued_Call;
+
+   -- This unit test verifies that with Delay_Us=0, the component behaves like
+   -- a Connector Queuer with negligible dispatch latency.
+   overriding procedure Test_Zero_Delay (Self : in out Instance) is
+      use Ada.Real_Time;
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+      The_Time_1, The_Time_2 : Ada.Real_Time.Time;
+      Dur : Ada.Real_Time.Time_Span;
+      -- Maximum acceptable latency for zero-delay dispatch (100ms):
+      Max_Zero_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Microseconds (100_000);
+   begin
+      -- Reinitialize with zero delay:
+      T.Component_Instance.Init (Delay_Us => 0);
+
+      -- Send data and dispatch:
+      T.T_Send (((1, 2), 3));
+      The_Time_1 := Clock;
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      The_Time_2 := Clock;
+      Dur := The_Time_2 - The_Time_1;
+      Put_Line ("Zero delay took: " & Dur'Image);
+
+      -- Assert near-zero latency:
+      pragma Assert (Dur < Max_Zero_Delay,
+         "Zero-delay dispatch took too long; expected near-instant pass-through");
+
+      -- Verify data passed through correctly:
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, 1);
+      Tick_Assert.Eq (T.T_Recv_Sync_History.Get (1), ((1, 2), 3));
+   end Test_Zero_Delay;
 
    -- This unit test fills the queue and makes sure that dropped messages are
    -- reported.
@@ -126,6 +165,8 @@ package body Connector_Delayer_Tests.Implementation is
       -- Check events:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Dropped_Message_History.Get_Count, 1);
+      -- Verify that Sys_Time_T_Get was invoked to timestamp the event:
+      Natural_Assert.Eq (T.Sys_Time_T_Return_History.Get_Count, 1);
 
       -- Expect tick to be passed through now.
       Natural_Assert.Eq (T.Dispatch_All, 3);
