@@ -14,6 +14,9 @@ private
    -- This unit test sends events to the event text logger and expects them to be printed to the screen.
    overriding procedure Test_Event_Printing (Self : in out Instance);
 
+   -- This unit test exercises the dropped-event path by overflowing the queue.
+   not overriding procedure Test_Event_Dropped (Self : in out Instance);
+
    -- Test data and state:
    type Instance is new Tests.Base_Instance with record
       null;
