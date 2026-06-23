@@ -10,7 +10,7 @@ fields:
     type: Interfaces.Unsigned_16
     format: U16
   - name: Size
-    description: Size of the telemetry item (in bits).
+    description: "Size of the telemetry item (in bits). Must not exceed 32 bits, as values are stored into 32-bit internal variables. Consuming code MUST enforce Size <= 32 at runtime."
     type: Basic_Types.Positive_16
     format: U16
   - name: Tlm_Type
