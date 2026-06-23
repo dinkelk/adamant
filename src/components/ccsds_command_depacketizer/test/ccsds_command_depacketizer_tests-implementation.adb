@@ -37,6 +37,21 @@ package body Ccsds_Command_Depacketizer_Tests.Implementation is
 
       -- Make necessary connections between tester and component:
       Self.Tester.Connect;
+
+      -- Call Set_Up to initialize counters and send initial data products:
+      Self.Tester.Component_Instance.Set_Up;
+
+      -- Verify initial data products were sent (both counts start at 0):
+      Natural_Assert.Eq (Self.Tester.Data_Product_T_Recv_Sync_History.Get_Count, 2);
+      Natural_Assert.Eq (Self.Tester.Rejected_Packet_Count_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (Self.Tester.Rejected_Packet_Count_History.Get (1), (Value => 0));
+      Natural_Assert.Eq (Self.Tester.Accepted_Packet_Count_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (Self.Tester.Accepted_Packet_Count_History.Get (1), (Value => 0));
+
+      -- Clear histories so tests start from a clean slate:
+      Self.Tester.Data_Product_T_Recv_Sync_History.Clear;
+      Self.Tester.Rejected_Packet_Count_History.Clear;
+      Self.Tester.Accepted_Packet_Count_History.Clear;
    end Set_Up_Test;
 
    overriding procedure Tear_Down_Test (Self : in out Instance) is
@@ -387,6 +402,11 @@ package body Ccsds_Command_Depacketizer_Tests.Implementation is
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
 
+      -- Expect accepted packet count data product:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Accepted_Packet_Count_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (T.Accepted_Packet_Count_History.Get (1), (Value => 1));
+
       -- Send the packet:
       T.Ccsds_Space_Packet_T_Send (Packet_2);
 
@@ -398,6 +418,11 @@ package body Ccsds_Command_Depacketizer_Tests.Implementation is
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
 
+      -- Expect accepted packet count data product:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Accepted_Packet_Count_History.Get_Count, 2);
+      Packed_U16_Assert.Eq (T.Accepted_Packet_Count_History.Get (2), (Value => 2));
+
       -- Send the packet:
       T.Ccsds_Space_Packet_T_Send (Packet_3);
 
@@ -408,6 +433,11 @@ package body Ccsds_Command_Depacketizer_Tests.Implementation is
       -- Expect no events to be thrown:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Expect accepted packet count data product:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Accepted_Packet_Count_History.Get_Count, 3);
+      Packed_U16_Assert.Eq (T.Accepted_Packet_Count_History.Get (3), (Value => 3));
    end Test_Pad_Bytes;
 
    overriding procedure Test_Reset_Counts (Self : in out Instance) is
