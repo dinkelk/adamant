@@ -1,6 +1,9 @@
 ---
 description: The requirements for the Memory Dumper component are specified below.
 requirements:
-  - text: The component shall dump a memory region on command.
-  - text: The component shall crc a memory region on command.
-  - text: The component shall reject commands to dump or crc memory in off-limit regions.
+  - id: REQ-MD-001
+    text: The component shall dump a memory region on command.
+  - id: REQ-MD-002
+    text: The component shall crc a memory region on command.
+  - id: REQ-MD-003
+    text: The component shall reject commands to dump or crc memory in off-limit regions.
