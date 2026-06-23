@@ -5,3 +5,4 @@ requirements:
   - text: The component shall send queued data at a configurable periodic rate.
   - text: The rate at which queued data is sent shall be configurable by command.
   - text: The rate at which queued data is sent shall be configurable by parameter.
+  - text: The component shall emit an event when incoming data is dropped due to a full queue.
