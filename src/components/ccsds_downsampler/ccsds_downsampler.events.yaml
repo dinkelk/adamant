@@ -3,9 +3,9 @@ events:
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
-  - name: Modified_Factor_Filter
-    description: This event indicates that the filter factor for a particular id has been set based on what was commanded.
+  - name: Filter_Factor_Modified
+    description: This event indicates that the filter factor for a particular APID has been set based on what was commanded.
     param_type: Filter_Factor_Cmd_Type.T
-  - name: Factor_Filter_Change_Failed_Invalid_Apid
-    description: This event indicates that the command received an APID it could not find so it fails since it cannot find the ID.
+  - name: Filter_Factor_Change_Failed_Invalid_Apid
+    description: This event indicates that the command received an APID that could not be found in the downsample list.
     param_type: Filter_Factor_Cmd_Type.T

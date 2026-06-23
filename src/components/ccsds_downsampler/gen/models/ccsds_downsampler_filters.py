@@ -10,14 +10,14 @@ class filter_entry(object):
         self.apid = packet["apid"]
         if self.apid > 2047:
             raise ModelException(
-                "Downsampler List Apid larger than 11 bits: '" + self.apid + "'."
+                "Downsampler List Apid larger than 11 bits: '" + str(self.apid) + "'."
             )
 
         self.filter_factor = packet["filter_factor"]
         if self.filter_factor > 65535:
             raise ModelException(
                 "Downsampler filter factor set to invalid value: '"
-                + self.filter_factor
+                + str(self.filter_factor)
                 + "'."
             )
 
@@ -75,22 +75,21 @@ class ccsds_downsampler_filters(base):
             self.description = self.data["description"]
 
         # Get the information for each apid/filter_factor packet to be included in the downsampled list
+        seen_names = set()
         for packet in self.data["downsampled_packets"]:
             the_products = filter_entry(packet)
-            if the_products.name not in self.filter_products:
-                if the_products.apid not in self.filter_products:
-                    # Get the current list of products in the dictionary here and make sure we don't have a duplicate
-                    self.filter_products[the_products.apid] = the_products
-                else:
-                    raise ModelException(
-                        "Duplicate apid found in Downsampler: '"
-                        + the_products.apid
-                        + "'."
-                    )
-            else:
+            if the_products.name in seen_names:
                 raise ModelException(
                     "Duplicate name found in Downsampler: '" + the_products.name + "'."
                 )
+            if the_products.apid in self.filter_products:
+                raise ModelException(
+                    "Duplicate apid found in Downsampler: '"
+                    + str(the_products.apid)
+                    + "'."
+                )
+            seen_names.add(the_products.name)
+            self.filter_products[the_products.apid] = the_products
 
         # Finally get the entire size of the list in bytes (2 per apid, 2 per filter_factor)
         self.size = len(self.filter_products) * 4

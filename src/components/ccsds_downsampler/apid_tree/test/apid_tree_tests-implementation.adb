@@ -95,17 +95,17 @@ package body Apid_Tree_Tests.Implementation is
       Tree_Entry := Tree.Get_Tree_Entry (1);
       Natural_Assert.Eq (Natural (Tree_Entry.Apid), 2);
       Unsigned_16_Assert.Eq (Tree_Entry.Filter_Factor, 0);
-      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 3);
+      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 0);
 
       Tree_Entry := Tree.Get_Tree_Entry (2);
       Natural_Assert.Eq (Natural (Tree_Entry.Apid), 3);
       Unsigned_16_Assert.Eq (Tree_Entry.Filter_Factor, 3);
-      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 7);
+      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 1);
 
       Tree_Entry := Tree.Get_Tree_Entry (3);
       Natural_Assert.Eq (Natural (Tree_Entry.Apid), 4);
       Unsigned_16_Assert.Eq (Tree_Entry.Filter_Factor, 1);
-      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 6);
+      Unsigned_16_Assert.Eq (Tree_Entry.Filter_Count, 0);
 
    end Test_Init_List;
 
@@ -281,5 +281,87 @@ package body Apid_Tree_Tests.Implementation is
       Unsigned_16_Assert.Eq (Cnt, 5);
       pragma Unreferenced (Tree);
    end Test_Get_Counters;
+
+   overriding procedure Test_Counter_Saturation (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Cnt : Unsigned_16;
+      Set_Status : Filter_Factor_Set_Status;
+      Ignore_Index : Positive;
+      -- Use filter factor 1 so every packet passes (fastest way to increment Num_Passed_Packets)
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List := [(Apid => 10, Filter_Factor => 1), (Apid => 20, Filter_Factor => 0)];
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- Drive Num_Passed_Packets to saturation by sending packets for APID 10 (factor=1, all pass)
+      for I in 1 .. Unsigned_16'Last loop
+         Status := Tree.Filter_Packet (10, Cnt);
+         Filter_Action_Status_Assert.Eq (Status, Pass);
+         Unsigned_16_Assert.Eq (Cnt, I);
+      end loop;
+
+      -- Next packet should saturate at Unsigned_16'Last, not wrap to 0
+      Status := Tree.Filter_Packet (10, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+      Unsigned_16_Assert.Eq (Cnt, Unsigned_16'Last);
+
+      -- One more to confirm it stays saturated
+      Status := Tree.Filter_Packet (10, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+      Unsigned_16_Assert.Eq (Cnt, Unsigned_16'Last);
+
+      -- Now test Num_Filtered_Packets saturation using APID 20 (factor=0, all filtered)
+      for I in 1 .. Unsigned_16'Last loop
+         Status := Tree.Filter_Packet (20, Cnt);
+         Filter_Action_Status_Assert.Eq (Status, Filter);
+         Unsigned_16_Assert.Eq (Cnt, I);
+      end loop;
+
+      -- Saturate check
+      Status := Tree.Filter_Packet (20, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Filter);
+      Unsigned_16_Assert.Eq (Cnt, Unsigned_16'Last);
+
+      -- Also verify Filter_Count modular behavior: after 65535 pass-packets for APID 10
+      -- with factor 1, Filter_Count should be 0 (since (count+1) mod 1 = 0 always)
+      declare
+         Entry_10 : constant Ccsds_Downsampler_Tree_Entry := Tree.Get_Tree_Entry (1);
+      begin
+         Unsigned_16_Assert.Eq (Entry_10.Filter_Count, 0);
+      end;
+      pragma Unreferenced (Set_Status, Ignore_Index);
+      pragma Unreferenced (Tree);
+   end Test_Counter_Saturation;
+
+   overriding procedure Test_Extreme_Filter_Factor (Self : in out Instance) is
+      Ignore_Self : Instance renames Self;
+      Tree : Apid_Tree.Instance;
+      Status : Filter_Action_Status;
+      Cnt : Unsigned_16;
+      -- Filter factor of Unsigned_16'Last (65535): only 1 in every 65535 packets passes
+      Apid_Start_List : aliased Ccsds_Downsample_Packet_List := [(Apid => 42, Filter_Factor => Unsigned_16'Last)];
+   begin
+      Tree.Init (Apid_Start_List'Unchecked_Access);
+
+      -- First packet should pass (Filter_Count = 0, 0 mod 65535 = 0)
+      Status := Tree.Filter_Packet (42, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+
+      -- Next 65534 packets should all be filtered
+      for I in 2 .. Unsigned_16'Last loop
+         Status := Tree.Filter_Packet (42, Cnt);
+         Filter_Action_Status_Assert.Eq (Status, Filter);
+      end loop;
+
+      -- The next packet should pass again (Filter_Count wrapped modularly back to 0)
+      Status := Tree.Filter_Packet (42, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Pass);
+
+      -- And the next should be filtered again
+      Status := Tree.Filter_Packet (42, Cnt);
+      Filter_Action_Status_Assert.Eq (Status, Filter);
+      pragma Unreferenced (Tree);
+   end Test_Extreme_Filter_Factor;
 
 end Apid_Tree_Tests.Implementation;

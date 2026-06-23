@@ -37,6 +37,8 @@ private
       procedure Filter_Packet (Apid : in Ccsds_Apid_Type; Count : out Unsigned_16; Status : out Apid_Tree.Filter_Action_Status);
       -- Procedure to get the pointer for the array. This is so that we can quickly copy the whole thing into the state packet
       procedure Set_Filter_Factor (Apid : in Ccsds_Apid_Type; New_Filter_Factor : in Unsigned_16; Tree_Index : out Positive; Status : out Apid_Tree.Filter_Factor_Set_Status);
+      -- Atomically set the filter factor and return the updated entry
+      procedure Set_Filter_Factor_And_Get (Apid : in Ccsds_Apid_Type; New_Filter_Factor : in Unsigned_16; Tree_Index : out Positive; Entry_Out : out Ccsds_Downsampler_Tree_Entry; Status : out Apid_Tree.Filter_Factor_Set_Status);
       -- Functions to get the first and last index of the tree
       function Get_Tree_First_Index return Positive;
       function Get_Tree_Last_Index return Natural;
