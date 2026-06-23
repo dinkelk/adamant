@@ -14,7 +14,9 @@ package body Component.Interrupt_Pender.Implementation is
       -- Wait for the interrupt to release this task:
       Self.The_Signal.Wait (To_Return);
 
-      -- Get the time of the interrupt and store it in the interrupt data:
+      -- Get the time after wake-up and store it in the interrupt data. Note: this captures
+      -- the time when the waiting task resumes, not the instant the interrupt fires,
+      -- so it includes scheduling latency.
       if Self.Is_Sys_Time_T_Get_Connected then
          Set_Interrupt_Data_Time (To_Return, Self.Sys_Time_T_Get);
       end if;
