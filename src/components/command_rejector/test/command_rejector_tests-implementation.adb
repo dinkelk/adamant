@@ -5,10 +5,10 @@
 with AUnit.Assertions; use AUnit.Assertions;
 with Basic_Assertions; use Basic_Assertions;
 with Packed_U16.Assertion; use Packed_U16.Assertion;
-with Command_Protector_Enums; use Command_Protector_Enums.Armed_State;
 with Command.Assertion; use Command.Assertion;
 with Command_Header.Assertion; use Command_Header.Assertion;
 with Packet.Assertion; use Packet.Assertion;
+with Interfaces;
 
 package body Command_Rejector_Tests.Implementation is
 
@@ -89,8 +89,12 @@ package body Command_Rejector_Tests.Implementation is
       Init_Nominal;
       T.Component_Instance.Final;
       Init_None;
-      T.Component_Instance.Final;
+      -- Do NOT call Final here; Init_None raised before allocating the tree.
       Init_Duplicate;
+      -- Final the partially-initialized state from Init_Duplicate:
+      T.Component_Instance.Final;
+      -- Re-initialize with the standard list so Set_Up below works correctly:
+      T.Component_Instance.Init (Command_Id_Reject_List => Reject_Command_Id_List);
 
       -- Make sure no events are thrown at start up:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
@@ -132,6 +136,27 @@ package body Command_Rejector_Tests.Implementation is
       -- Expect command to be forwarded:
       Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 3);
       Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (3), Cmd);
+
+      -- Test boundary command IDs: 0 (minimum) should be forwarded:
+      Cmd.Header.Id := 0;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 4);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (4), Cmd);
+
+      -- Test boundary command IDs: Command_Id'Last (65535, maximum) should be forwarded:
+      Cmd.Header.Id := 65_535;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 5);
+      Command_Assert.Eq (T.Command_T_Recv_Sync_History.Get (5), Cmd);
+
+      -- Test IDs adjacent to reject list entries (3 and 5 bracket reject ID 4):
+      Cmd.Header.Id := 3;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 6);
+
+      Cmd.Header.Id := 5;
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 7);
 
       -- No events or data products:
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
@@ -204,6 +229,52 @@ package body Command_Rejector_Tests.Implementation is
       -- Check packet:
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 3);
       Packet_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (3), T.Packets.Error_Packet_Truncate (T.System_Time, Cmd));
+
+      -- OK send command ID 19 which is also in the reject list but was previously untested:
+      Cmd.Header.Id := 19;
+      T.Command_T_To_Forward_Send (Cmd);
+
+      -- Expect command not to be forwarded:
+      Natural_Assert.Eq (T.Command_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Check events:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 4);
+      Natural_Assert.Eq (T.Rejected_Command_History.Get_Count, 4);
+      Command_Header_Assert.Eq (T.Rejected_Command_History.Get (4), Cmd.Header);
+
+      -- Check data products:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 4);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 4);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (4), (Value => 4));
+
+      -- Check packet:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 4);
+      Packet_Assert.Eq (T.Packet_T_Recv_Sync_History.Get (4), T.Packets.Error_Packet_Truncate (T.System_Time, Cmd));
    end Test_Command_Reject;
+
+   overriding procedure Test_Counter_Saturation (Self : in out Instance) is
+      use Interfaces;
+      T : Component.Command_Rejector.Implementation.Tester.Instance_Access renames Self.Tester;
+      Cmd : Command.T := (Header => (Source_Id => 0, Id => 4, Arg_Buffer_Length => 0), Arg_Buffer => [others => 0]);
+   begin
+      -- Set the counter just below max via repeated sends. Instead, directly
+      -- set the internal counter to near-max to avoid sending 65k commands:
+      T.Component_Instance.Command_Reject_Counter := Unsigned_16'Last - 1;
+
+      -- Send a command that will be rejected, counter should go to max:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (1), (Value => Unsigned_16'Last));
+
+      -- Send another rejected command, counter should stay saturated at max:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 2);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (2), (Value => Unsigned_16'Last));
+
+      -- Send one more, still saturated:
+      T.Command_T_To_Forward_Send (Cmd);
+      Natural_Assert.Eq (T.Rejected_Command_Count_History.Get_Count, 3);
+      Packed_U16_Assert.Eq (T.Rejected_Command_Count_History.Get (3), (Value => Unsigned_16'Last));
+   end Test_Counter_Saturation;
 
 end Command_Rejector_Tests.Implementation;
