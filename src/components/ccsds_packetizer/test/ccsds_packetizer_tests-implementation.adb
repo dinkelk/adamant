@@ -13,6 +13,7 @@ with Ccsds_Space_Packet.Representation;
 with Sys_Time.Assertion; use Sys_Time.Assertion;
 with Packet_Types;
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Assertions;
 with Ccsds_Enums; use Ccsds_Enums;
 
 package body Ccsds_Packetizer_Tests.Implementation is
@@ -64,17 +65,23 @@ package body Ccsds_Packetizer_Tests.Implementation is
       -- Check data:
       Assert (Ccsds_Packet.Data (Sys_Time.Serialization.Serialized_Length .. Natural (Ccsds_Packet.Header.Packet_Length) - Crc_16_Type'Length) = P.Buffer (P.Buffer'First .. P.Buffer'First + P.Header.Buffer_Length - 1), "Comparing buffers failed.");
 
-      -- Check checksum:
+      -- Check checksum using an independently constructed byte array rather than
+      -- a memory overlay, so that this verification does not mirror the implementation's
+      -- overlay technique (addresses T-7 review finding).
       declare
          Crc : constant Crc_16_Type := Ccsds_Packet.Data (Natural (Ccsds_Packet.Header.Packet_Length) - Crc_16_Type'Length + 1 .. Natural (Ccsds_Packet.Header.Packet_Length));
-         Overlay : Basic_Types.Byte_Array (0 .. Natural (Ccsds_Packet.Header.Packet_Length) + Ccsds_Primary_Header.Serialization.Serialized_Length - Crc_16_Type'Length) with
-            Import,
-            Convention => Ada,
-            Address => Ccsds_Packet'Address;
+         -- Build the CRC input independently by serializing the header and concatenating data:
+         Header_Bytes : constant Basic_Types.Byte_Array := Ccsds_Primary_Header.Serialization.To_Byte_Array (Ccsds_Packet.Header);
+         Data_Before_Crc : constant Basic_Types.Byte_Array := Ccsds_Packet.Data (Ccsds_Packet.Data'First .. Natural (Ccsds_Packet.Header.Packet_Length) - Crc_16_Type'Length);
+         Crc_Input : Basic_Types.Byte_Array (0 .. Header_Bytes'Length + Data_Before_Crc'Length - 1);
+         Expected_Crc : Crc_16_Type;
       begin
+         Crc_Input (0 .. Header_Bytes'Length - 1) := Header_Bytes;
+         Crc_Input (Header_Bytes'Length .. Crc_Input'Last) := Data_Before_Crc;
+         Expected_Crc := Compute_Crc_16 (Crc_Input);
          Put_Line (Ccsds_Space_Packet.Representation.Image (Ccsds_Packet));
          Put_Line (Basic_Types.Representation.Image (Crc));
-         Assert (Crc = Compute_Crc_16 (Overlay), "Comparing checksums failed.");
+         Assert (Crc = Expected_Crc, "Comparing checksums failed (independent CRC verification).");
       end;
    end Check_Packet;
 
@@ -85,7 +92,9 @@ package body Ccsds_Packetizer_Tests.Implementation is
    overriding procedure Test_Nominal_Packetization (Self : in out Instance) is
       use Packet_Types;
       T : Component.Ccsds_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
-      P : Packet.T := (Header => (Time => (10, 55), Id => 77, Sequence_Count => 99, Buffer_Length => 5), Buffer => [1, 2, 3, 4, 5, others => 0]);
+      -- Use boundary APID values (0 and max 2047) alongside nominal values to
+      -- improve coverage of the Ccsds_Apid_Type conversion (addresses T-4).
+      P : Packet.T := (Header => (Time => (10, 55), Id => 0, Sequence_Count => 99, Buffer_Length => 5), Buffer => [1, 2, 3, 4, 5, others => 0]);
    begin
       -- Send a few packets:
       P.Header.Sequence_Count := @ + 1;
@@ -110,6 +119,27 @@ package body Ccsds_Packetizer_Tests.Implementation is
          P.Header.Sequence_Count := @ + 1;
          Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (Idx));
       end loop;
+
+      -- Test with max APID boundary value (2047) to exercise Ccsds_Apid_Type conversion:
+      P.Header.Id := 2047;
+      P.Header.Sequence_Count := @ + 1;
+      T.Packet_T_Send (P);
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 6);
+      Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (6));
+
+      -- Test with zero timestamp to exercise boundary time serialization (addresses T-5):
+      P.Header.Time := (0, 0);
+      P.Header.Sequence_Count := @ + 1;
+      T.Packet_T_Send (P);
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 7);
+      Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (7));
+
+      -- Test with max timestamp values:
+      P.Header.Time := (Interfaces.Unsigned_32'Last, Interfaces.Unsigned_32'Last);
+      P.Header.Sequence_Count := @ + 1;
+      T.Packet_T_Send (P);
+      Natural_Assert.Eq (T.Ccsds_Space_Packet_T_Recv_Sync_History.Get_Count, 8);
+      Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (8));
    end Test_Nominal_Packetization;
 
    overriding procedure Test_Max_Size_Packetization (Self : in out Instance) is
@@ -173,5 +203,24 @@ package body Ccsds_Packetizer_Tests.Implementation is
          Check_Packet (P, T.Ccsds_Space_Packet_T_Recv_Sync_History.Get (Idx));
       end loop;
    end Test_Min_Size_Packetization;
+
+   overriding procedure Test_Invalid_Buffer_Length (Self : in out Instance) is
+      use Packet_Types;
+      T : Component.Ccsds_Packetizer.Implementation.Tester.Instance_Access renames Self.Tester;
+      -- Create a packet with Buffer_Length exceeding the maximum capacity:
+      P : Packet.T := (Header => (Time => (10, 55), Id => 77, Sequence_Count => 1, Buffer_Length => Packet_Types.Packet_Buffer_Type'Length + 1), Buffer => [others => 0]);
+   begin
+      -- Sending this packet should trigger an assertion failure due to invalid Buffer_Length.
+      -- We expect Assertion_Error to be raised by the pragma Assert guard in To_Ccsds.
+      begin
+         T.Packet_T_Send (P);
+         -- If we reach here, the assertion was not raised — that is a failure.
+         Assert (False, "Expected Assertion_Error for out-of-range Buffer_Length, but none was raised.");
+      exception
+         when Ada.Assertions.Assertion_Error =>
+            -- Expected behavior: the invalid Buffer_Length was caught.
+            null;
+      end;
+   end Test_Invalid_Buffer_Length;
 
 end Ccsds_Packetizer_Tests.Implementation;

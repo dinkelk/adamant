@@ -15,6 +15,17 @@
 
 \section{Design}
 
+\subsection{Conversion Algorithm}
+The packetizer converts an Adamant \texttt{Packet.T} to a \texttt{Ccsds\_Space\_Packet.T} by:
+\begin{enumerate}
+  \item Constructing the CCSDS primary header from the Adamant packet header fields (ID mapped to APID, sequence count preserved).
+  \item Serializing the 8-byte timestamp into the secondary header region of the CCSDS data field.
+  \item Copying \texttt{Buffer\_Length} bytes of payload data immediately after the timestamp.
+  \item Computing a CRC-16-CCITT over the entire packet (primary header through end of payload) using a memory overlay of the packed record, and appending the 2-byte CRC as the final bytes of the data field.
+\end{enumerate}
+
+The memory overlay technique assumes that \texttt{Ccsds\_Space\_Packet.T} has a contiguous, padding-free layout. A compile-time check enforces this assumption.
+
 \subsection{At a Glance}
 \input{build/tex/ccsds_packetizer_stats.tex}
 
