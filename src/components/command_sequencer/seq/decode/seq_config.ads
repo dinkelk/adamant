@@ -25,12 +25,10 @@ package Seq_Config is
       Data_Type : Seq_Param_Type;
    end record;
    type Seq_Cmd_Param_Array is array (Natural range <>) of Seq_Cmd_Param_Def;
-   type Seq_Cmd_Param_Array_Access is access all Seq_Cmd_Param_Array;
 
    -- Command definition:
    type Seq_Cmd_Def is record
       Name : Seq_String := [others => ASCII.NUL];
-      Parameters : Seq_Cmd_Param_Array_Access := null;
       Command_Def : Command.T;
    end record;
 
