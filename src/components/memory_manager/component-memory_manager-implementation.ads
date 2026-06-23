@@ -8,7 +8,7 @@ with Ided_Memory_Region;
 with Command;
 with Memory_Manager_Enums;
 
--- The component manages access to a single memory location through a single pointer. When requested, the component loans out access to the pointer if it is available. The length of the pointer will always be the entire length of the memory region. The component will reject any requests to access the pointer again until the pointer is returned from the requester. Request/release memory transactions are each provided a unique ID. To release the memory, the same ID must be provided that was issued upon request. This mechanism reduces the risk of an inadvertent call to release from causing an unintended release of the memory. The component includes a data product relating whether the memory is currently allocated or not. The component responds to commands to CRC, dump, and force-release the memory region. Note that this component is active only to provide a separate thread of execution on which to execute the CRC command, which could take a long time to execute.
+-- The component manages access to a single memory location through a single pointer. When requested, the component loans out access to the pointer if it is available. The length of the pointer will always be the entire length of the memory region. The component will reject any requests to access the pointer again until the pointer is returned from the requester. Request/release memory transactions are each provided a unique ID. To release the memory, the same ID must be provided that was issued upon request. This mechanism reduces the risk of an inadvertent call to release from causing an unintended release of the memory. The component includes a data product relating whether the memory is currently allocated or not. The component responds to commands to CRC, dump, write, and force-release the memory region. Note that this component is active only to provide a separate thread of execution on which to execute the CRC command and the memory write command, each of which could take a long time to execute.
 package Component.Memory_Manager.Implementation is
 
    -- The component class instance record:
@@ -21,7 +21,7 @@ package Component.Memory_Manager.Implementation is
    --
    -- Init Parameters:
    -- bytes : Basic_Types.Byte_Array_Access - A pointer to an allocation of bytes to be used for the memory region. If this is set to null, then memory will be allocated on the heap using the "size" parameter instead. Note: This must be set to null if the "size" parameter is positive below.
-   -- size : Integer - The number of bytes to allocate on the heap for the memory region. Note: This must be set to a negative value if the "bytes" parameters is not null.
+   -- size : Integer - The number of bytes to allocate on the heap for the memory region. Note: This must be set to a negative value if the "bytes" parameter is not null.
    --
    overriding procedure Init (Self : in out Instance; Bytes : in Basic_Types.Byte_Array_Access := null; Size : in Integer := -1);
 
