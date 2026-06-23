@@ -2,3 +2,8 @@
 description: The requirements for the Memory Copier component are specified below.
 requirements:
   - text: The component shall copy a memory region from one memory store to another on command.
+  - text: The component shall report a timeout error if the copy operation does not complete within the configured tick limit.
+  - text: The component shall report an error if the downstream component returns a copy failure status.
+  - text: The component shall report an error if the requested scratch memory region is unavailable.
+  - text: The component shall report an error if the scratch memory region is smaller than the requested source region.
+  - text: The component shall reject commands with invalid parameters and report an event.
