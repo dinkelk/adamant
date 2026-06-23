@@ -58,6 +58,8 @@ package body Router_Table is
    begin
       -- Using ID, binary search the table ranges to find the correct entry:
       if not Self.Table.Search (Registration_To_Find, Registration_Found, Ignore) then
+         -- Sentinel: Registration_Id is set to 'Last on failure.
+         -- Callers MUST check the return status before using Registration_Id.
          Registration_Id := Command_Types.Command_Registration_Id'Last;
          return Id_Not_Found;
       end if;
