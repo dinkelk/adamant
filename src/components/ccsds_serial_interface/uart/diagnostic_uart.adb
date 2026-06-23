@@ -2,6 +2,11 @@ with Ada.Text_IO;
 
 package body Diagnostic_Uart is
 
+   -- Verify that overlaying Character and Byte is safe on this target:
+   pragma Compile_Time_Error
+     (Character'Size /= Basic_Types.Byte'Size,
+      "Character and Byte must be the same size for overlay");
+
    function Get return Basic_Types.Byte is
       Val : Character;
       -- Overlay val with a byte to perform the type translation in a fast way:
@@ -19,8 +24,10 @@ package body Diagnostic_Uart is
    end Get;
 
    procedure Put (B : in Basic_Types.Byte) is
-      -- Overlay byte with a val to perform the type translation in a fast way:
-      Val : Character with Import, Convention => Ada, Address => B'Address;
+      -- Copy to a local variable first to avoid overlaying an in-mode formal
+      -- parameter, which may be passed by copy in a register (Ada RM 13.3(16)).
+      Local : constant Basic_Types.Byte := B;
+      Val : Character with Import, Convention => Ada, Address => Local'Address;
    begin
       Ada.Text_IO.Put (Val);
    end Put;

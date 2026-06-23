@@ -13,6 +13,11 @@ with Basic_Types;
 -- words, DO NOT use Text_IO and this package concurrently, or bad things
 -- will happen.
 --
+-- WARNING: This package is NOT task-safe. All calls must be made from a
+-- single task, or the caller must provide external synchronization.
+-- Concurrent calls from multiple tasks will interleave bytes, corrupting
+-- both Tx and Rx streams.
+--
 -- If you do not want to use the default implementation, you can write your
 -- own implementation of diagnostic_uart.adb and remove the default implementation
 -- from the build path via:
