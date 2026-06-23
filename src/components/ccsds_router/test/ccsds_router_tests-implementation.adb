@@ -772,4 +772,95 @@ package body Ccsds_Router_Tests.Implementation is
       Ccsds_Space_Packet_Assert.Eq (T.Error_Packet_History.Get (3), Packet_6);
    end Test_Duplicate_Packet_Drop;
 
+   overriding procedure Test_Null_Destination_Routing (Self : in out Instance) is
+      T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- APID 8 has "ignore" destinations (null destination list) in the routing table.
+      -- Sending packets to it should be silently consumed: no routing, no events, no errors.
+
+      -- Send multiple packets to APID 8:
+      Packet_8.Header.Sequence_Count := Ccsds_Sequence_Count_Type (0);
+      T.Ccsds_Space_Packet_T_Send (Packet_8);
+      Packet_8.Header.Sequence_Count := Ccsds_Sequence_Count_Type (1);
+      T.Ccsds_Space_Packet_T_Send (Packet_8);
+      Packet_8.Header.Sequence_Count := Ccsds_Sequence_Count_Type (2);
+      T.Ccsds_Space_Packet_T_Send (Packet_8);
+
+      -- Verify no packets were routed to any destination:
+      Self.Check_Routing (0, 0, 0, 0, 0, 0);
+
+      -- Verify no error packets were generated:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Verify no unrecognized APID events (APID 8 IS in the table):
+      Natural_Assert.Eq (T.Unrecognized_Apid_History.Get_Count, 0);
+
+      -- Verify no duplicate drop events:
+      Natural_Assert.Eq (T.Dropped_Duplicate_Packet_History.Get_Count, 0);
+   end Test_Null_Destination_Routing;
+
+   overriding procedure Test_Non_Consecutive_Duplicate (Self : in out Instance) is
+      T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Use APID 5 which is in Drop_Dupes mode.
+      -- Pattern: seq 10, seq 11, seq 10 (retransmission after intervening packet).
+      -- The retransmission should warn (unexpected sequence count) but NOT be dropped,
+      -- since only consecutive identical sequence counts trigger a drop.
+
+      -- Send first packet (seq 10) — initial warning expected (IMPL-2):
+      Packet_5.Header.Sequence_Count := Ccsds_Sequence_Count_Type (10);
+      T.Ccsds_Space_Packet_T_Send (Packet_5);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+      Self.Check_Routing (0, 1, 0, 0, 0, 0);
+
+      -- Send sequential packet (seq 11) — no warning:
+      Packet_5.Header.Sequence_Count := Ccsds_Sequence_Count_Type (11);
+      T.Ccsds_Space_Packet_T_Send (Packet_5);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+      Self.Check_Routing (0, 2, 0, 0, 0, 0);
+
+      -- Send retransmission (seq 10 again) — should warn but NOT drop:
+      Packet_5.Header.Sequence_Count := Ccsds_Sequence_Count_Type (10);
+      T.Ccsds_Space_Packet_T_Send (Packet_5);
+      -- Warning expected (10 != 12):
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 2);
+      -- Packet should still be routed (not dropped), since 10 != 11 (last seq count):
+      Self.Check_Routing (0, 3, 0, 0, 0, 0);
+      -- No duplicates dropped:
+      Natural_Assert.Eq (T.Dropped_Duplicate_Packet_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Non_Consecutive_Duplicate;
+
+   overriding procedure Test_Sequence_Count_Wraparound (Self : in out Instance) is
+      T : Component.Ccsds_Router.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Use APID 3 which is in Warn mode. First send a packet to establish
+      -- a known Last_Sequence_Count, then wrap from 16383 to 0.
+
+      -- Send first packet with sequence count 16382 (establishes baseline after initial warning):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (16382);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      -- First packet always warns (IMPL-2: Last_Sequence_Count inits to 16383, expected is 0):
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- Send packet with sequence count 16383 (sequential, no warning expected):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (16383);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- Send packet with sequence count 0 (wraparound, should be treated as expected next value):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (0);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      -- No new warning should be generated since 0 = (16383 + 1) mod 2**14:
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- Send packet with sequence count 1 (sequential after wraparound):
+      Packet_3.Header.Sequence_Count := Ccsds_Sequence_Count_Type (1);
+      T.Ccsds_Space_Packet_T_Send (Packet_3);
+      Natural_Assert.Eq (T.Unexpected_Sequence_Count_Received_History.Get_Count, 1);
+
+      -- No error packets should have been generated:
+      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
+   end Test_Sequence_Count_Wraparound;
+
 end Ccsds_Router_Tests.Implementation;
