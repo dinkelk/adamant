@@ -8,7 +8,8 @@ package Checksum_16 is
    -- be appended to a CCSDS packet in the order here, with the higher order bits in
    -- position 0 and the lower order bits in position 1. This also aids in easily
    -- appending this checksum to a byte array without conversion.
-   subtype Checksum_16_Type is Basic_Types.Byte_Array (0 .. 1);
+   subtype Checksum_16_Type is Basic_Types.Byte_Array (0 .. 1)
+      with Object_Size => 2 * 8;
 
    -- Routine: compute_Checksum_16
    -- This function adds all the 16-bit words in the given byte array, starting with the given seed, and returns the

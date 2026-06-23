@@ -1,3 +1,6 @@
+-- NOTE: This test relies on pragma Assert for verification. It MUST be compiled
+-- with assertions enabled (-gnata) or all checks will silently pass.
+-- Consider migrating to AUnit for consistency with other test packages.
 with Checksum_16; use Checksum_16;
 with Basic_Types.Representation; use Basic_Types;
 
