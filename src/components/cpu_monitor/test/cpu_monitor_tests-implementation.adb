@@ -136,11 +136,22 @@ package body Cpu_Monitor_Tests.Implementation is
       T.Tick_T_Send (A_Tick);
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 7);
 
-      -- OK we cannot actually check the contents of a packet, but let's at least
-      -- check the headers of all the packets.
+      -- Check the headers and contents of all the packets.
       Natural_Assert.Eq (T.Cpu_Usage_Packet_History.Get_Count, 7);
       for Idx in Positive range 1 .. 7 loop
          Packet_Header_Assert.Eq (T.Cpu_Usage_Packet_History.Get (Idx).Header, (Time => (0, 0), Id => T.Packets.Get_Cpu_Usage_Packet_Id, Sequence_Count => Sequence_Count_Mod_Type (Idx - 1), Buffer_Length => 3 * (Task_List'Length + Interrupt_List'Length)));
+      end loop;
+
+      -- Verify null-task entries (Task_Info_1 has Null_Task_Id) are zero:
+      for I in Natural range 0 .. 2 loop
+         Natural_Assert.Eq (Natural (T.Cpu_Usage_Packet_History.Get (1).Buffer (I)), 0);
+      end loop;
+
+      -- Verify all packet buffer values are in range 0..100:
+      for Pkt_Idx in Positive range 1 .. 7 loop
+         for I in Natural range 0 .. Natural (3 * (Task_List'Length + Interrupt_List'Length) - 1) loop
+            Boolean_Assert.Eq (Natural (T.Cpu_Usage_Packet_History.Get (Pkt_Idx).Buffer (I)) <= 100, True);
+         end loop;
       end loop;
    end Test_Packet_Period;
 
