@@ -3,3 +3,7 @@ description: The requirements for the Memory Packetizer Fixed Id are specified b
 requirements:
   - text: The component shall receive pointers to contiguous data regions in memory and create packets containing the data stored at this region.
   - text: The component shall be able to meter the production of packets to not exceed a commandable maximum rate.
+  - text: The component shall provide a command to set the maximum packet rate and time period at runtime.
+  - text: The component shall emit an event when the maximum packet rate is changed via command.
+  - text: The component shall emit an event when a memory dump request is dropped due to a full queue.
+  - text: The component shall publish a data product reflecting the current maximum packet rate configuration.

@@ -21,11 +21,15 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
    -- This initialization function is used to set a threshold for the maximum number of packets that the component will produce in a single time period. A time period is measured in an integer number of seconds.
    --
    -- Init Parameters:
-   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
+   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single time period. The component will stop producing packets if the threshold is met, until the end of the current time period has elapsed.
    -- Time_Period_In_Seconds : Positive - The time period in seconds over which to measure the number of packets produced.
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1) is
    begin
+      -- Guard against zero rate which would cause an infinite busy-loop
+      -- in the Memory_Dump_Recv_Async handler:
+      pragma Assert (Max_Packets_Per_Time_Period > 0,
+         "Max_Packets_Per_Time_Period must be positive to avoid infinite busy-loop.");
       -- Set the maximum packet rate:
       Do_Set_Max_Packet_Rate (Self, Max_Packets_Per_Time_Period, Time_Period_In_Seconds);
    end Init;
@@ -48,6 +52,17 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
       -- The current memory index:
       Memory_Index : Natural := 0;
    begin
+      -- If the memory dump has zero length, emit an event and return early:
+      if Memory_Length = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Zero_Length_Memory_Dump_Received (Self.Sys_Time_T_Get, (Id => Arg.Id)));
+         return;
+      end if;
+
+      -- Note: The rate-limit state (Num_Packets_Sent, Next_Period_Start) persists
+      -- across separate Memory_Dump_Recv_Async invocations. This means the rate-limit
+      -- window can straddle independent dump requests. This is intentional: the rate
+      -- limit applies globally across all dumps, not per-dump.
+
       -- While there is data still left in memory dump:
       while Memory_Index < Memory_Length loop
          -- If the start of the next period is in the past, then update it to be in the
@@ -110,7 +125,11 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
                Memory_Index := @ + Buffer_Length;
             end;
 
-            -- Increment the number of packets:
+            -- Increment the number of packets. Num_Packets_Sent is reset each period
+            -- and bounded by Max_Packets_Per_Time_Period, so overflow of Natural is
+            -- not possible under normal operation (Max_Packets_Per_Time_Period < Natural'Last).
+            pragma Assert (Self.Num_Packets_Sent < Natural'Last,
+               "Num_Packets_Sent about to overflow Natural.");
             Self.Num_Packets_Sent := @ + 1;
          end;
       end loop;
@@ -135,6 +154,11 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
       use Command_Execution_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
+      -- Guard against zero rate which would cause an infinite busy-loop:
+      if Arg.Max_Packets = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (The_Time, (Id => Self.Commands.Get_Set_Max_Packet_Rate_Id, Errant_Field_Number => 1, Errant_Field => [others => 0])));
+         return Failure;
+      end if;
       -- Set the rate:
       Do_Set_Max_Packet_Rate (Self, Arg.Max_Packets, Arg.Period);
       -- Update data product:

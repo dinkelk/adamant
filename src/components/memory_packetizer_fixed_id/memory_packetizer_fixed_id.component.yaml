@@ -7,7 +7,7 @@ init:
   parameters:
     - name: Max_Packets_Per_Time_Period
       type: Natural
-      description: The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
+      description: The maximum number of packets that this component will produce in a single time period. The component will stop producing packets if the threshold is met, until the end of the current time period has elapsed.
     - name: Time_Period_In_Seconds
       type: Positive
       default: "1"
