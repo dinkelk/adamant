@@ -94,27 +94,28 @@ package body Product_Copier_Tests.Implementation is
       Self.Tester.Component_Instance.Init (Products_To_Copy => No_Conflict_Products_3'Access);
       Self.Tester.Component_Instance.Init (Products_To_Copy => No_Conflict_Products_4'Access);
 
-      -- these should raise an assertion error
-      declare -- TODO named declare?
+      -- These should raise Program_Error (explicit raise, not suppressible pragma Assert).
+      Duplicate_Dest_1 :
+      declare
       begin
          Self.Tester.Component_Instance.Init (Products_To_Copy => Conflict_Products_1'Access);
          -- this should be unreachable
          Assert (False, "Conflicting destinations, but did not raise error");
       exception
-         -- this is what gets raised by `pragma Assert (...)`
-         when Ada.Assertions.Assertion_Error =>
+         when Program_Error =>
             null;
-      end;
+      end Duplicate_Dest_1;
 
+      Duplicate_Dest_2 :
       declare
       begin
          Self.Tester.Component_Instance.Init (Products_To_Copy => Conflict_Products_2'Access);
          -- this should be unreachable
          Assert (False, "Conflicting destinations, but did not raise error");
       exception
-         when Ada.Assertions.Assertion_Error =>
+         when Program_Error =>
             null;
-      end;
+      end Duplicate_Dest_2;
    end Test_Dest_Conflict;
 
    Non_Error_Products : aliased Product_Mapping_Array := [(Source_Id => 1, Destination_Id => 1)];

@@ -20,3 +20,7 @@ tests:
   - name: Test_Moving_Average_Unused
     description: This test makes sure that if the moving_average object is unused, that no statistics come out and nothing breaks.
 
+  - name: Test_Derivative_Filter_Stability
+    description: Verify parameter validation rejects N_Filter values that cause derivative filter instability (N*dt >= 2.0).
+  - name: Test_Inverted_Integral_Limits
+    description: Verify parameter validation rejects inverted integral limits (I_Min_Limit > I_Max_Limit).

@@ -546,4 +546,78 @@ package body Pid_Controller_Tests.Implementation is
 
    end Test_Moving_Average_Unused;
 
+
+   -- T1: Test that unstable N_Filter values are rejected by parameter validation
+   overriding procedure Test_Derivative_Filter_Stability (Self : in out Instance) is
+      pragma Unreferenced (Self);
+      Status : Parameter_Enums.Parameter_Update_Status.E;
+      Param : Parameter.T;
+      pragma Unreferenced (Param);
+   begin
+      Put_Line ("");
+      Put_Line ("----------------------------------");
+      Put_Line ("Testing Derivative Filter Stability Validation:");
+      Put_Line ("----------------------------------");
+
+      -- Init at 100 Hz => dt = 0.01s
+      Self.Tester.Component_Instance.Init (Control_Frequency => 100.0, Database_Update_Period => 3, Moving_Average_Max_Samples => 10, Moving_Average_Init_Samples => 5);
+
+      -- N_Filter = 200.0 => N*dt = 2.0, at the instability boundary. Should be rejected.
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.N_Filter ((Value => 200.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_N_Filter_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Parameter_Update_Status_Assert.Eq (Self.Tester.Update_Parameters, Validation_Error);
+
+      -- N_Filter = 500.0 => N*dt = 5.0, well beyond instability. Should be rejected.
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.N_Filter ((Value => 500.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_N_Filter_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Parameter_Update_Status_Assert.Eq (Self.Tester.Update_Parameters, Validation_Error);
+
+      -- N_Filter = 100.0 => N*dt = 1.0, stable. Should be accepted.
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.N_Filter ((Value => 100.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_N_Filter_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Parameter_Update_Status_Assert.Eq (Self.Tester.Update_Parameters, Success);
+   end Test_Derivative_Filter_Stability;
+
+   -- T2: Test that inverted integral limits are rejected by parameter validation
+   overriding procedure Test_Inverted_Integral_Limits (Self : in out Instance) is
+      pragma Unreferenced (Self);
+      Status : Parameter_Enums.Parameter_Update_Status.E;
+      Param : Parameter.T;
+      pragma Unreferenced (Param);
+   begin
+      Put_Line ("");
+      Put_Line ("----------------------------------");
+      Put_Line ("Testing Inverted Integral Limits Validation:");
+      Put_Line ("----------------------------------");
+
+      Self.Tester.Component_Instance.Init (Control_Frequency => 100.0, Database_Update_Period => 3, Moving_Average_Max_Samples => 10, Moving_Average_Init_Samples => 5);
+
+      -- Set I_Min_Limit > I_Max_Limit (inverted). Should be rejected.
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.I_Min_Limit ((Value => 10.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_I_Min_Limit_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.I_Max_Limit ((Value => -10.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_I_Max_Limit_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Parameter_Update_Status_Assert.Eq (Self.Tester.Update_Parameters, Validation_Error);
+
+      -- Now set valid limits (min < max). Should succeed.
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.I_Min_Limit ((Value => -5.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_I_Min_Limit_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Stage_Parameter (Self.Tester.Parameters.I_Max_Limit ((Value => 5.0)));
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Status := Self.Tester.Fetch_Parameter (Self.Tester.Parameters.Get_I_Max_Limit_Id, Param);
+      Parameter_Update_Status_Assert.Eq (Status, Success);
+      Parameter_Update_Status_Assert.Eq (Self.Tester.Update_Parameters, Success);
+   end Test_Inverted_Integral_Limits;
 end Pid_Controller_Tests.Implementation;
