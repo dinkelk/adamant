@@ -92,6 +92,10 @@ package body Component.Product_Packetizer.Implementation is
       Curr_Index : Natural := The_Packet.Buffer'First;
       Time_Set : Boolean := False;
       Do_Copy : Boolean;
+
+      -- Capture the current system time once to ensure consistent timestamps
+      -- across all events and data products within a single packet build cycle.
+      Current_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
       -- Initialize out parameter:
       Changed := False;
@@ -111,7 +115,7 @@ package body Component.Product_Packetizer.Implementation is
                   The_Status => Success,
                   The_Data_Product => (
                      Header => (
-                        Time => Self.Sys_Time_T_Get,
+                        Time => Current_Time,
                         Id => Item.Data_Product_Id,
                         Buffer_Length => Packed_Natural.Size_In_Bytes
                      ),
@@ -125,7 +129,7 @@ package body Component.Product_Packetizer.Implementation is
                   -- otherwise alert with an event.
                   if Packet_List_Index < Self.Packet_List.all'First or else Packet_List_Index > Self.Packet_List.all'Last then
                      -- Throw event:
-                     Self.Event_T_Send_If_Connected (Self.Events.Packet_Period_Item_Bad_Id (Self.Sys_Time_T_Get, (
+                     Self.Event_T_Send_If_Connected (Self.Events.Packet_Period_Item_Bad_Id (Current_Time, (
                         Packet_Id => Packet_Desc.Id,
                         Data_Product_Id => Item.Data_Product_Id)
                      ));
@@ -144,13 +148,21 @@ package body Component.Product_Packetizer.Implementation is
             -- Check status and throw appropriate events:
             case D_Prod_Ret.The_Status is
                when Success =>
-                  null; -- Nothing to do here.
+                  -- Validate the length of the data product before any further processing.
+                  -- A length mismatch means the data product cannot be trusted, so we treat
+                  -- it the same as a failed fetch (Do_Copy := False). This prevents stale
+                  -- zero-filled gaps from being silently emitted and ensures on-change
+                  -- detection does not consider mismatched data products.
+                  if D_Prod_Ret.The_Data_Product.Header.Buffer_Length /= Item.Size then
+                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Length_Mismatch (Current_Time, (Header => D_Prod_Ret.The_Data_Product.Header, Expected_Length => Item.Size)));
+                     Do_Copy := False;
+                  end if;
 
                when Not_Available =>
                   -- Throw event if configured to do so:
                   if Item.Event_On_Missing then
                      -- Throw event:
-                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Missing_On_Fetch (Self.Sys_Time_T_Get, (
+                     Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Missing_On_Fetch (Current_Time, (
                         Packet_Id => Packet_Desc.Id,
                         Data_Product_Id => Item.Data_Product_Id)
                      ));
@@ -192,20 +204,14 @@ package body Component.Product_Packetizer.Implementation is
                   Changed := True;
                end if;
 
-               -- Check the length of the data product to make sure it what we expect:
-               if D_Prod_Ret.The_Data_Product.Header.Buffer_Length /= Item.Size then
-                  -- Throw event:
-                  Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Length_Mismatch (Self.Sys_Time_T_Get, (Header => D_Prod_Ret.The_Data_Product.Header, Expected_Length => Item.Size)));
-               else
-                  -- Copy data product buffer into the packet:
-                  The_Packet.Buffer (
-                     Curr_Index ..
-                     (Curr_Index + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1))
-                  := D_Prod_Ret.The_Data_Product.Buffer (
-                     D_Prod_Ret.The_Data_Product.Buffer'First ..
-                     (D_Prod_Ret.The_Data_Product.Buffer'First + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1)
-                  );
-               end if;
+               -- Copy data product buffer into the packet:
+               The_Packet.Buffer (
+                  Curr_Index ..
+                  (Curr_Index + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1))
+               := D_Prod_Ret.The_Data_Product.Buffer (
+                  D_Prod_Ret.The_Data_Product.Buffer'First ..
+                  (D_Prod_Ret.The_Data_Product.Buffer'First + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1)
+               );
             end if;
          end if;
 
@@ -216,7 +222,7 @@ package body Component.Product_Packetizer.Implementation is
       -- If the packet time has not been set, then set it:
       if not Time_Set then
          if not Packet_Desc.Use_Tick_Timestamp then
-            The_Packet.Header.Time := Self.Sys_Time_T_Get;
+            The_Packet.Header.Time := Current_Time;
          end if;
       end if;
 
@@ -237,10 +243,15 @@ package body Component.Product_Packetizer.Implementation is
       Ignore : Tick.T renames Arg;
       Messages_Dispatched : Natural;
 
-      -- Helper to build a packet (without on-change evaluation) and immediately dispatch it.
+      -- Helper to build a packet and immediately dispatch it.
+      -- When Update_Emission_Time is False (e.g. for Send_Now), the
+      -- Last_Emission_Time is not updated, preserving the on-change
+      -- detection baseline so that a Send_Now command does not suppress
+      -- a legitimate on-change emission on the next period tick.
       procedure Build_And_Send (
          Packet_Desc : in out Product_Packet_Types.Packet_Description_Type;
-         Send_Only_On_Change : Boolean := False
+         Send_Only_On_Change : Boolean := False;
+         Update_Emission_Time : Boolean := True
       ) is
          Changed : Boolean;
          Built_Packet : constant Packet.T := Self.Build_Packet (
@@ -255,7 +266,9 @@ package body Component.Product_Packetizer.Implementation is
          -- actually changed.
          if not Send_Only_On_Change or else Changed then
             Self.Packet_T_Send_If_Connected (Built_Packet);
-            Packet_Desc.Last_Emission_Time := Arg.Time;
+            if Update_Emission_Time then
+               Packet_Desc.Last_Emission_Time := Arg.Time;
+            end if;
             Packet_Desc.Count := @ + 1;
          end if;
       end Build_And_Send;
@@ -268,7 +281,7 @@ package body Component.Product_Packetizer.Implementation is
       for Packet_Desc of Self.Packet_List.all loop
          -- See if send command was sent:
          if Packet_Desc.Send_Now then
-            Build_And_Send (Packet_Desc);
+            Build_And_Send (Packet_Desc, Update_Emission_Time => False);
             Packet_Desc.Send_Now := False;
          -- Check if packet is enabled or on change:
          elsif (Packet_Desc.Enabled = Product_Packet_Types.Enabled or else
