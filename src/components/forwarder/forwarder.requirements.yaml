@@ -1,5 +1,13 @@
 ---
 description: The requirements for the Forwarder component are specified below.
 requirements:
-  - text: The component shall be able to receive and send a generic data type.
-  - text: The component shall respond to commands to enable and disable data forwarding.
+  - id: REQ-FWD-001
+    text: The component shall forward received data of a generic type when forwarding is enabled.
+  - id: REQ-FWD-002
+    text: The component shall drop received data when forwarding is disabled.
+  - id: REQ-FWD-003
+    text: The component shall accept an initialization parameter that sets the startup forwarding state.
+  - id: REQ-FWD-004
+    text: The component shall respond to Enable_Forwarding and Disable_Forwarding commands, updating its state, emitting an event, and publishing a data product.
+  - id: REQ-FWD-005
+    text: The component shall emit an Invalid_Command_Received event when a command with invalid arguments is received.
