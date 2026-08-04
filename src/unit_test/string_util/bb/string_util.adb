@@ -13,32 +13,20 @@ package body String_Util is
       Toreturn : String (1 .. Bytes'Length * 4);
       function Get_Number (Index : in Natural) return String is
          Temp : constant String := Natural'Image (Natural (Bytes (Index)));
+         -- 'Image of a byte value yields two to four characters (a leading
+         -- space and up to three digits). Right-align the last (up to) three
+         -- characters in a fixed three-character result so every caller sees
+         -- a provably constant width.
+         Len : constant Natural := Natural'Min (Temp'Length, 3);
+         Result : String (1 .. 3) := [others => ' '];
       begin
-         if Temp'Length = 1 then
-            pragma Annotate (GNATSAS, Intentional, "test always false",
-               "Defensive formatting branch; the length of 'Image output varies by value and target runtime.");
-            return "   " & Temp;
-            pragma Annotate (GNATSAS, Intentional, "test always false", "Defensive formatting branch; the length of Image output varies by value and is bounded for byte values.");
-            pragma Annotate (GNATSAS, Intentional, "dead code", "Defensive formatting branch; the length of Image output varies by value and is bounded for byte values.");
-         elsif Temp'Length = 2 then
-            pragma Annotate (GNATSAS, Intentional, "test always false",
-               "Defensive formatting branch; the length of 'Image output varies by value and target runtime.");
-            return " " & Temp;
-            pragma Annotate (GNATSAS, Intentional, "test always false", "Defensive formatting branch; the length of Image output varies by value and is bounded for byte values.");
-            pragma Annotate (GNATSAS, Intentional, "dead code", "Defensive formatting branch; the length of Image output varies by value and is bounded for byte values.");
-         elsif Temp'Length = 3 then
-            pragma Annotate (GNATSAS, Intentional, "test always false",
-               "Defensive formatting branch; the length of 'Image output varies by value and target runtime.");
-            return Temp;
-         else
-            return Temp ((Temp'Last - 2) .. Temp'Last);
-         end if;
+         Result (4 - Len .. 3) := Temp (Temp'Last - Len + 1 .. Temp'Last);
+         return Result;
       end Get_Number;
       Cnt : Natural := 0;
    begin
       for Idx in Bytes'Range loop
          Toreturn ((Cnt * 4 + 1) .. (Cnt * 4 + 4)) := " " & Get_Number (Idx);
-         pragma Annotate (GNATSAS, False_Positive, "array index check", "Get_Number always returns three characters for byte values, so each assignment fills exactly four characters within the preallocated string.");
          Cnt := @ + 1;
       end loop;
       return Prefix & Trim_Both (Toreturn) & Postfix;
