@@ -22,12 +22,16 @@ package body Circular_Buffer.Labeled_Queue is
       begin
          -- Push the label onto the buffer:
          Stat := Base (Self).Push (Label_Bytes);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
          pragma Assert (Stat = Success, "Pushing label failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
       end;
 
       -- Push the data bytes onto buffer:
       Stat := Base (Self).Push (Bytes);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
       pragma Assert (Stat = Success, "Pushing bytes failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
 
       return Success;
    end Push;
@@ -62,7 +66,9 @@ package body Circular_Buffer.Labeled_Queue is
          -- Deserialize the label from the buffer:
          Stat := Base (Self).Peek (Label_Bytes, Num_Bytes_Returned, Offset => Length_Serializer.Serialized_Length);
          pragma Assert (Stat = Success, "Peeking label failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
          pragma Assert (Num_Bytes_Returned = Label_Serializer.Serialized_Length, "Peeking label returned too few bytes. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
       end;
 
       return Success;
@@ -79,7 +85,10 @@ package body Circular_Buffer.Labeled_Queue is
 
       -- Read the bytes from the queue:
       if Element_Length > 0 then
+pragma Annotate (GNATSAS, Intentional, "test always true", "Labeled elements always include a label, so the element length is never zero here; the check is defensive and mirrors the unlabeled queue.");
          Queue_Base (Self).Peek_Bytes (Bytes, Element_Length, Length, Label_Serializer.Serialized_Length + Offset);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
+pragma Annotate (GNATSAS, False_Positive, "overflow check", "Offsets and serialized lengths are bounded by the buffer size, far below the type maximum.");
       end if;
 
       return Success;
@@ -109,6 +118,7 @@ package body Circular_Buffer.Labeled_Queue is
 
       -- Pop the bytes from the base:
       Queue_Base (Self).Do_Pop (Element_Length);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
 
       return Success;
    end Pop;

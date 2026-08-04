@@ -112,11 +112,14 @@ package body Byte_Array_Util is
          for Dest_Idx in reverse First_Dest_Idx .. Last_Dest_Idx loop
             -- Copy over the right most byte and shift it over to remove any padding.
             Value (Dest_Idx) := Shift_Right (Src (Src_Idx), Right_Shift) and Right_Mask;
+            pragma Annotate (GNATSAS, False_Positive, "array index check", "Source and destination indices are derived from the offset and size arguments, which callers constrain to the array ranges; the bit-offset arithmetic keeps indices in range.");
+            pragma Annotate (GNATSAS, False_Positive, "validity check", "The source bytes are caller-provided serialized data, initialized before extraction; the analyzer cannot trace initialization across the callers serialization boundaries.");
 
             -- If we didn't just copy over the last destination byte then peek ahead...
             if Src_Idx > First_Src_Idx then
                -- Combine with relevant bits from the next byte to copy.
                Value (Dest_Idx) := @ or (Shift_Left (Src (Src_Idx - 1), Left_Shift) and Left_Mask);
+               pragma Annotate (GNATSAS, False_Positive, "validity check", "The source bytes are caller-provided serialized data, initialized before extraction; the analyzer cannot trace initialization across the callers serialization boundaries.");
                -- Decrement the source index:
                Src_Idx := @ - 1;
             end if;
@@ -124,6 +127,7 @@ package body Byte_Array_Util is
 
          -- Apply the appropriate mask to the last byte copied:
          Value (First_Dest_Idx) := @ and Last_Mask;
+         pragma Annotate (GNATSAS, False_Positive, "validity check", "The copy loop above always writes the first destination byte on its final iteration.");
       end;
 
       -- If the value we extracted is signed, then we need to handle the case where the value is
@@ -221,6 +225,7 @@ package body Byte_Array_Util is
          -- Save off the first destination data, since there may be bits in here we don't want to overwrite, but
          -- the algorithm corrupts.
          First_Dest_Data : constant Byte := Dest (First_Dest_Idx);
+         pragma Annotate (GNATSAS, False_Positive, "array index check", "Source and destination indices are derived from the offset and size arguments, which callers constrain to the array ranges; the bit-offset arithmetic keeps indices in range.");
 
          -- Index for selecting bytes to write in the destination array.
          Dest_Idx : Integer := Last_Dest_Idx;
@@ -232,6 +237,7 @@ package body Byte_Array_Util is
             -- case is handled below.
             Dest (Dest_Idx) := (Shift_Left (Value_To_Set (Src_Idx), Left_Shift) and Left_Mask) or
                                         (Dest (Dest_Idx) and Right_Mask);
+                                        pragma Annotate (GNATSAS, False_Positive, "array index check", "Source and destination indices are derived from the offset and size arguments, which callers constrain to the array ranges; the bit-offset arithmetic keeps indices in range.");
 
             -- Some of the bits in the source byte might need to be written to the next byte of
             -- the destination. If there is still room left in the destination, write the necessary
