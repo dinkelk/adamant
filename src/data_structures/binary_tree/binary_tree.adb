@@ -92,11 +92,15 @@ package body Binary_Tree is
          declare
             Mid_Index : constant Positive := Low_Index + ((High_Index - Low_Index) / 2);
             Current_Element : Element_Type renames Self.Tree (Mid_Index);
+            pragma Annotate (GNATSAS, False_Positive, "array index check",
+               "The binary search midpoint lies between Low_Index and High_Index, which stay within the tree bounds checked at entry.");
          begin
             if Current_Element > Element then
                High_Index := Mid_Index - 1;
             elsif Current_Element < Element then
                Low_Index := Mid_Index + 1;
+               pragma Annotate (GNATSAS, False_Positive, "overflow check",
+                  "The binary search midpoint lies between Low_Index and High_Index, which stay within the tree bounds checked at entry.");
             else
                Element_Found := Current_Element;
                Element_Index := Mid_Index;

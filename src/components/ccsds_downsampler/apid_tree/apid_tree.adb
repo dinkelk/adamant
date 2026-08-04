@@ -25,11 +25,17 @@ package body Apid_Tree is
       for Id of Downsample_List.all loop
          -- Make sure we don't add multiple of the same apid
          Search_Status := Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0)), Ignore_2, Ignore_1);
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "The tree is initialized before population and its size never exceeds its capacity.");
          pragma Assert (not Search_Status, "Downsampler tree cannot add multiple nodes of the same APID.");
+         pragma Annotate (GNATSAS, Intentional, "assertion",
+            "Initialization validation intentionally raises on duplicate APIDs.");
 
          Add_Status := Self.Downsample_Entry.Add (((Apid => Id.Apid, Filter_Factor => Id.Filter_Factor, Filter_Count => 0)));
          -- Make sure we don't get a failure for some reason
          pragma Assert (Add_Status, "Downsampler tree too small to hold all APIDs in the input list.");
+         pragma Annotate (GNATSAS, False_Positive, "assertion",
+            "The tree is initialized with capacity for the full downsample list.");
       end loop;
    end Init;
 
@@ -71,6 +77,8 @@ package body Apid_Tree is
             -- If we found the entry in the tree, then make sure we update with the new count for that entry
             Fetched_Entry.Filter_Count := @ + 1;
             Self.Downsample_Entry.Set (Tree_Index, Fetched_Entry);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "The element index comes from a successful search of the tree, which is initialized during component initialization.");
       end case;
 
       return Return_Status;
@@ -90,6 +98,8 @@ package body Apid_Tree is
             Fetched_Entry.Filter_Count := 0;
             -- Save the entry
             Self.Downsample_Entry.Set (Index, Fetched_Entry);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "The element index comes from a successful search of the tree, which is initialized during component initialization.");
             Tree_Index := Index;
             return Success;
          when False =>

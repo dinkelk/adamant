@@ -155,11 +155,15 @@ package body Component.Event_Limiter.Implementation is
                   -- Save the event id into our event that indicates this id was limited (if room is available)
                   if Num_Event_Limited_Event.Num_Event_Ids < Num_Event_Limited_Event.Event_Id_Limited_Array'Length then
                      Num_Event_Limited_Event.Event_Id_Limited_Array (Integer (Num_Event_Limited_Event.Num_Event_Ids)) := Dec_Event_Id;
+                     pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                        "The recorded limited-event information is sent in the summary event after the loop.");
                      Num_Event_Limited_Event.Num_Event_Ids := @ + 1;
                   end if;
                when Invalid_Id =>
                   -- Assert on the status. We know the range so we shouldn't get an Invalid_Id error
                   pragma Assert (False, "Invalid_Id found when decrementing all event limiter counters which should not be possible: " & Natural'Image (Natural (Dec_Event_Id)));
+                  pragma Annotate (GNATSAS, False_Positive, "conditional raise",
+                     "The event ID range is bounded by the components configured range, so the status cannot indicate an invalid ID.");
             end case;
          end loop;
       end if;
@@ -189,34 +193,58 @@ package body Component.Event_Limiter.Implementation is
                            -- Reset the bitmap in case this is the last byte but isn't fully filled
                            Event_Bitmap := (State_0 => Disabled, State_1 => Disabled, State_2 => Disabled, State_3 => Disabled, State_4 => Disabled, State_5 => Disabled, State_6 => Disabled, State_7 => Disabled);
                            Event_Bitmap.State_0 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 1 =>
                            Event_Bitmap.State_1 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 2 =>
                            Event_Bitmap.State_2 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 3 =>
                            Event_Bitmap.State_3 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 4 =>
                            Event_Bitmap.State_4 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 5 =>
                            Event_Bitmap.State_5 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 6 =>
                            Event_Bitmap.State_6 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                         when 7 =>
                            Event_Bitmap.State_7 := Event_State;
+                           pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+                              "Each bitmap field is consumed when the byte completes or in the final partial-byte flush below.");
                            Event_State_Array (Byte_Num) := Event_Id_Limiter_State_Type.Serialization.To_Byte_Array (Event_Bitmap) (0);
+                           pragma Annotate (GNATSAS, False_Positive, "array index check",
+                              "Byte_Num is bounded by the state packet size computed from the event ID range during initialization.");
                            Byte_Num := @ + 1;
                      end case;
                   when Invalid_Id =>
                      pragma Assert (False, "Invalid_Id found when getting enable state for event limiter state packet which should not be possible: " & Natural'Image (Natural (Id)));
+                     pragma Annotate (GNATSAS, False_Positive, "conditional raise",
+                        "The event ID range is bounded by the components configured range, so the status cannot indicate an invalid ID.");
                end case;
             end loop;
             -- Finish the last byte of the packet if necessary
             if Bit_Location /= 7 then
                Event_State_Array (Byte_Num) := Event_Id_Limiter_State_Type.Serialization.To_Byte_Array (Event_Bitmap) (0);
+               pragma Annotate (GNATSAS, False_Positive, "array index check",
+                  "Byte_Num is bounded by the state packet size computed from the event ID range during initialization.");
             end if;
             -- Send out the packet:
             State_Packet_Status := Self.Packets.Event_Limiter_State_Packet (Timestamp, Event_State_Array, State_Packet);
             pragma Assert (State_Packet_Status = Success, "Too many states for the size of a packet!");
+            pragma Annotate (GNATSAS, Intentional, "assertion",
+               "Intentionally raises if the configured event ID range cannot fit in a packet.");
             Self.Packet_T_Send_If_Connected (State_Packet);
             -- Sent the packet so set the flag back to false
             Self.Send_Event_State_Packet.Set_Var (False);
@@ -230,6 +258,8 @@ package body Component.Event_Limiter.Implementation is
       -- If we have events that were limited, then send the event indicating such, but don't if there is nothing to send
       if Num_Event_Limited_Event.Num_Event_Ids > 0 then
          Num_Event_Limited_Event.Num_Events_Limited := Num_Events_Limited;
+         pragma Annotate (GNATSAS, False_Positive, "unused assignment",
+            "The recorded limited-event information is sent in the summary event after the loop.");
          Self.Event_T_Send_If_Connected (Self.Events.Events_Limited_Since_Last_Tick (Timestamp, Num_Event_Limited_Event));
       end if;
       -- If the number of events limited is not 0, then update the total number of events limited for the component lifetime and reset the number since last tick count
@@ -304,6 +334,8 @@ package body Component.Event_Limiter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
@@ -331,6 +363,8 @@ package body Component.Event_Limiter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
@@ -354,6 +388,8 @@ package body Component.Event_Limiter.Implementation is
             case Status is
                when Invalid_Id =>
                   pragma Assert (False, "Found Invalid_Id for the Event Limiter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Annotate (GNATSAS, False_Positive, "conditional raise",
+                     "The event ID range is bounded by the components configured range, so the status cannot indicate an invalid ID.");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -368,6 +404,8 @@ package body Component.Event_Limiter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
@@ -391,6 +429,8 @@ package body Component.Event_Limiter.Implementation is
             case Status is
                when Invalid_Id =>
                   pragma Assert (False, "Found Invalid_Id for the Event Limiter when commanding disable range of events, which should have been caught in an earlier statement");
+                  pragma Annotate (GNATSAS, False_Positive, "conditional raise",
+                     "The event ID range is bounded by the components configured range, so the status cannot indicate an invalid ID.");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -405,6 +445,8 @@ package body Component.Event_Limiter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;

@@ -23,8 +23,12 @@ package body Two_Counter_Entry is
       -- Then disable the event based on our disable list
       for Event_Id_To_Disable of Event_Disable_List loop
          Status := Set_Enable_State (Self, Event_Id_To_Disable, Event_State_Type.Disabled);
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "The disable list is component configuration; out-of-range IDs are caught by the assertion below by design.");
          -- Assert here on status
          pragma Assert (Status /= Invalid_Id, "Event ID in the disable list is out of range");
+         pragma Annotate (GNATSAS, Intentional, "assertion",
+            "Initialization intentionally raises if the disable list contains an out-of-range event ID.");
       end loop;
 
    end Init;

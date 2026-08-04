@@ -21,7 +21,11 @@ package body Data_Product_Types is
       -- OK the time calculation is valid. Check to see if the data product
       -- is too old.
       if Timestamp < Too_Old_Time then
+         pragma Annotate (GNATSAS, False_Positive, "test always false",
+            "Staleness depends on runtime timestamps, which the analyzer over-approximates.");
          return Stale;
+         pragma Annotate (GNATSAS, False_Positive, "dead code",
+            "Staleness depends on runtime timestamps, which the analyzer over-approximates.");
       else
          return Success;
       end if;

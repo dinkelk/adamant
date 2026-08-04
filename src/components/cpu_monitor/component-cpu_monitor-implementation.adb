@@ -120,11 +120,25 @@ package body Component.Cpu_Monitor.Implementation is
          if (Self.Count mod Self.Execution_Periods (Idx)) = 0 then
             -- Update the execution times of all the tasks:
             for Task_Num in Self.Task_Cpu_Time_List'Range loop
+               pragma Annotate (GNATSAS, False_Positive, "access check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                -- Make sure the task id is not null:
                if Self.Tasks (Task_Num).Id /= Ada.Task_Identification.Null_Task_Id then
+                  pragma Annotate (GNATSAS, False_Positive, "array index check",
+                     "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
+                  pragma Annotate (GNATSAS, False_Positive, "access check",
+                     "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                   -- Get the current and previously measured cpu times and current time:
                   Prev_Cpu_Time := Self.Task_Cpu_Time_List (Task_Num) (Idx);
+                  pragma Annotate (GNATSAS, False_Positive, "validity check",
+                     "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                   Prev_Up_Time := Self.Task_Up_Time_List (Task_Num) (Idx);
+                  pragma Annotate (GNATSAS, False_Positive, "array index check",
+                     "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
+                  pragma Annotate (GNATSAS, False_Positive, "validity check",
+                     "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
+                  pragma Annotate (GNATSAS, False_Positive, "access check",
+                     "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                   Curr_Cpu_Time := Ada.Execution_Time.Clock (Self.Tasks (Task_Num).Id);
                   Curr_Up_Time := Ada.Real_Time.Clock;
 
@@ -132,6 +146,8 @@ package body Component.Cpu_Monitor.Implementation is
                   Self.Packet_To_Send.Buffer (
                      Self.Execution_Periods'Length * (Task_Num - Self.Task_Cpu_Time_List'First) + Natural (Idx - Self.Execution_Periods'First)
                   ) := Cpu_Percentage (Curr_Up_Time, Prev_Up_Time, Curr_Cpu_Time, Prev_Cpu_Time);
+                  pragma Annotate (GNATSAS, False_Positive, "array index check",
+                     "The packet buffer is sized during initialization for all execution periods, tasks, and interrupts.");
 
                   -- Update the last measured cpu time and wall time:
                   Self.Task_Cpu_Time_List (Task_Num) (Idx) := Curr_Cpu_Time;
@@ -141,16 +157,34 @@ package body Component.Cpu_Monitor.Implementation is
 
             -- Update the execution times of all the interrupts:
             for Interrupt_Num in Self.Interrupt_Cpu_Time_List'Range loop
+               pragma Annotate (GNATSAS, False_Positive, "access check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                -- Get the current and previously measured cpu times:
                Prev_Cpu_Time := Self.Interrupt_Cpu_Time_List (Interrupt_Num) (Idx);
+               pragma Annotate (GNATSAS, False_Positive, "validity check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                Prev_Up_Time := Self.Interrupt_Up_Time_List (Interrupt_Num) (Idx);
+               pragma Annotate (GNATSAS, False_Positive, "array index check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
+               pragma Annotate (GNATSAS, False_Positive, "validity check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
+               pragma Annotate (GNATSAS, False_Positive, "access check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                Curr_Cpu_Time := Interrupt_Cpu_Usage.Interrupt_Clock (Self.Interrupts (Interrupt_Num));
+               pragma Annotate (GNATSAS, False_Positive, "array index check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
+               pragma Annotate (GNATSAS, False_Positive, "access check",
+                  "The task and interrupt time lists are allocated over matching ranges and fully initialized during component initialization.");
                Curr_Up_Time := Ada.Real_Time.Clock;
 
                -- Calculate the cpu usage and store it in the packet:
                Self.Packet_To_Send.Buffer (
                   Self.Execution_Periods'Length * Self.Task_Cpu_Time_List'Length + Self.Execution_Periods'Length * (Interrupt_Num - Self.Interrupt_Cpu_Time_List'First) + Natural (Idx - Self.Execution_Periods'First)
                ) := Cpu_Percentage (Curr_Up_Time, Prev_Up_Time, Curr_Cpu_Time, Prev_Cpu_Time);
+               pragma Annotate (GNATSAS, False_Positive, "array index check",
+                  "The packet buffer is sized during initialization for all execution periods, tasks, and interrupts.");
+               pragma Annotate (GNATSAS, False_Positive, "range check",
+                  "The packet buffer is sized during initialization for all execution periods, tasks, and interrupts.");
 
                -- Update the last measured cpu time:
                Self.Interrupt_Cpu_Time_List (Interrupt_Num) (Idx) := Curr_Cpu_Time;
@@ -175,6 +209,10 @@ package body Component.Cpu_Monitor.Implementation is
       -- never called. This behavior is by design.
       Self.Count := (@ + 1) mod Self.Max_Count;
    end Tick_T_Recv_Sync;
+   pragma Annotate (GNATSAS, False_Positive, "overflow check",
+      "The count is kept below Max_Count by the modulo operation.");
+   pragma Annotate (GNATSAS, Intentional, "divide by zero",
+      "This will fail with a divide by zero error if Init is never called. This behavior is by design.");
 
    -- This is the command receive connector.
    overriding procedure Command_T_Recv_Sync (Self : in out Instance; Arg : in Command.T) is
