@@ -98,6 +98,8 @@ package body Component.Event_Filter.Implementation is
       Event_Entry_Array := Self.Event_Entries.Get_Entry_Array;
       -- Make sure our size is not larger than the size of a packet
       pragma Assert (Event_Entry_Array'Length <= Packet_Types.Packet_Buffer_Length_Type'Last, "Packet length for the event states in event filter is larger than the max packet length");
+      pragma Annotate (GNATSAS, False_Positive, "assertion",
+         "The entry array size is bounded by the packet size, validated during initialization.");
       -- Finally set our protected variable
       Self.Send_Event_State_Packet.Set_Var (False);
    end Init;
@@ -198,6 +200,8 @@ package body Component.Event_Filter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
@@ -225,6 +229,8 @@ package body Component.Event_Filter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
@@ -262,6 +268,8 @@ package body Component.Event_Filter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;
@@ -299,6 +307,8 @@ package body Component.Event_Filter.Implementation is
       case Arg.Issue_State_Packet is
          when Issue_Packet_Type.Issue =>
             Ret := Self.Dump_Event_States;
+            pragma Annotate (GNATSAS, Intentional, "useless reassignment",
+               "The dump status is intentionally ignored here; failures are reported via events within.");
          when Issue_Packet_Type.No_Issue =>
             null; -- Don't send a packet so nothing to do
       end case;

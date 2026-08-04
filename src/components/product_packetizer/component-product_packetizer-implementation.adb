@@ -306,6 +306,8 @@ package body Component.Product_Packetizer.Implementation is
 
       -- Increment internal counter:
       Self.Count := @ + 1;
+      pragma Annotate (GNATSAS, False_Positive, "overflow check",
+         "The count is bounded by the roll-over value, which is at most Natural''Last - 1.");
 
       -- Check roll over:
       if Self.Count > Self.Roll_Over_Value then

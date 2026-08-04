@@ -31,8 +31,12 @@ package body Event_Filter_Entry is
       -- Then disable the event based on our disable list
       for Event_Id_To_Filter of Event_Filter_List loop
          Status := Set_Filter_State (Self, Event_Id_To_Filter, Event_Filter_State.Filtered);
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "The filter list is component configuration; out-of-range IDs are caught by the assertion below by design.");
          -- Assert here on status
          pragma Assert (Status /= Invalid_Id, "Event ID in the filtered list is out of range");
+         pragma Annotate (GNATSAS, Intentional, "assertion",
+            "Initialization intentionally raises if the filter list contains an out-of-range event ID.");
       end loop;
 
    end Init;

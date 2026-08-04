@@ -41,6 +41,8 @@ package body Router_Table is
 
       -- Add the registration to the table:
       if not Self.Table.Add (An_Entry) then
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "The tree is initialized with the router table size and Table_Full is returned when capacity is reached.");
          return Table_Full;
       end if;
       return Success;

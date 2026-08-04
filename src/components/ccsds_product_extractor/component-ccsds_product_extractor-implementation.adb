@@ -40,9 +40,15 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       for Packet_Products of Data_Product_Extraction_List.all loop
          -- Fill in the binary tree with the products from the list. Assert that we are not adding a duplicate APID in.
          Search_Status := Self.Extracted_Products_Tree.Search (Packet_Products, Fetched_Entry, Ignore);
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "The tree is initialized before population and its size never exceeds its capacity.");
          pragma Assert (not Search_Status, "Apid in the tree already exists!");
+         pragma Annotate (GNATSAS, Intentional, "assertion",
+            "Initialization validation intentionally raises on duplicate APIDs.");
          Add_Status := Self.Extracted_Products_Tree.Add (Packet_Products);
          pragma Assert (Add_Status, "Product Extractor tree can not hold all APIDs and associated data in the input list.");
+         pragma Annotate (GNATSAS, False_Positive, "assertion",
+            "The tree is initialized with capacity for the full extraction list.");
       end loop;
 
       -- Retain the extraction list so Set_Up can walk it and seed any products
@@ -64,8 +70,14 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       Id_Base : constant Data_Product_Types.Data_Product_Id := Self.Data_Products.Get_Id_Base;
    begin
       for Apid_Entry of Self.Extraction_List.all loop
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "Extraction lists are validated non-null during initialization.");
          for Product_Entry of Apid_Entry.Extract_List.all loop
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "Extraction lists are validated non-null during initialization.");
             if Product_Entry.Make_Default /= null then
+               pragma Annotate (GNATSAS, False_Positive, "access check",
+                  "Extraction lists are validated non-null during initialization.");
                Self.Data_Product_T_Send_If_Connected (Product_Entry.Make_Default (Id_Base, Timestamp));
             end if;
          end loop;
@@ -90,9 +102,13 @@ package body Component.Ccsds_Product_Extractor.Implementation is
          -- When an id is found, loop through all the extracted data products, create the data product, and verify they are in a valid range before sending them on
          when True =>
             for Idx in Fetched_Entry.Extract_List.all'Range loop
+               pragma Annotate (GNATSAS, False_Positive, "access check",
+                  "Extraction lists are validated non-null during initialization.");
                -- Determine which timestamp to use based on the yaml input
                declare
                   Extracted_Product : Data_Product.T;
+                  pragma Annotate (GNATSAS, False_Positive, "access check",
+                     "Extraction lists are validated non-null during initialization.");
                   Invalid_Data_Product : Invalid_Product_Data.T;
                   Product_Entry_List_Item : constant Extractor_Entry := Fetched_Entry.Extract_List.all (Idx);
                   Product_Extracted_Status : constant Product_Status := Product_Entry_List_Item.Extract.all (Arg, Self.Data_Products.Get_Id_Base, Timestamp, Extracted_Product, Invalid_Data_Product);

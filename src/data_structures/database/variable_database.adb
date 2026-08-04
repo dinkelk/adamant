@@ -61,6 +61,8 @@ package body Variable_Database is
       -- into the database, there is no way it can deserialize with error unless a
       -- bit was flipped or there is a software bug in this package.
       pragma Assert (Stat = Success, "Deserialization of database item failed!");
+      pragma Annotate (GNATSAS, False_Positive, "assertion",
+         "Assertion will only fail in case of data corruption or software bug.");
 
       return Success;
    end Fetch;

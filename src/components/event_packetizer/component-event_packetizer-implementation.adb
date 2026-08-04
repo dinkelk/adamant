@@ -154,6 +154,8 @@ package body Component.Event_Packetizer.Implementation is
                            -- should be thrown if this is the case, see the top of this file.
                            when Fail_Packet_Full =>
                               pragma Assert (False, "Event is bigger than packet.");
+                              pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                                 "The assertion intentionally raises on a state that indicates a software bug.");
                         end case;
                      end if;
                end case;
