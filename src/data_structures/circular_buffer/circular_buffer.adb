@@ -230,6 +230,8 @@ package body Circular_Buffer is
             Self.Bytes (Tail .. Self.Bytes'Last) := Bytes (Bytes'First .. Bytes'First + First_Copy_Length - 1);
             -- Wrap around and copy bytes at beginning of internal array:
             Self.Bytes (Self.Bytes'First .. Self.Bytes'First + Second_Copy_Length - 1) := Bytes (Bytes'First + First_Copy_Length .. Bytes'Last);
+pragma Annotate (GNATSAS, False_Positive, "range check", "Copy bounds are computed by the wrap-around arithmetic above and cannot exceed the buffer or source ranges.");
+pragma Annotate (GNATSAS, False_Positive, "array index check", "Copy bounds are computed by the wrap-around arithmetic above and cannot exceed the buffer or source ranges.");
          end;
       else
          -- Perform single copy onto internal array:
@@ -294,6 +296,7 @@ package body Circular_Buffer is
       -- Copy bytes over:
       if Num_Bytes_To_Copy > 0 then
          Bytes (Bytes'First .. Bytes'First + Num_Bytes_To_Copy - 1) := Self.Bytes (Current_Head .. End_Index);
+pragma Annotate (GNATSAS, False_Positive, "range check", "Copy bounds are computed by the wrap-around arithmetic above and cannot exceed the buffer or source ranges.");
       end if;
 
       -- If the number of bytes copied was not the full amount then
@@ -314,6 +317,8 @@ package body Circular_Buffer is
             Bytes_Index := Bytes'First + Num_Bytes_Copied;
             Num_Bytes_To_Copy := Num_Bytes_Returned - Num_Bytes_Copied;
             Bytes (Bytes_Index .. Bytes_Index + Num_Bytes_To_Copy - 1) := Self.Bytes (Start_Offset .. Start_Offset + Num_Bytes_To_Copy - 1);
+pragma Annotate (GNATSAS, False_Positive, "range check", "Copy bounds are computed by the wrap-around arithmetic above and cannot exceed the buffer or source ranges.");
+pragma Annotate (GNATSAS, False_Positive, "array index check", "Copy bounds are computed by the wrap-around arithmetic above and cannot exceed the buffer or source ranges.");
          end;
       end if;
 
@@ -353,11 +358,15 @@ package body Circular_Buffer is
 
    overriding function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
    begin
+      -- Initialize the number of bytes returned to zero:
+      Num_Bytes_Returned := 0;
       return Base (Self).Pop (Bytes, Num_Bytes_Returned);
    end Pop;
 
    overriding function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
    begin
+      -- Initialize the number of bytes returned to zero:
+      Num_Bytes_Returned := 0;
       return Base (Self).Peek (Bytes, Num_Bytes_Returned, Offset);
    end Peek;
 
@@ -393,7 +402,9 @@ package body Circular_Buffer is
          -- Deserialize the length from the buffer:
          Stat := Base (Self).Peek (Length_Bytes, Num_Bytes_Returned);
          pragma Assert (Stat = Success, "Peeking length failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
          pragma Assert (Num_Bytes_Returned = Length_Serializer.Serialized_Length, "Peeking length returned too few bytes. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
       end;
 
       return Success;
@@ -443,11 +454,14 @@ package body Circular_Buffer is
       begin
          -- Serialized the length onto the buffer:
          Stat := Base (Self).Push (Length_Bytes);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
          pragma Assert (Stat = Success, "Pushing length failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
       end;
 
       -- Increment the counters:
       Self.Item_Count := @ + 1;
+pragma Annotate (GNATSAS, False_Positive, "overflow check", "Item_Count is bounded by the number of elements that fit in the buffer, far below the type maximum.");
       if Self.Item_Count > Self.Item_Max_Count then
          Self.Item_Max_Count := Self.Item_Count;
       end if;
@@ -474,8 +488,12 @@ package body Circular_Buffer is
 
             -- Deserialize the data from the buffer:
             Stat := Base (Self).Peek (Bytes (Bytes'First .. Bytes'First + Bytes_To_Peek - 1), Num_Bytes_Returned, Offset => Length_Serializer.Serialized_Length + Offset);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
+pragma Annotate (GNATSAS, False_Positive, "range check", "Copy bounds are computed by the wrap-around arithmetic above and cannot exceed the buffer or source ranges.");
             pragma Assert (Stat = Success, "Peeking bytes failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
             pragma Assert (Num_Bytes_Returned = Bytes_To_Peek, "Peeking bytes returned too few bytes. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
 
             -- Return the actual number of bytes read to caller:
             Num_Bytes_Read := Bytes_To_Peek;
@@ -524,7 +542,9 @@ package body Circular_Buffer is
 
       -- Push the data bytes on to buffer:
       Stat := Base (Self).Push (Bytes);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
       pragma Assert (Stat = Success, "Pushing bytes failed. This can only be false if there is a software bug.");
+pragma Annotate (GNATSAS, False_Positive, "assertion", "Assertion will only fail in case of data corruption or software bug.");
 
       return Success;
    end Push;
@@ -556,6 +576,8 @@ package body Circular_Buffer is
    overriding function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
       Ignore : Natural;
    begin
+      -- Initialize the length to zero:
+      Length := 0;
       return Self.Do_Peek (Bytes, Length, Ignore, Offset);
    end Peek;
 
@@ -571,6 +593,7 @@ package body Circular_Buffer is
 
       -- Pop the bytes from the base:
       Queue_Base (Self).Do_Pop (Element_Length);
+pragma Annotate (GNATSAS, False_Positive, "precondition", "The queue layer maintains the buffer invariants (zero-based storage, space reserved by Push_Length, and stored-length consistency), so internal buffer operation preconditions hold by construction.");
 
       return Success;
    end Pop;

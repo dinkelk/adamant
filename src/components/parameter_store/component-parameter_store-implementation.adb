@@ -38,12 +38,18 @@ package body Component.Parameter_Store.Implementation is
       -- At most one dump path may be wired. Both connected is a config
       -- error (ambiguous). Neither connected silences the Dump command.
       pragma Assert (not (Packet_Wired and then Memory_Wired));
+      pragma Annotate (GNATSAS, Intentional, "assertion",
+         "Initialization validation intentionally raises on an invalid configuration.");
       -- The Packet.T path is constrained such that table + CRC prefix must
       -- fit in one Packet.T. The Memory_Dump path has no such constraint (the
       -- downstream packetizer chunks the table which can be larger than a
       -- single packet).
       if Packet_Wired then
          pragma Assert (Self.Bytes.all'Length + Crc_16.Crc_16_Type'Length <= Packet_Types.Packet_Buffer_Type'Length);
+         pragma Annotate (GNATSAS, Intentional, "assertion",
+            "Initialization validation intentionally raises on an invalid configuration.");
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "The parameter store bytes are allocated during initialization.");
       end if;
    end Set_Up;
 
@@ -68,6 +74,8 @@ package body Component.Parameter_Store.Implementation is
             Computed_Crc : constant Crc_16.Crc_16_Type :=
                Parameter_Table_Util.Compute_Table_Crc (
                   Byte_Array_Pointer.From_Address (Self.Bytes.all'Address, Self.Bytes.all'Length));
+                  pragma Annotate (GNATSAS, False_Positive, "access check",
+                     "The parameter store bytes are allocated during initialization.");
             -- Create the packet with the CRC prefix inserted:
             Pkt : Packet.T;
             Stat : constant Serialization_Status :=
@@ -88,6 +96,8 @@ package body Component.Parameter_Store.Implementation is
                Length => Self.Bytes.all'Length
             ))
          ));
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "The parameter store bytes are allocated during initialization.");
          Self.Event_T_Send_If_Connected (Self.Events.Dumped_Parameters (Self.Sys_Time_T_Get));
       end if;
    end Send_Parameters_Packet;

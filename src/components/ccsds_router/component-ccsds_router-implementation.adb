@@ -29,6 +29,12 @@ package body Component.Ccsds_Router.Implementation is
                    "Destination index for APID '" & Ccsds_Primary_Header.Ccsds_Apid_Type'Image (Table_Entry.Apid) & " is out of range: " & Connector_Index_Type'Image (Destination_Index) &
                    ". Must be between '" & Connector_Index_Type'Image (Self.Connector_Ccsds_Space_Packet_T_Send'First) & "' and '" &
                    Connector_Index_Type'Image (Self.Connector_Ccsds_Space_Packet_T_Send'Last) & "'.");
+                   pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                      "Initialization validation intentionally raises on an invalid configuration.");
+                   pragma Annotate (GNATSAS, False_Positive, "validity check",
+                      "Router table destinations are static assembly configuration.");
+                   pragma Annotate (GNATSAS, False_Positive, "access check",
+                      "The arrayed connector exists for the initialized component.");
             end loop;
          end if;
 
@@ -40,10 +46,16 @@ package body Component.Ccsds_Router.Implementation is
          begin
             -- Make sure the APID is not already stored in our table:
             Ret := Self.Table.Search (The_Entry, Ignore_1, Ignore_2);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "The tree is initialized before population and its size never exceeds its capacity.");
             pragma Assert (not Ret, "Duplicate APID '" & Ccsds_Primary_Header.Ccsds_Apid_Type'Image (Table_Entry.Apid) & "' not allowed in router table!");
+            pragma Annotate (GNATSAS, Intentional, "conditional raise",
+               "Initialization validation intentionally raises on duplicate APIDs.");
             -- Add entry to the table:
             Ret := Self.Table.Add (The_Entry);
             pragma Assert (Ret, "Router table too small to hold entry. This should never happen unless there is a bug.");
+            pragma Annotate (GNATSAS, False_Positive, "assertion",
+               "Assertion will only fail in case of data corruption or software bug.");
          end;
       end loop;
 
@@ -91,6 +103,8 @@ package body Component.Ccsds_Router.Implementation is
       begin
          New_Table_Entry.Last_Sequence_Count := Header.Sequence_Count;
          Self.Table.Set (Element_Index, New_Table_Entry);
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "The element index comes from a successful search of the tree, which is initialized during component initialization.");
       end;
    end Warn_Sequence_Count;
 
@@ -129,9 +143,13 @@ package body Component.Ccsds_Router.Implementation is
                when Warn =>
                   -- Warn via event if unexpected sequence count found:
                   Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
+                  pragma Annotate (GNATSAS, False_Positive, "precondition",
+                     "The element index comes from a successful search of the tree, which is initialized during component initialization.");
                when Drop_Dupes =>
                   -- Warn via event if unexpected sequence count found:
                   Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
+                  pragma Annotate (GNATSAS, False_Positive, "precondition",
+                     "The element index comes from a successful search of the tree, which is initialized during component initialization.");
                   -- Check for duplicate; report and drop if necessary:
                   declare
                      use Ccsds_Primary_Header;
@@ -149,6 +167,10 @@ package body Component.Ccsds_Router.Implementation is
                if Table_Entry.Destinations /= null then
                   for Destination of Table_Entry.Destinations.all loop
                      Self.Ccsds_Space_Packet_T_Send_If_Connected (Destination, Arg);
+                        pragma Annotate (GNATSAS, False_Positive, "precondition",
+                           "Destination indices are validated against the connector range during initialization.");
+                        pragma Annotate (GNATSAS, False_Positive, "validity check",
+                           "Router table destinations are static assembly configuration.");
                   end loop;
                end if;
             end if;

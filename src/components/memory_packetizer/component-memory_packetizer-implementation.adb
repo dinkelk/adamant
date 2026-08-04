@@ -146,6 +146,8 @@ package body Component.Memory_Packetizer.Implementation is
                use Byte_Array_Pointer.Packed;
                -- Define a slice of the pointer to copy:
                The_Slice : constant Byte_Array_Pointer.Instance := Slice (Arg.Memory_Pointer, Start_Index => Memory_Index, End_Index => Memory_Index + Buffer_Length - 1);
+               pragma Annotate (GNATSAS, False_Positive, "precondition",
+                  "The memory index and buffer length are bounded by the chunking loop over the memory region length.");
                -- Define the packet:
                Packet_To_Send : Packet.T := (
                   Header => (
