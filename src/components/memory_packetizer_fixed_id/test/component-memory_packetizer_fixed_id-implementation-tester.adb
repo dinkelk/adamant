@@ -108,7 +108,6 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation.Tester is
 
    -- The system time is retrieved via this connector.
    overriding function Sys_Time_T_Return (Self : in out Instance) return Sys_Time.T is
-      Ignore : Instance renames Self;
       To_Return : Sys_Time.T;
       Current_Time : constant Time := Clock;
       Status : Sys_Time_Status;

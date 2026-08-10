@@ -7,7 +7,7 @@ with Memory_Packetizer_Types;
 with Command;
 with Ada.Real_Time;
 
--- This active component receives memory pointer information on an asynchronous queue. It then reads the data that these pointers reference into packets, producing multiple maximum sized packets, if necessary, to packetize the entire memory region. This component is similar to the Memory Packetizer except that all packets produced have the same packet ID, assigned to this component at initialization. This component ignores the ID field found in the Memory_Dump_Recv_Sync connector.
+-- This active component receives memory pointer information on an asynchronous queue. It then reads the data that these pointers reference into packets, producing multiple maximum sized packets, if necessary, to packetize the entire memory region. This component is similar to the Memory Packetizer except that all packets produced have the same packet ID, assigned to this component at initialization. This component ignores the ID field found in the Memory_Dump_Recv_Async connector.
 package Component.Memory_Packetizer_Fixed_Id.Implementation is
 
    -- The component class instance record:
@@ -19,7 +19,7 @@ package Component.Memory_Packetizer_Fixed_Id.Implementation is
    -- This initialization function is used to set a threshold for the maximum number of packets that the component will produce in a single time period. A time period is measured in an integer number of seconds.
    --
    -- Init Parameters:
-   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
+   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single time period. The component will stop producing packets if the threshold is met, until the end of the current time period has elapsed.
    -- Time_Period_In_Seconds : Positive - The time period in seconds over which to measure the number of packets produced.
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1);
