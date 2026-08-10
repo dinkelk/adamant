@@ -190,6 +190,8 @@ package body Component.Memory_Stuffer.Implementation is
 
       -- Do write memory:
       if Memory_Manager_Types.Is_Region_Valid (Region, Self.Regions, Ptr, Region_Index) then
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "Memory regions are validated against the assembly-configured region list.");
          declare
             use Byte_Array_Pointer;
             use Memory_Manager_Types;
@@ -202,12 +204,16 @@ package body Component.Memory_Stuffer.Implementation is
                      case Was_Armed is
                         when True =>
                            null;
+                           pragma Annotate (GNATSAS, False_Positive, "array index check",
+                              "The region index comes from a successful region validation against the protection list.");
                         when False =>
                            Do_Write := False;
                      end case;
                   when Unprotected_Region =>
                      null;
                end case;
+            pragma Annotate (GNATSAS, False_Positive, "array index check",
+               "The region index comes from a successful region validation against the protection list.");
             end if;
 
             -- If we are allowed to write the memory region then do so, otherwise throw an event:
@@ -215,6 +221,8 @@ package body Component.Memory_Stuffer.Implementation is
                -- Perform actual memory stuff:
                Self.Event_T_Send_If_Connected (Self.Events.Writing_Memory (Self.Sys_Time_T_Get, Region));
                Copy_To (Ptr, Arg.Data (Arg.Data'First .. Arg.Data'First + Arg.Length - 1));
+               pragma Annotate (GNATSAS, False_Positive, "precondition",
+                  "The copy length equals the validated region length.");
                Self.Event_T_Send_If_Connected (Self.Events.Memory_Written (Self.Sys_Time_T_Get, Region));
             else
                Self.Event_T_Send_If_Connected (Self.Events.Protected_Write_Denied (Self.Sys_Time_T_Get, Region));

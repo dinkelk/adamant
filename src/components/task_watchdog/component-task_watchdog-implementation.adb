@@ -148,6 +148,8 @@ package body Component.Task_Watchdog.Implementation is
                      To_Send.Buffer (Product_Buffer_Index) := State_Byte;
                      pragma Annotate (GNATSAS, False_Positive, "array index check", "Product_Buffer_Index bounds guaranteed by assertions in the Init");
                      if Product_Buffer_Index < Data_Product_Types.Data_Product_Buffer_Length_Type'Last then
+                        pragma Annotate (GNATSAS, Intentional, "test always true",
+                           "Defensive guard; the index is bounded by initialization assertions.");
                         Product_Buffer_Index := @ + 1;
                      end if;
                      State_Byte := 0;

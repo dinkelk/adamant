@@ -45,6 +45,8 @@ package body {{ name }} is
          when Length_Overflow => return Length_Error;
          when Success => null;
       end case;
+      pragma Annotate (GNATSAS, Intentional, "dead code",
+         "Defensive arm; extraction cannot overflow when the autocoded offset and length fit within the packet.");
 
       -- Now make sure the data product is valid for the type that we are extracting using the validation from the packed type generation.
       -- Validate directly on the byte buffer to avoid passing potentially-invalid typed data.

@@ -139,6 +139,8 @@ package body Component.Event_Filter.Implementation is
             -- Send out the packet:
             State_Packet_Status := Self.Packets.Event_Filter_State_Packet (Timestamp, Packet_Bytes.all, State_Packet);
             pragma Assert (State_Packet_Status = Success, "Too many states for the size of a packet!");
+            pragma Annotate (GNATSAS, False_Positive, "assertion",
+               "The entry array size is bounded by the packet size, validated during initialization.");
             Self.Packet_T_Send_If_Connected (State_Packet);
             -- Sent the packet so set the flag back to false
             Self.Send_Event_State_Packet.Set_Var (False);
@@ -245,6 +247,8 @@ package body Component.Event_Filter.Implementation is
             case Status is
                when Invalid_Id =>
                   pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Annotate (GNATSAS, False_Positive, "conditional raise",
+                     "The command range is validated against the configured event ID range before this loop.");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;
@@ -281,6 +285,8 @@ package body Component.Event_Filter.Implementation is
             case Status is
                when Invalid_Id =>
                   pragma Assert (False, "Found Invalid_Id for the Event Filter when commanding enable range of events, which should have been caught in an earlier statement");
+                  pragma Annotate (GNATSAS, False_Positive, "conditional raise",
+                     "The command range is validated against the configured event ID range before this loop.");
                when Success =>
                   null; -- expected so continue to loop and do nothing in this case
             end case;

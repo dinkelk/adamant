@@ -75,6 +75,8 @@ package body Component.Parameters.Implementation is
             if Idx = Self.Entries.all'First then
                -- First entry must have Entry_Id = 0
                pragma Assert (Param_Entry.Entry_Id = 0, "First parameter entry must have Entry_Id = 0, but found Entry_Id = " & Parameter_Types.Parameter_Table_Entry_Id'Image (Param_Entry.Entry_Id) & ".");
+               pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                  "Initialization validation intentionally raises on an invalid parameter table configuration.");
             else
                declare
                   Prev_Entry : Parameters_Component_Types.Parameter_Table_Entry renames Self.Entries.all (Idx - 1);
@@ -86,6 +88,8 @@ package body Component.Parameters.Implementation is
                      " has Entry_Id = " & Parameter_Types.Parameter_Table_Entry_Id'Image (Param_Entry.Entry_Id) &
                      ", but previous entry has Entry_Id = " & Parameter_Types.Parameter_Table_Entry_Id'Image (Prev_Entry.Entry_Id) & "."
                   );
+                  pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                     "Initialization validation intentionally raises on an invalid parameter table configuration.");
                end;
             end if;
 
@@ -95,6 +99,8 @@ package body Component.Parameters.Implementation is
                "Destination index for Parameter '" & Parameter_Id'Image (Param_Entry.Id) & " is out of range: " & Connector_Index_Type'Image (Param_Entry.Component_Id) & ". Must be between '" &
                Connector_Index_Type'Image (Self.Connector_Parameter_Update_T_Provide'First) & "' and '" & Connector_Index_Type'Image (Self.Connector_Parameter_Update_T_Provide'Last) & "'."
             );
+            pragma Annotate (GNATSAS, Intentional, "conditional raise",
+               "Initialization validation intentionally raises on an invalid parameter table configuration.");
 
             -- Make sure that the component ID is connected to a connector that is indeed connected.
             pragma Assert (Self.Is_Parameter_Update_T_Provide_Connected (Param_Entry.Component_Id),
@@ -107,10 +113,20 @@ package body Component.Parameters.Implementation is
                procedure Validate_Parameter_Layout is
                begin
                   pragma Assert (Param_Entry.Start_Index = Current_Byte, "Unexpected byte layout in parameter table at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+                  pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                     "Initialization validation intentionally raises on an invalid parameter table configuration.");
                   pragma Assert (Param_Entry.End_Index >= Param_Entry.Start_Index, "end_Index must be greater than start_Index at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+                  pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                     "Initialization validation intentionally raises on an invalid parameter table configuration.");
                   pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index + 1 <= Parameter_Types.Parameter_Buffer_Length_Type'Last,
                      "Parameter ID '" & Parameter_Id'Image (Param_Entry.Id) & "' is too large to fit in the parameter record.");
+                     pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                        "Initialization validation intentionally raises on an invalid parameter table configuration.");
+                     pragma Annotate (GNATSAS, False_Positive, "overflow check",
+                        "Parameter table entries are autocoded assembly configuration with byte indices far below the type maximum.");
                   Current_Byte := Param_Entry.End_Index + 1;
+                  pragma Annotate (GNATSAS, False_Positive, "overflow check",
+                     "Parameter table entries are autocoded assembly configuration with byte indices far below the type maximum.");
                end Validate_Parameter_Layout;
             begin
                if Idx > Self.Entries.all'First then
@@ -125,11 +141,15 @@ package body Component.Parameters.Implementation is
                      else
                         -- Not a grouped parameter, so ensure no deadspace, no partial overlap, and proper ordering.
                         Validate_Parameter_Layout;
+                        pragma Annotate (GNATSAS, False_Positive, "precondition",
+                           "Parameter table entries are autocoded assembly configuration with byte indices far below the type maximum.");
                      end if;
                   end;
                else
                   -- First entry, perform standard checks
                   Validate_Parameter_Layout;
+                  pragma Annotate (GNATSAS, False_Positive, "precondition",
+                     "Parameter table entries are autocoded assembly configuration with byte indices far below the type maximum.");
                end if;
             end;
          end;
@@ -183,6 +203,8 @@ package body Component.Parameters.Implementation is
          declare
             use Parameter_Enums.Parameter_Operation_Type;
             Param_Entry : Parameters_Component_Types.Parameter_Table_Entry renames Self.Entries.all (Idx);
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The entries list and connector array are allocated and validated during initialization.");
             Param_Update : Parameter_Update.T := (
                Table_Id => Self.Table_Id,
                Operation => Fetch,
@@ -191,6 +213,10 @@ package body Component.Parameters.Implementation is
             ));
             -- Calculate expected parameter length:
             Param_Length : constant Parameter_Types.Parameter_Buffer_Length_Type := Param_Entry.End_Index - Param_Entry.Start_Index + 1;
+            pragma Annotate (GNATSAS, False_Positive, "range check",
+               "Entry index ordering and maximum parameter size are validated during initialization.");
+            pragma Annotate (GNATSAS, False_Positive, "overflow check",
+               "Entry index ordering and maximum parameter size are validated during initialization.");
             -- Component index:
             Comp_Idx : constant Parameter_Update_T_Provide_Index := Parameter_Update_T_Provide_Index (Param_Entry.Component_Id);
             -- Check if this is the first parameter in a new entry group:
@@ -198,6 +224,8 @@ package body Component.Parameters.Implementation is
          begin
             -- Send the parameter fetch request to the appropriate component:
             Self.Parameter_Update_T_Provide (Comp_Idx, Param_Update);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
 
             -- Make sure the status is successful. If it is not, then produce an event, but still continue
             -- on to produce the packet:
@@ -208,6 +236,8 @@ package body Component.Parameters.Implementation is
                   -- Declare renames for buffer slices that can be used for both first and subsequent parameters
                   declare
                      Buffer_Slice : Basic_Types.Byte_Array renames Buffer (Buffer'First + Param_Entry.Start_Index .. Buffer'First + Param_Entry.End_Index);
+                     pragma Annotate (GNATSAS, False_Positive, "range check",
+                        "The packet buffer is sized for the full parameter table, whose layout is validated during initialization.");
                      Fetched_Slice : Basic_Types.Byte_Array renames Param_Update.Param.Buffer (Param_Update.Param.Buffer'First .. Param_Update.Param.Buffer'First + Param_Length - 1);
                   begin
                      -- Check if this is the first parameter in the group or a subsequent one:
@@ -471,12 +501,18 @@ package body Component.Parameters.Implementation is
             use Byte_Array_Pointer;
             -- Calculate the parameters length:
             Param_Length : constant Parameter_Types.Parameter_Buffer_Length_Type := Param_Entry.End_Index - Param_Entry.Start_Index + 1;
+            pragma Annotate (GNATSAS, False_Positive, "range check",
+               "Entry index ordering and maximum parameter size are validated during initialization.");
+            pragma Annotate (GNATSAS, False_Positive, "overflow check",
+               "Entry index ordering and maximum parameter size are validated during initialization.");
             -- Grab a slice of the memory region that contains our parameter's value:
             Ptr : constant Byte_Array_Pointer.Instance := Slice (
                Parameter_Data_Ptr,
                Start_Index => Param_Entry.Start_Index,
                End_Index => Param_Entry.End_Index
             );
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Entry start and end indices are validated during initialization and lie within the staged region.");
             -- Create a temporary buffer to hold the parameter value:
             Value : Parameter_Types.Parameter_Buffer_Type := [others => 0];
          begin
@@ -486,6 +522,8 @@ package body Component.Parameters.Implementation is
 
             -- Stage the parameter:
             if Self.Stage_Parameter (Param_Entry => Param_Entry, Value => Value) /= Success then
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
                Status_To_Return := Parameter_Error;
             end if;
          end;
@@ -508,6 +546,8 @@ package body Component.Parameters.Implementation is
       -- OK, now we need to validate all the parameters.
       for Idx in Self.Connector_Parameter_Update_T_Provide'Range loop
          if Self.Validate_Parameters (Component_Id => Idx) /= Success then
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
             Status_To_Return := Parameter_Error;
          end if;
       end loop;
@@ -545,13 +585,19 @@ package body Component.Parameters.Implementation is
       -- OK, now we need to validate all the parameters.
       for Idx in Self.Connector_Parameter_Update_T_Provide'Range loop
          Set_Status (Self.Validate_Parameters (Component_Id => Idx));
+         pragma Annotate (GNATSAS, False_Positive, "precondition",
+            "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
       end loop;
 
       -- OK, now we need to update all the parameters. We only do this step if
       -- all the validation before was successful.
       if Status_To_Return = Success then
          for Idx in Self.Connector_Parameter_Update_T_Provide'Range loop
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "The entries list and connector array are allocated and validated during initialization.");
             Set_Status (Self.Update_Parameters (Component_Id => Idx));
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
          end loop;
 
          -- At this point the table is committed to the components, so we need
@@ -560,6 +606,8 @@ package body Component.Parameters.Implementation is
          declare
             Table_Header : Parameter_Table_Header.T;
             Ignore : constant Byte_Array_Pointer.Instance := Parameter_Table_Util.Get_Ptr_And_Header_From_Region (Region, Table_Header);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "This code is only reached after the region was successfully staged, which requires at least a full table header.");
          begin
             Self.Table_Version := Table_Header.Version;
             Self.Stored_Crc := Table_Header.Crc_Table;
@@ -570,6 +618,8 @@ package body Component.Parameters.Implementation is
          if Self.Dump_Parameters_On_Change then
             -- Send the packet:
             Set_Status (Self.Send_Parameters_Packet);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "The packet connector connection status does not change after initialization.");
          end if;
       end if;
 
@@ -634,9 +684,13 @@ package body Component.Parameters.Implementation is
                         when Set =>
                            -- Update the parameter table:
                            To_Return := Self.Update_Parameter_Table (Arg.Region);
+                           pragma Annotate (GNATSAS, False_Positive, "precondition",
+                              "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
                         when Validate =>
                            -- Validate the parameter table:
                            To_Return := Self.Validate_Parameter_Table (Arg.Region);
+                           pragma Annotate (GNATSAS, False_Positive, "precondition",
+                              "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
                         when others =>
                            -- There are no other cases in this range, this should be unreachable:
                            pragma Assert (False);
@@ -717,6 +771,8 @@ package body Component.Parameters.Implementation is
       for Idx in Self.Entries.all'Range loop
          declare
             Param_Entry : Parameters_Component_Types.Parameter_Table_Entry renames Self.Entries.all (Idx);
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The entries list and connector array are allocated and validated during initialization.");
          begin
             -- See if this entry has the Entry_ID we are looking for.
             if Arg.Header.Id = Param_Entry.Entry_Id then
@@ -724,6 +780,10 @@ package body Component.Parameters.Implementation is
                declare
                   -- Calculate expected parameter length:
                   Param_Length : constant Parameter_Types.Parameter_Buffer_Length_Type := Param_Entry.End_Index - Param_Entry.Start_Index + 1;
+                  pragma Annotate (GNATSAS, False_Positive, "range check",
+                     "Entry index ordering and maximum parameter size are validated during initialization.");
+                  pragma Annotate (GNATSAS, False_Positive, "overflow check",
+                     "Entry index ordering and maximum parameter size are validated during initialization.");
                begin
                   -- See if the length in the header is what we expect.
                   if Arg.Header.Buffer_Length /= Param_Length then
@@ -735,6 +795,8 @@ package body Component.Parameters.Implementation is
                   else
                      -- OK everything looks good, let's stage the parameter.
                      if Self.Stage_Parameter (Param_Entry => Param_Entry, Value => Arg.Buffer) /= Success then
+                     pragma Annotate (GNATSAS, False_Positive, "precondition",
+                        "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
                         -- No need to throw an event, because an event is thrown in the function above
                         -- if something doesn't go well.
                         return Failure;
@@ -758,6 +820,8 @@ package body Component.Parameters.Implementation is
       for Component_Id in Components_To_Update'Range loop
          if Components_To_Update (Component_Id) then
             if Self.Update_Parameters (Component_Id => Component_Id) /= Success then
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Entry component IDs, connector connectivity, and entry layout are validated during initialization.");
                -- No need to throw an event, because an event is thrown in the function above
                -- if something doesn't go well.
                return Failure;

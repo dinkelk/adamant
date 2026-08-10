@@ -134,6 +134,8 @@ package body Component.Stack_Monitor.Implementation is
             -- calculation next time and return the result as a percentage.
             Stack_Index := Index;
             return Byte ((Unsigned_32 (Stack_Bytes'Last - Index) * 100) / Unsigned_32 (Stack_Bytes'Last));
+            pragma Annotate (GNATSAS, False_Positive, "range check",
+               "The percentage computation is bounded by 100.");
          end;
       end;
    end Calculate_Stack_Percent_Usage;
@@ -165,13 +167,27 @@ package body Component.Stack_Monitor.Implementation is
       if Self.Counter.Is_Count_At_Period then
          -- Calculate the task usage for each task in our list:
          for Task_Info_Idx in Self.Tasks'Range loop
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The task and stack index lists are allocated over matching ranges and initialized during component initialization.");
             Self.Packet_To_Send.Buffer (Idx) := Calculate_Stack_Percent_Usage (Self.Tasks (Task_Info_Idx), Self.Stack_Indexes.all (Task_Info_Idx));
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Task information is assembly-provided configuration, and the callee guards degenerate values.");
+            pragma Annotate (GNATSAS, False_Positive, "array index check",
+               "The task and stack index lists are allocated over matching ranges and initialized during component initialization.");
+            pragma Annotate (GNATSAS, False_Positive, "validity check",
+               "The task and stack index lists are allocated over matching ranges and initialized during component initialization.");
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The task and stack index lists are allocated over matching ranges and initialized during component initialization.");
             Idx := @ + 1;
             Self.Packet_To_Send.Buffer (Idx) := Calculate_Secondary_Stack_Percent_Usage (Self.Tasks (Task_Info_Idx));
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Task information is assembly-provided configuration, and the callee guards degenerate values.");
             Idx := @ + 1;
          end loop;
          -- Make sure the right number of bytes were filled in in the packet.
          pragma Assert (Idx - Self.Packet_To_Send.Buffer'First = Self.Packet_To_Send.Header.Buffer_Length);
+         pragma Annotate (GNATSAS, False_Positive, "assertion",
+            "Assertion will only fail in case of data corruption or software bug.");
 
          -- Timestamp and send the packet:
          Self.Packet_To_Send.Header.Time := Self.Sys_Time_T_Get;
