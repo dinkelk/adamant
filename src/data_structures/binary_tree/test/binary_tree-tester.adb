@@ -1,7 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
 package body Binary_Tree.Tester is
-   function Issorted (Self : in out Binary_Tree.Instance) return Boolean is
+   function Issorted (Self : in Binary_Tree.Instance) return Boolean is
       Current_Element : Element_Type;
       Previous_Element : Element_Type;
    begin
@@ -12,7 +12,7 @@ package body Binary_Tree.Tester is
          for Index in 2 .. Self.Size loop
             Current_Element := Self.Tree (Index);
             Put_Line (Image (Current_Element));
-            if Previous_Element > Current_Element then
+            if Current_Element < Previous_Element then
                return False;
             end if;
             Previous_Element := Current_Element;

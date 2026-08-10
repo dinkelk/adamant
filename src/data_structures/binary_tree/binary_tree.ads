@@ -21,23 +21,24 @@
 -- slow as the value of N gets very large.
 --
 -- To instantiate the generic binary tree you must define the type as
--- well as two functions the compare "less than" and "greater than" of
--- the type and return a boolean stating whether the condition is
--- True or False.
+-- well as a "less than" comparison function for the type. Equality is
+-- derived as "not (A < B) and not (B < A)", and greater-than as "B < A".
 --
 generic
    type Element_Type is private;
    with function "<" (Left, Right : Element_Type) return Boolean is <>;
-   with function ">" (Left, Right : Element_Type) return Boolean is <>;
 package Binary_Tree is
    type Instance is tagged limited private;
    type Instance_Access is access all Instance;
 
+   -- Initialize the tree with a given maximum capacity. Must be called before any other operation.
    procedure Init (Self : in out Instance; Maximum_Size : in Positive);
+   -- Destroy the tree and free allocated memory. Tree must be re-initialized before reuse.
    procedure Destroy (Self : in out Instance);
 
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
-   -- Return: True means add was successful. False means there is no more room in the tree.
+   -- Duplicate elements are rejected. Return: True means add was successful. False means there
+   -- is no more room in the tree or the element already exists.
    function Add (Self : in out Instance; Element : in Element_Type) return Boolean;
    -- Remove element from tree. This is done in O(n) time where n is the current size of the tree.
    -- Return: True means remove was successful. False means the provided index is not found in the tree.
@@ -46,9 +47,14 @@ package Binary_Tree is
    -- Return: True means element was found. False means it was not. The element and index in the array where it was found are also returned.
    function Search (Self : in Instance; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive) return Boolean;
    -- Get an element via its index. This can be helpful to quickly retrieve an element in O(1) time if you have already obtained its index via "search".
+   -- Raises Constraint_Error if Element_Index > Size (out of logical bounds).
    function Get (Self : in Instance; Element_Index : in Positive) return Element_Type;
    -- Set an element via its index. This can be helpful to quickly set an element in O(1) time if you have already obtained its index via "search".
-   procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type);
+   -- WARNING: The caller MUST ensure that the new element maintains the sorted invariant of the tree.
+   -- Specifically, the new element must be >= the element at (Element_Index - 1) and <= the element at
+   -- (Element_Index + 1). Violating this precondition will cause Search to return incorrect results.
+   -- Returns True if the set was successful and the sorted invariant is maintained, False otherwise.
+   function Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) return Boolean;
    -- Clear the tree. This is done in O(1) time.
    procedure Clear (Self : in out Instance);
    -- Get functions:
