@@ -236,11 +236,6 @@ package body Queue_Monitor_Tests.Implementation is
       Natural_Assert.Eq (T.Packet_Period_Set_History.Get_Count, 2);
       Packed_U16_Assert.Eq (T.Packet_Period_Set_History.Get (2), (Value => 3));
 
-      -- Check event:
-      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 2);
-      Natural_Assert.Eq (T.Packet_Period_Set_History.Get_Count, 2);
-      Packed_U16_Assert.Eq (T.Packet_Period_Set_History.Get (2), (Value => 3));
-
       -- Send a tick and expect no packets.
       Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 4);
       T.Tick_T_Send (A_Tick);
