@@ -1,6 +1,6 @@
 ---
 description: The requirements for the CPU Monitor component are specified below.
 requirements:
-  - text: The component shall produce data reporting the CPU usage of every active component in an assembly.
-  - text: The component shall produce data reporting the CPU usage of every interrupt handler in an assembly.
-  - text: The component shall produce CPU usage data at a periodic rate that is configurable by command.
+  - text: The component shall produce a telemetry packet containing CPU usage as a percentage (0-100) for every active task in an assembly, measured over each of three configurable time periods.
+  - text: The component shall produce CPU usage as a percentage (0-100) for every interrupt handler in an assembly within the same telemetry packet.
+  - text: The component shall send the CPU usage packet at a periodic rate configurable by command. A period of zero shall disable packet output.
