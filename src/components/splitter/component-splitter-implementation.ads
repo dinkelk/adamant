@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 -- Standard Includes:
--- This is a generic component that can be used to split a single connector of any type into an arrayed connector of that type. This can be useful when a component has a single send connector, but you actually need the data to go to many different places simultaneously. In this case, the splitter component can be attached to the send connector and the distribute the data to many downstream components.
+-- This is a generic component that can be used to split a single connector of any type into an arrayed connector of that type. This can be useful when a component has a single send connector, but you actually need the data to go to many different places simultaneously. In this case, the splitter component can be attached to the send connector and then distribute the data to many downstream components.
 generic
 package Component.Splitter.Implementation is
 
