@@ -21,6 +21,9 @@ private
    -- This unit test invokes the async connector and makes sure the arguments are
    -- passed through asynchronously, as expected.
    overriding procedure Test_Queued_Call (Self : in out Instance);
+   -- This unit test verifies that with Delay_Us=0, the component behaves like
+   -- a Connector Queuer with negligible dispatch latency.
+   overriding procedure Test_Zero_Delay (Self : in out Instance);
    -- This unit test fills the queue and makes sure that dropped messages are
    -- reported.
    overriding procedure Test_Full_Queue (Self : in out Instance);
