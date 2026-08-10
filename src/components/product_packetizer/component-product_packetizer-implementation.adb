@@ -30,6 +30,8 @@ package body Component.Product_Packetizer.Implementation is
       for Idx in Self.Packet_List.all'Range loop
          -- Make sure all packet items are not null in Init, so we don't get a surprise later.
          pragma Assert (Self.Packet_List.all (Idx).Items /= null);
+         pragma Annotate (GNATSAS, Intentional, "assertion",
+            "Initialization validation intentionally raises on an invalid configuration.");
 
          -- Extract the period from this index:
          Current_Period := Self.Packet_List.all (Idx).Period;
@@ -40,6 +42,8 @@ package body Component.Product_Packetizer.Implementation is
             -- unique period.
             Duplicate_Period := False;
             for Jdx in Idx + 1 .. Self.Packet_List.all'Last loop
+               pragma Annotate (GNATSAS, False_Positive, "overflow check",
+                  "Idx is bounded by the packet list length, far below the type maximum.");
                if Self.Packet_List.all (Jdx).Period = Current_Period then
                   Duplicate_Period := True;
                end if;
@@ -58,6 +62,8 @@ package body Component.Product_Packetizer.Implementation is
       Scale_Factor := (Natural'Last - 1) / Common_Multiple; -- Expect truncation
       -- Set the roll over value:
       Self.Roll_Over_Value := Scale_Factor * Common_Multiple;
+      pragma Annotate (GNATSAS, False_Positive, "range check",
+         "The truncated division above guarantees the product is at most NaturalLast - 1.");
       -- ^ The rollover must be less than Natural'Last or a Constraint_Error will be raised when incrementing the
       -- Self.Count variable. We enforce this using the type of Self.Roll_Over_Value
 
@@ -168,6 +174,8 @@ package body Component.Product_Packetizer.Implementation is
                if Do_Copy then
                   The_Packet.Buffer (Curr_Index .. (Curr_Index + Sys_Time.Serialization.Serialized_Length - 1))
                      := Sys_Time.Serialization.To_Byte_Array (D_Prod_Ret.The_Data_Product.Header.Time);
+                     pragma Annotate (GNATSAS, False_Positive, "range check",
+                        "Packet item layouts are validated during initialization to fit within the packet buffer.");
                end if;
 
                -- Increment the current index:
@@ -189,8 +197,14 @@ package body Component.Product_Packetizer.Implementation is
                   Item.Used_For_On_Change and then
                   D_Prod_Ret.The_Data_Product.Header.Time > Packet_Desc.Last_Emission_Time
                then
+                  pragma Annotate (GNATSAS, False_Positive, "test always false",
+                     "On-change filtering depends on runtime data product timestamps, which the analyzer over-approximates.");
+                  pragma Annotate (GNATSAS, False_Positive, "condition predetermined",
+                     "On-change filtering depends on runtime data product timestamps, which the analyzer over-approximates.");
                   Changed := True;
                end if;
+               pragma Annotate (GNATSAS, False_Positive, "dead code",
+                  "On-change filtering depends on runtime data product timestamps, which the analyzer over-approximates.");
 
                -- Check the length of the data product to make sure it what we expect:
                if D_Prod_Ret.The_Data_Product.Header.Buffer_Length /= Item.Size then
@@ -205,6 +219,8 @@ package body Component.Product_Packetizer.Implementation is
                      D_Prod_Ret.The_Data_Product.Buffer'First ..
                      (D_Prod_Ret.The_Data_Product.Buffer'First + D_Prod_Ret.The_Data_Product.Header.Buffer_Length - 1)
                   );
+                  pragma Annotate (GNATSAS, False_Positive, "range check",
+                     "Packet item layouts are validated during initialization to fit within the packet buffer.");
                end if;
             end if;
          end if;
@@ -222,6 +238,8 @@ package body Component.Product_Packetizer.Implementation is
 
       -- Set the packet length:
       The_Packet.Header.Buffer_Length := Curr_Index;
+      pragma Annotate (GNATSAS, False_Positive, "range check",
+         "Packet item layouts are validated during initialization to fit within the packet buffer.");
 
       -- Return the packet:
       return The_Packet;
@@ -269,6 +287,8 @@ package body Component.Product_Packetizer.Implementation is
          -- See if send command was sent:
          if Packet_Desc.Send_Now then
             Build_And_Send (Packet_Desc);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Packet item layouts are validated during initialization to fit within the packet buffer.");
             Packet_Desc.Send_Now := False;
          -- Check if packet is enabled or on change:
          elsif (Packet_Desc.Enabled = Product_Packet_Types.Enabled or else
@@ -278,12 +298,16 @@ package body Component.Product_Packetizer.Implementation is
             -- Is it time to send packet based on its period?
             if (Self.Count mod Packet_Desc.Period) = (Packet_Desc.Offset mod Packet_Desc.Period) then
                Build_And_Send (Packet_Desc, Send_Only_On_Change => (Packet_Desc.Enabled = Product_Packet_Types.On_Change));
+               pragma Annotate (GNATSAS, False_Positive, "precondition",
+                  "Packet item layouts are validated during initialization to fit within the packet buffer.");
             end if;
          end if;
       end loop;
 
       -- Increment internal counter:
       Self.Count := @ + 1;
+      pragma Annotate (GNATSAS, False_Positive, "overflow check",
+         "The count is bounded by the roll-over value, which is at most Natural''Last - 1.");
 
       -- Check roll over:
       if Self.Count > Self.Roll_Over_Value then

@@ -56,14 +56,20 @@ package body Component.Queue_Monitor.Implementation is
       if Self.Packet_Counter.Is_Count_At_Period and then Self.Is_Packet_T_Send_Connected then
          -- Grab queue data for each component:
          for Comp of Self.Queued_Component_List.all loop
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The queued component list is provided during initialization.");
             -- Dispatching call to component's overridden method, because the type of
             -- comp is Component.Instance'Class:
             Self.Packet_To_Send.Buffer (Idx) := Comp.all.Get_Queue_Current_Percent_Used;
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The queued component list is provided during initialization.");
             Idx := @ + 1;
             Self.Packet_To_Send.Buffer (Idx) := Comp.all.Get_Queue_Maximum_Percent_Used;
             Idx := @ + 1;
          end loop;
          pragma Assert (Idx = Self.Packet_To_Send.Header.Buffer_Length, "Length calculation is wrong.");
+         pragma Annotate (GNATSAS, False_Positive, "assertion",
+            "Assertion will only fail in case of data corruption or software bug.");
 
          -- Send packet;
          Self.Packet_To_Send.Header.Time := Self.Sys_Time_T_Get;

@@ -48,6 +48,8 @@ package body Component.Tick_Divider.Implementation is
 
             -- Make sure Max_Count doesn't overflow on increment (leave room for +1).
             pragma Assert (Self.Max_Count < Interfaces.Unsigned_32'Last);
+            pragma Annotate (GNATSAS, Intentional, "assertion",
+               "Initialization validation intentionally raises on an invalid configuration.");
          when Tick_Counter =>
             null; -- Max_Count will be unused in this case, so do nothing with it.
       end case;
@@ -81,11 +83,17 @@ package body Component.Tick_Divider.Implementation is
       -- Call each connected send connector in turn, if that divider is ready:
       for Index in Self.Connector_Tick_T_Send'Range loop
          Divider := Self.Dividers (Index);
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "The divider list is provided and validated during initialization.");
          -- If the divider is positive, the connector is connected, and
          -- count is divisible by the divider, then invoke the connector.
          if Divider > 0 and then Self.Connector_Tick_T_Send (Index).Is_Connected and then (Current_Count mod Divider) = 0 then
+            pragma Annotate (GNATSAS, False_Positive, "access check",
+               "The arrayed connector exists for the initialized component.");
             -- Send the tick and check the result:
             Self.Tick_T_Send (Index, Arg);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Divider indices are validated against the connector range during initialization.");
          end if;
       end loop;
    end Tick_T_Recv_Sync;

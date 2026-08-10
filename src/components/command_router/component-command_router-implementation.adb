@@ -60,6 +60,8 @@ package body Component.Command_Router.Implementation is
 
       -- Now provide the source IDs to all connected command source components:
       for Index in Self.Connector_Command_Response_T_To_Forward_Send'Range loop
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "The arrayed connector exists for the initialized component.");
          -- Send special command response that has the Register status set. This should indicate to the
          -- component that it should assign the source id provided as its source id when sending commands.
          Self.Command_Response_T_To_Forward_Send (Command_Response_T_To_Forward_Send_Index (Index), (
@@ -68,6 +70,8 @@ package body Component.Command_Router.Implementation is
             Command_Id => 0,
             Status => Register_Source
          ));
+         pragma Annotate (GNATSAS, False_Positive, "access check",
+            "The arrayed connector exists for the initialized component.");
       end loop;
    end Set_Up;
 
@@ -104,6 +108,8 @@ package body Component.Command_Router.Implementation is
          -- Send command to destination:
          when Router_Table.Success =>
             Self.Command_T_Send (Command_T_Send_Index (Send_Index), Arg);
+            pragma Annotate (GNATSAS, False_Positive, "precondition",
+               "Registration indices are validated during command registration.");
             -- Command not registered, throw an event:
          when Router_Table.Id_Not_Found =>
             -- Send event out saying the id is invalid:
