@@ -18,6 +18,8 @@ private
    overriding procedure Test_Region_Clear (Self : in out Instance);
    -- This unit test makes sure an invalid command is rejected.
    overriding procedure Test_Invalid_Command (Self : in out Instance);
+   -- This unit test exercises the Dump_Exception_Data_At_Startup => False path.
+   overriding procedure Test_Dump_At_Startup_Disabled (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Last_Chance_Manager_Tests.Base_Instance with record
