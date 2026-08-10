@@ -27,6 +27,10 @@ private
    overriding procedure Test_Invalid_Command (Self : in out Instance);
    -- This unit test exercises that an invalid parameter throws the appropriate event.
    overriding procedure Test_Invalid_Parameter (Self : in out Instance);
+   -- This unit test verifies that a rate set by command persists across ticks and is not silently reverted by the parameter update mechanism.
+   overriding procedure Test_Command_Parameter_Interaction (Self : in out Instance);
+   -- This unit test exercises the boundary condition where Max_Sends_Per_Tick is set to Unsigned_16'Last (65535).
+   overriding procedure Test_Max_Sends_Boundary (Self : in out Instance);
 
    -- Instantiate generic component package:
    package Component_Package is new Component.Limiter (T => Tick.T, Serialized_Length => Tick.Serialized_Length);

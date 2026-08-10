@@ -112,12 +112,14 @@ package body Component.Limiter.Implementation is
       use Command_Execution_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Set the rate:
+      -- Set the rate in both the protected variable and the parameter table
+      -- so that they stay in sync:
       Self.P_Max_Sends_Per_Tick.Set_Var (Arg.Value);
+      Self.Max_Sends_Per_Tick := (Value => Arg.Value);
       -- Send data product:
       Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Max_Packet_Sends_Per_Tick (The_Time, (Value => Self.P_Max_Sends_Per_Tick.Get_Var)));
       -- Send event:
-      Self.Event_T_Send_If_Connected (Self.Events.Max_Send_Per_Tick_Set (The_Time, Arg));
+      Self.Event_T_Send_If_Connected (Self.Events.Max_Sends_Per_Tick_Set (The_Time, Arg));
       return Success;
    end Sends_Per_Tick;
 
