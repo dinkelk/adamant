@@ -18,6 +18,14 @@ private
    overriding procedure Test_Set_Filter_Factor (Self : in out Instance);
    -- This unit test makes sure the counters for the number of packets that should be passed or filtered are correct.
    overriding procedure Test_Get_Counters (Self : in out Instance);
+   -- This test exercises Filter_Count behavior across the former Unsigned_16 wrap-around boundary.
+   overriding procedure Test_Filter_Count_Overflow (Self : in out Instance);
+   -- This test exercises global counter behavior near Unsigned_16 overflow.
+   overriding procedure Test_Counter_Overflow (Self : in out Instance);
+   -- This test initializes the tree with an empty list.
+   overriding procedure Test_Empty_Init_List (Self : in out Instance);
+   -- This test initializes the tree with a single element list.
+   overriding procedure Test_Single_Element_Init_List (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Apid_Tree_Tests.Base_Instance with record
