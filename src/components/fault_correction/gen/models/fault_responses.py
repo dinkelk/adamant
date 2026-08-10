@@ -157,7 +157,7 @@ class fault_responses(assembly_submodel):
         # Make sure size of response table does not exceed the size of the data product needed to hold the statuses of each.
         self.statuses_size = (
             len(self.responses) * 2 + 7
-        ) / 8  # Each status is 2 bits in size, round up to nearest byte
+        ) // 8  # Each status is 2 bits in size, round up to nearest byte
         if self.statuses_size > _get_data_product_buffer_size():
             raise ModelException(
                 "Statuses data product ("

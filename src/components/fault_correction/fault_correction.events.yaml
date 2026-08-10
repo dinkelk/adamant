@@ -11,7 +11,7 @@ events:
     description: A fault response was cleared.
     param_type: Packed_Fault_Id.T
   - name: Fault_Response_Disabled
-    description: A fault response has been disabled
+    description: A fault response has been disabled.
     param_type: Packed_Fault_Id.T
   - name: Fault_Response_Enabled
     description: A fault response has been enabled.
@@ -30,5 +30,8 @@ events:
   - name: Fault_Dropped
     description: A fault was dropped due to a full queue.
     param_type: Fault_Header.T
+  - name: Fault_Response_Command_Dropped
+    description: An outgoing fault correction command was dropped due to a full queue. This means a fault response was lost.
+    param_type: Command_Header.T
   - name: Data_Products_Reset
     description: The component's data products have been reset to initialization values.

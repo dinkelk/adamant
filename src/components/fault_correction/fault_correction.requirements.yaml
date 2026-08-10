@@ -4,4 +4,5 @@ requirements:
   - text: The component shall send out a predefined command in response to receiving a fault of a particular ID.
   - text: The component shall be configured with a table of fault IDs and their associated command responses at startup.
   - text: The component shall accept commands to enable and disable fault responses.
+  - text: The component shall support latching fault responses that send their command response only on initial fault detection and remain latched until explicitly cleared by command.
   - text: The component shall report the status of each fault response in its table in telemetry.
