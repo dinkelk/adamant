@@ -111,7 +111,11 @@ package body Component.Ccsds_Product_Extractor.Implementation.Tester is
    -----------------------------------------------
 
    overriding procedure Dispatch_Data_Product (Self : in out Instance; Dp : in Data_Product.T) is
-      -- Dispatch to dummy no matter what.
+      -- Note: This override dispatches all data products to the Dummy handler regardless
+      -- of their actual ID. This is necessary because the real data product IDs are generated
+      -- by the model at assembly time and may be outside the range of the base tester's
+      -- dispatch table. The raw Data_Product_T_Recv_Sync_History is the primary mechanism
+      -- for verifying extracted data products in tests; the Dummy_History is not meaningful.
       Dispatch_To : constant Dispatch_Data_Product_Procedure := Data_Product_Id_Table (Ccsds_Product_Extractor_Data_Products.Local_Data_Product_Id_Type'First);
    begin
       Dispatch_To (Component.Ccsds_Product_Extractor_Reciprocal.Base_Instance (Self), Dp);
