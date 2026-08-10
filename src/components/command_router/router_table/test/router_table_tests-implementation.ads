@@ -16,6 +16,9 @@ private
    -- This unit test adds registration elements to the router table and asserts for correct response and table structure
    overriding procedure Add_To_Table (Self : in out Instance);
 
+   -- This unit test exercises the boundary condition of a table with capacity 1
+   overriding procedure Single_Entry_Table (Self : in out Instance);
+
    -- Test data and state:
    type Instance is new Router_Table_Tests.Base_Instance with record
       Table : Router_Table.Instance_Access;
