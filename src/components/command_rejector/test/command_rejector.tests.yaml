@@ -7,3 +7,5 @@ tests:
     description: This unit test tests that a command not on the reject list is passed along.
   - name: Test_Command_Reject
     description: This unit test tests that a command on the reject list is dropped by the component.
+  - name: Test_Counter_Saturation
+    description: This unit test verifies that the reject counter saturates at Unsigned_16'Last instead of wrapping to zero.
