@@ -27,8 +27,9 @@ private
    --
    type Instance (Period_Us : Positive) is new Ticker.Base_Instance with record
       Period : Ada.Real_Time.Time_Span := Ada.Real_Time.Microseconds (Period_Us);
-      Next_Period : Ada.Real_Time.Time := Ada.Real_Time.Clock + Ada.Real_Time.Microseconds (Period_Us);
+      Next_Period : Ada.Real_Time.Time; -- Initialized on first Cycle call
       Count : Unsigned_32 := 0;
+      Dropped_Count : Unsigned_32 := 0;
       First : Boolean := True;
    end record;
 
@@ -39,5 +40,5 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Tick_T_Send message is dropped due to a full queue.
-   overriding procedure Tick_T_Send_Dropped (Self : in out Instance; Arg : in Tick.T) is null;
+   overriding procedure Tick_T_Send_Dropped (Self : in out Instance; Arg : in Tick.T);
 end Component.Ticker.Implementation;

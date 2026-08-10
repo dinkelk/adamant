@@ -1,5 +1,10 @@
 ---
-description: This is the ticker component.
+description: >
+  Active component that generates periodic Tick.T messages at a fixed rate
+  determined by the period_us discriminant. Uses absolute-time scheduling
+  (delay until) to prevent drift accumulation. The first tick fires
+  immediately upon the initial cycle, and subsequent ticks are spaced
+  exactly period_us microseconds apart.
 execution: active
 discriminant:
   description: The ticker component is instantiated with the desired tick period in microseconds.
