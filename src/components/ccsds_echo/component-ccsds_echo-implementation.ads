@@ -21,13 +21,16 @@ private
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- The CCSDS receive connector.
+   -- The CCSDS receive connector. Note: This handler executes synchronously in
+   -- the caller's task context. Integrators should ensure the downstream packet
+   -- consumer (connected to Packet_T_Send) uses an asynchronous queue to avoid
+   -- introducing blocking or priority inversion in the caller's context.
    overriding procedure Ccsds_Space_Packet_T_Recv_Sync (Self : in out Instance; Arg : in Ccsds_Space_Packet.T);
 
    ---------------------------------------
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
-   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T);
 
 end Component.Ccsds_Echo.Implementation;
