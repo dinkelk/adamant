@@ -22,6 +22,12 @@ private
    overriding procedure Test_Protected_Command_Reject (Self : in out Instance);
    -- This unit test tests that a protected command is rejected if the component is unarmed due to timeout.
    overriding procedure Test_Protected_Command_Reject_Timeout (Self : in out Instance);
+   -- This unit test verifies that sending a second Arm command while already armed correctly resets the timeout.
+   overriding procedure Test_Rearm_While_Armed (Self : in out Instance);
+   -- This unit test verifies behavior when a command matching the Arm command ID arrives on the forwarding connector.
+   overriding procedure Test_Arm_Command_On_Forward_Connector (Self : in out Instance);
+   -- This unit test verifies that telemetry counters saturate at Unsigned_16'Last instead of wrapping.
+   overriding procedure Test_Counter_Saturation (Self : in out Instance);
    -- This unit test makes sure that an invalid command is handled gracefully.
    overriding procedure Test_Invalid_Command (Self : in out Instance);
 
