@@ -24,7 +24,12 @@ package body Component.Memory_Manager.Implementation is
                Status := Success;
                -- Set the ID:
                Id := Current_Id;
-               Current_Id := @ + 1;
+               -- Handle wrap-around: skip 0 to avoid confusion with default/init values
+               if Current_Id = Unsigned_16'Last then
+                  Current_Id := 1;
+               else
+                  Current_Id := @ + 1;
+               end if;
                -- Set the new state, the memory is now in use.
                Current_State := In_Use;
                -- Update the data product. This needs to be done inside the protected
@@ -78,8 +83,9 @@ package body Component.Memory_Manager.Implementation is
          use Memory_Manager_Enums.Memory_State;
       begin
          -- Make the memory available, no questions asked.
+         -- Do NOT reset Current_Id; let it continue incrementing to avoid
+         -- ID collisions with the force-released holder.
          Current_State := Available;
-         Current_Id := 0;
          -- Update the data product. This needs to be done inside the protected
          -- object in order to ensure a race condition does not make the data product
          -- invalid:
@@ -105,7 +111,7 @@ package body Component.Memory_Manager.Implementation is
    --
    -- Init Parameters:
    -- bytes : Basic_Types.Byte_Array_Access - A pointer to an allocation of bytes to be used for the memory region. If this is set to null, then memory will be allocated on the heap using the "size" parameter instead. Note: This must be set to null if the "size" parameter is positive below.
-   -- size : Integer - The number of bytes to allocate on the heap for the memory region. Note: This must be set to a negative value if the "bytes" parameters is not null.
+   -- size : Integer - The number of bytes to allocate on the heap for the memory region. Note: This must be set to a negative value if the "bytes" parameter is not null.
    --
    overriding procedure Init (Self : in out Instance; Bytes : in Basic_Types.Byte_Array_Access := null; Size : in Integer := -1) is
       use Basic_Types;
@@ -165,8 +171,9 @@ package body Component.Memory_Manager.Implementation is
          when Memory_Unavailable =>
             -- Throw event.
             Self.Event_T_Send_If_Connected (Self.Events.Memory_Unavailable (The_Time));
-            -- Return a null address with failure status.
-            return (Ided_Region => (Id => 0, Region => (Address => To_Address (Integer_Address (0)), Length => 0)), Status => Failure);
+            -- Return a null address with failure status. Use Unsigned_16'Last as sentinel
+            -- to avoid collision with the first valid ID (0).
+            return (Ided_Region => (Id => Unsigned_16'Last, Region => (Address => To_Address (Integer_Address (0)), Length => 0)), Status => Failure);
       end case;
    end Memory_Region_Request_T_Return;
 
