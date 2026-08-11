@@ -1,3 +1,5 @@
+with Circular_Buffer.Core;
+
 package body Circular_Buffer.Labeled_Queue is
 
    --
@@ -5,7 +7,7 @@ package body Circular_Buffer.Labeled_Queue is
    --
 
    function Push (Self : in out Instance; Label : in Label_Type; Bytes : in Basic_Types.Byte_Array) return Push_Status is
-      Stat : Push_Status := Queue_Base (Self).Push_Length (Label_Serializer.Serialized_Length + Bytes'Length);
+      Stat : Push_Status := Core.Push_Length (Queue_Base (Self), Label_Serializer.Serialized_Length + Bytes'Length);
    begin
       -- Check return status:
       if Stat /= Success then
@@ -20,12 +22,12 @@ package body Circular_Buffer.Labeled_Queue is
       begin
          Label_Serializer.To_Byte_Array (Dest => Label_Bytes, Src => Label);
          -- Push the label onto the buffer:
-         Stat := Base (Self).Push (Label_Bytes);
+         Stat := Core.Push (Base (Self), Label_Bytes);
          pragma Assert (Stat = Success, "Pushing label failed. This can only be false if there is a software bug.");
       end;
 
       -- Push the data bytes onto buffer:
-      Stat := Base (Self).Push (Bytes);
+      Stat := Core.Push (Base (Self), Bytes);
       pragma Assert (Stat = Success, "Pushing bytes failed. This can only be false if there is a software bug.");
 
       return Success;
@@ -56,7 +58,7 @@ package body Circular_Buffer.Labeled_Queue is
          Label_Bytes : Label_Serializer.Byte_Array := [others => 0];
       begin
          -- Deserialize the label from the buffer:
-         Stat := Base (Self).Peek (Label_Bytes, Num_Bytes_Returned, Offset => Queue_Element_Storage_Overhead);
+         Stat := Core.Peek (Base (Self), Label_Bytes, Num_Bytes_Returned, Offset => Queue_Element_Storage_Overhead);
          pragma Assert (Stat = Success, "Peeking label failed. This can only be false if there is a software bug.");
          pragma Assert (Num_Bytes_Returned = Label_Serializer.Serialized_Length, "Peeking label returned too few bytes. This can only be false if there is a software bug.");
          -- Deserialize the label from the byte array with an explicit copy.
@@ -79,7 +81,7 @@ package body Circular_Buffer.Labeled_Queue is
 
       -- Read the bytes from the queue:
       if Element_Length > 0 then
-         Queue_Base (Self).Peek_Bytes (Bytes, Element_Length, Length, Label_Serializer.Serialized_Length + Offset);
+         Core.Peek_Bytes (Queue_Base (Self), Bytes, Element_Length, Length, Label_Serializer.Serialized_Length + Offset);
       end if;
 
       return Success;
@@ -108,7 +110,7 @@ package body Circular_Buffer.Labeled_Queue is
       end if;
 
       -- Pop the bytes from the base:
-      Queue_Base (Self).Do_Pop (Element_Length);
+      Core.Do_Pop (Queue_Base (Self), Element_Length);
 
       return Success;
    end Pop;

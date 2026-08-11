@@ -48,18 +48,18 @@ package Circular_Buffer with SPARK_Mode => On is
    type Base is tagged private;
 
    -- Ghost predicate stating that the buffer is in a valid, initialized
-   -- state. Each derived type overrides this function to state its own,
-   -- stronger notion of validity, and every overriding must contain the
-   -- conjuncts of the overridden version so that a derived model always
-   -- implies the ancestor model. This function is the class-wide
-   -- precondition of most operations below.
-   function Model_Valid (Self : in Base) return Boolean
+   -- state. This function is the class-wide precondition of most operations
+   -- below. It takes a class-wide parameter so that it is not a dispatching
+   -- operation, which would force every derived type to override each
+   -- operation mentioning it (SPARK RM 6.1.1). The queue types below state
+   -- their stronger model with a separate predicate for the same reason.
+   function Model_Valid (Self : in Base'Class) return Boolean
       with Ghost;
 
    -- Ghost predicate stating that the buffer meta data is in its freshly
    -- reset state, as left by Clear or Destroy or as found in a default
    -- initialized object.
-   function Is_Reset (Self : in Base) return Boolean
+   function Is_Reset (Self : in Base'Class) return Boolean
       with Ghost;
 
    --
@@ -180,12 +180,22 @@ package Circular_Buffer with SPARK_Mode => On is
    -- queue classes below:
    type Queue_Base is new Base with private;
 
+   -- Ghost predicate stating that the queue is in a valid state: the buffer
+   -- is valid and its content is a whole number of records, each a length
+   -- header followed by that many payload bytes:
+   function Queue_Model_Valid (Self : in Queue_Base'Class) return Boolean
+      with Ghost;
+
    -- Get the length of the oldest item on the queue without removing it.
    function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status
-      with Side_Effects;
+      with Side_Effects,
+           Pre'Class => Queue_Model_Valid (Self),
+           Post => (if Peek_Length'Result = Empty then Length = 0);
    -- Remove an item off the queue, without returning it:
    function Pop (Self : in out Queue_Base) return Pop_Status
-      with Side_Effects;
+      with Side_Effects,
+           Pre'Class => Queue_Model_Valid (Self),
+           Post => Queue_Model_Valid (Self);
 
    --
    -- Meta data functions:
@@ -197,7 +207,8 @@ package Circular_Buffer with SPARK_Mode => On is
    function Get_Max_Count (Self : in Queue_Base) return Natural
       with Inline => True;
    -- Clear the buffer:
-   overriding procedure Clear (Self : in out Queue_Base);
+   overriding procedure Clear (Self : in out Queue_Base)
+      with Post => Queue_Model_Valid (Self) and then Is_Reset (Self);
    -- Destroy the buffer (also resets Item_Count and Item_Max_Count):
    overriding procedure Destroy (Self : in out Queue_Base)
       with Post => Is_Reset (Self);
@@ -218,15 +229,20 @@ package Circular_Buffer with SPARK_Mode => On is
    -- Push data from a byte array onto the queue. If not enough space remains on the internal queue to read
    -- store the entire byte array then Failure is returned.
    function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status
-      with Side_Effects;
+      with Side_Effects,
+           Pre'Class => Queue_Model_Valid (Self) and then Bytes'Length <= Natural'Last - Queue_Element_Storage_Overhead,
+           Post => Queue_Model_Valid (Self);
    -- Pop data from queue onto a byte array. The number of bytes returned will match the length
    -- of "bytes". If "bytes" cannot be completely filled then Failure is returned.
    function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status
-      with Side_Effects;
+      with Side_Effects,
+           Pre'Class => Queue_Model_Valid (Self),
+           Post => Queue_Model_Valid (Self);
    -- Peek data from queue onto a byte array. This function is like pop, except the bytes are not actually
    -- removed from the internal queue.
    function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status
-      with Side_Effects;
+      with Side_Effects,
+           Pre'Class => Queue_Model_Valid (Self);
 
    -- Declare constant for size of overhead for storing length on the buffer
    -- itself (in bytes):
@@ -317,82 +333,8 @@ private
       with Ghost;
 
    -- Ghost model completions for Base:
-   function Model_Valid (Self : in Base) return Boolean is (Valid (Self));
-   function Is_Reset (Self : in Base) return Boolean is (Self.Head = 0 and then Self.Count = 0);
-
-   --
-   -- Add/remove/look at data on the base buffer:
-   --
-   -- These take a class-wide parameter so that they are not primitive
-   -- operations of the type, which keeps them out of the dispatching
-   -- contract rules and lets them carry the precise contracts that the
-   -- derived types need internally. They are never dispatched to.
-   --
-   -- Push data from a byte array onto the buffer. If not enough space remains on the internal buffer to read
-   -- store the entire byte array then Failure is returned.
-   function Push (Self : in out Base'Class; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status
-      with Side_Effects,
-           Pre => Valid (Self),
-           Post => Valid (Self)
-              and then Self.Bytes'Length = Self.Bytes.all'Old'Length
-              and then (if Bytes'Length = 0 then
-                           Push'Result = Success
-                              and then Self.Head = Self.Head'Old
-                              and then Self.Count = Self.Count'Old
-                              and then Self.Max_Count = Self.Max_Count'Old
-                              and then Self.Bytes.all = Self.Bytes.all'Old
-                        elsif Bytes'Length > Self.Bytes'Length or else (not Overwrite and then Bytes'Length > Self.Bytes'Length - Self.Count'Old) then
-                           Push'Result = Too_Full
-                              and then Self.Head = Self.Head'Old
-                              and then Self.Count = Self.Count'Old
-                              and then Self.Max_Count = Self.Max_Count'Old
-                              and then Self.Bytes.all = Self.Bytes.all'Old
-                        elsif Bytes'Length <= Self.Bytes'Length - Self.Count'Old then
-                           Push'Result = Success
-                              and then Self.Head = Self.Head'Old
-                              and then Self.Count = Self.Count'Old + Bytes'Length
-                              and then Self.Max_Count = Natural'Max (Self.Max_Count'Old, Self.Count)
-                              and then Content_Preserved (Self.Bytes.all'Old, Self.Bytes.all, Self.Head, Self.Count'Old)
-                              and then (for all J in 0 .. Bytes'Length - 1 =>
-                                           Element_At (Self.Bytes.all, Self.Head, Self.Count'Old + J) = Bytes (Bytes'First + J))
-                        else
-                           -- Overwrite of old data. The queue layers never use this
-                           -- mode, so the model is intentionally weak here:
-                           Push'Result = Success and then Self.Count = Self.Bytes'Length);
-   -- Pop data from buffer onto a byte array. The function attempts to return a number of bytes equal to
-   -- the size of the provided "bytes" array. The actual number of bytes returned is returned in the
-   -- Num_Bytes_Returned variable.
-   function Pop (Self : in out Base'Class; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status
-      with Side_Effects,
-           Pre => Valid (Self),
-           Post => Valid (Self)
-              and then Self.Bytes'Length = Self.Bytes.all'Old'Length
-              and then Self.Bytes.all = Self.Bytes.all'Old
-              and then Self.Max_Count = Self.Max_Count'Old
-              and then (if Bytes'Length = 0 or else Self.Count'Old > 0 then Pop'Result = Success else Pop'Result = Empty)
-              and then (if Pop'Result = Empty then
-                           Num_Bytes_Returned = 0
-                              and then Self.Head = Self.Head'Old
-                              and then Self.Count = Self.Count'Old
-                        else
-                           Num_Bytes_Returned = Natural'Min (Bytes'Length, Self.Count'Old)
-                              and then Self.Count = Self.Count'Old - Num_Bytes_Returned
-                              and then (if Self.Count = 0 then Self.Head = 0
-                                        else Self.Head = Wrap_Index (Self.Head'Old, Num_Bytes_Returned, Self.Bytes'Length))
-                              and then (for all I in 0 .. Num_Bytes_Returned - 1 =>
-                                           Bytes (Bytes'First + I) = Element_At (Self.Bytes.all'Old, Self.Head'Old, I)));
-   -- Peek data from buffer onto a byte array. This function is like pop, except the bytes are not actually
-   -- removed from the internal buffer. The function attempts to return a number of bytes equal to
-   -- the size of the provided "bytes" array. The actual number of bytes returned is returned in the
-   -- Num_Bytes_Returned variable. An offset can be provided to peek ahead a certain number of bytes
-   -- from the head of the internal circular buffer.
-   function Peek (Self : in Base'Class; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status
-      with Side_Effects,
-           Pre => Valid (Self),
-           Post => (if Bytes'Length = 0 or else Self.Count > Offset then Peek'Result = Success else Peek'Result = Empty)
-              and then Num_Bytes_Returned = (if Bytes'Length = 0 or else Self.Count <= Offset then 0 else Natural'Min (Bytes'Length, Self.Count - Offset))
-              and then (for all I in 0 .. Num_Bytes_Returned - 1 =>
-                           Bytes (Bytes'First + I) = Element_At (Self.Bytes.all, Self.Head, Offset + I));
+   function Model_Valid (Self : in Base'Class) return Boolean is (Valid (Self));
+   function Is_Reset (Self : in Base'Class) return Boolean is (Self.Head = 0 and then Self.Count = 0);
 
    -- Internal type for circular buffer:
    type Circular is new Base with record
@@ -405,11 +347,258 @@ private
       Item_Max_Count : Natural := 0;
    end record;
 
-   -- Queue Base private subprograms:
-   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Status
-      with Side_Effects;
-   procedure Peek_Bytes (Self : in Queue_Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_To_Read : in Natural; Num_Bytes_Read : out Natural; Offset : in Natural := 0);
-   procedure Do_Pop (Self : in out Queue_Base; Element_Length : in Natural);
+   --
+   -- Ghost model of the queue record structure. The buffer content of a
+   -- valid queue is a whole number of records, each a big endian length
+   -- header of Queue_Element_Storage_Overhead bytes followed by that many
+   -- payload bytes. Everything below exists for proof only.
+   --
+
+   -- The header value stored at the provided head index, wrapping around
+   -- the buffer end:
+   function Header_U32 (Bytes : in Basic_Types.Byte_Array; Head : in Natural) return Interfaces.Unsigned_32 is
+      (Compose (Element_At (Bytes, Head, 0), Element_At (Bytes, Head, 1), Element_At (Bytes, Head, 2), Element_At (Bytes, Head, 3)))
+      with Ghost,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in Queue_Element_Storage_Overhead .. Max_Buffer_Size
+              and then Head < Bytes'Length;
+
+   -- True if the header value fits in a Natural, which holds for every
+   -- header written by Push_Length:
+   function Header_Ok (Bytes : in Basic_Types.Byte_Array; Head : in Natural) return Boolean is
+      (Header_U32 (Bytes, Head) <= Interfaces.Unsigned_32 (Natural'Last))
+      with Ghost,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in Queue_Element_Storage_Overhead .. Max_Buffer_Size
+              and then Head < Bytes'Length;
+
+   -- The element length stored in the header at the provided head index:
+   function Header_Length (Bytes : in Basic_Types.Byte_Array; Head : in Natural) return Natural is
+      (Natural (Header_U32 (Bytes, Head)))
+      with Ghost,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in Queue_Element_Storage_Overhead .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Header_Ok (Bytes, Head);
+
+   -- The heart of the queue model: the Count bytes behind the head index
+   -- form exactly Items records, each a valid length header followed by
+   -- that many payload bytes:
+   function Records_Ok (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural) return Boolean is
+      (if Items = 0 then Count = 0
+       elsif Count < Queue_Element_Storage_Overhead or else not Header_Ok (Bytes, Head) then False
+       elsif Header_Length (Bytes, Head) > Count - Queue_Element_Storage_Overhead then False
+       else Records_Ok
+          (Bytes,
+           Wrap_Index (Head, Queue_Element_Storage_Overhead + Header_Length (Bytes, Head), Bytes'Length),
+           Count - Queue_Element_Storage_Overhead - Header_Length (Bytes, Head),
+           Items - 1))
+      with Ghost,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Count <= Bytes'Length,
+           Subprogram_Variant => (Decreases => Items);
+
+   -- True if every record length is at least Min. The labeled queue child
+   -- package uses this with the serialized label length as the minimum,
+   -- since every element it stores begins with a label:
+   function Min_Lengths_Ok (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; Min : in Natural) return Boolean is
+      (if Min = 0 or else Items = 0 then True
+       else Header_Length (Bytes, Head) >= Min
+          and then Min_Lengths_Ok
+             (Bytes,
+              Wrap_Index (Head, Queue_Element_Storage_Overhead + Header_Length (Bytes, Head), Bytes'Length),
+              Count - Queue_Element_Storage_Overhead - Header_Length (Bytes, Head),
+              Items - 1,
+              Min))
+      with Ghost,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Count <= Bytes'Length
+              and then Records_Ok (Bytes, Head, Count, Items),
+           Subprogram_Variant => (Decreases => Items);
+
+   -- Structural validity plus the record structure model for the queue:
+   function Queue_Valid (Self : in Queue_Base'Class) return Boolean is
+      (Valid (Self) and then Records_Ok (Self.Bytes.all, Self.Head, Self.Count, Self.Item_Count))
+      with Ghost;
+
+   -- Ghost model completion for Queue_Base:
+   function Queue_Model_Valid (Self : in Queue_Base'Class) return Boolean is (Queue_Valid (Self));
+
+   --
+   -- Ghost lemmas for the queue record model. The bodies perform induction
+   -- over the record walk. All are proof only:
+   --
+
+   -- Composing wrapped offsets: stepping K behind offset Base_Offset lands
+   -- at offset Base_Offset + K:
+   procedure Lemma_Wrap_Offsets (Head : in Natural; Base_Offset : in Natural; Span : in Natural; Size : in Natural)
+      with Ghost,
+           Global => null,
+           Pre => Size in 1 .. Max_Buffer_Size
+              and then Head < Size
+              and then Base_Offset <= Size
+              and then Span <= Size - Base_Offset,
+           Post =>
+              (for all K in 0 .. Span - 1 =>
+                 Wrap_Index (Wrap_Index (Head, Base_Offset, Size), K, Size) = Wrap_Index (Head, Base_Offset + K, Size));
+
+   -- Content preservation over a window implies content preservation over
+   -- a trailing sub window rebased at its own wrapped head index:
+   procedure Lemma_CP_Tail (B_Old : in Basic_Types.Byte_Array; B_New : in Basic_Types.Byte_Array; Head : in Natural; Offset : in Natural; Span : in Natural)
+      with Ghost,
+           Global => null,
+           Subprogram_Variant => (Decreases => Span),
+           Pre => B_Old'First = 0
+              and then B_New'First = 0
+              and then B_New'Length = B_Old'Length
+              and then B_Old'Length in 1 .. Max_Buffer_Size
+              and then Head < B_Old'Length
+              and then Offset <= B_Old'Length
+              and then Span <= B_Old'Length - Offset
+              and then Content_Preserved (B_Old, B_New, Head, Offset + Span),
+           Post => Content_Preserved (B_Old, B_New, Wrap_Index (Head, Offset, B_Old'Length), Span);
+
+   -- The record model only depends on the occupied bytes, so it survives
+   -- any modification of the free region:
+   procedure Lemma_Records_Frame (B_Old : in Basic_Types.Byte_Array; B_New : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; Min : in Natural)
+      with Ghost,
+           Global => null,
+           Subprogram_Variant => (Decreases => Items),
+           Pre => B_Old'First = 0
+              and then B_New'First = 0
+              and then B_New'Length = B_Old'Length
+              and then B_Old'Length in 1 .. Max_Buffer_Size
+              and then Head < B_Old'Length
+              and then Count <= B_Old'Length
+              and then Records_Ok (B_Old, Head, Count, Items)
+              and then Min_Lengths_Ok (B_Old, Head, Count, Items, Min)
+              and then Content_Preserved (B_Old, B_New, Head, Count),
+           Post => Records_Ok (B_New, Head, Count, Items)
+              and then Min_Lengths_Ok (B_New, Head, Count, Items, Min);
+
+   -- Appending a well formed record at the tail extends the model by one
+   -- record:
+   procedure Lemma_Records_Append (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; Min : in Natural; New_Length : in Natural)
+      with Ghost,
+           Global => null,
+           Subprogram_Variant => (Decreases => Items),
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Items < Natural'Last
+              and then Count <= Bytes'Length - Queue_Element_Storage_Overhead
+              and then New_Length <= Bytes'Length - Count - Queue_Element_Storage_Overhead
+              and then Records_Ok (Bytes, Head, Count, Items)
+              and then Min_Lengths_Ok (Bytes, Head, Count, Items, Min)
+              and then Header_Ok (Bytes, Wrap_Index (Head, Count, Bytes'Length))
+              and then Header_Length (Bytes, Wrap_Index (Head, Count, Bytes'Length)) = New_Length
+              and then New_Length >= Min,
+           Post => Records_Ok (Bytes, Head, Count + Queue_Element_Storage_Overhead + New_Length, Items + 1)
+              and then Min_Lengths_Ok (Bytes, Head, Count + Queue_Element_Storage_Overhead + New_Length, Items + 1, Min);
+
+   -- Popping the head record leaves the model of the remaining records,
+   -- for any minimum length bound:
+   procedure Lemma_Records_Pop (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; New_Head : in Natural; New_Count : in Natural)
+      with Ghost,
+           Global => null,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Count <= Bytes'Length
+              and then Items > 0
+              and then Records_Ok (Bytes, Head, Count, Items)
+              and then New_Count = Count - Queue_Element_Storage_Overhead - Header_Length (Bytes, Head)
+              and then (if New_Count = 0 then New_Head = 0
+                        else New_Head = Wrap_Index (Head, Queue_Element_Storage_Overhead + Header_Length (Bytes, Head), Bytes'Length)),
+           Post => Records_Ok (Bytes, New_Head, New_Count, Items - 1)
+              and then (for all M in Natural =>
+                          (if Min_Lengths_Ok (Bytes, Head, Count, Items, M) then
+                              Min_Lengths_Ok (Bytes, New_Head, New_Count, Items - 1, M)));
+
+   -- Unfold the model of a non empty queue at its head record:
+   procedure Lemma_Records_Head (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural)
+      with Ghost,
+           Global => null,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Count <= Bytes'Length
+              and then Items > 0
+              and then Records_Ok (Bytes, Head, Count, Items),
+           Post => Count >= Queue_Element_Storage_Overhead
+              and then Header_Ok (Bytes, Head)
+              and then Header_Length (Bytes, Head) <= Count - Queue_Element_Storage_Overhead;
+
+   -- Bytes read back from the head of the buffer compose to the stored
+   -- header value:
+   procedure Lemma_Header_Read (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Header_Bytes : in Length_Byte_Array)
+      with Ghost,
+           Global => null,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in Queue_Element_Storage_Overhead .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then (for all I in 0 .. Queue_Element_Storage_Overhead - 1 => Header_Bytes (I) = Element_At (Bytes, Head, I)),
+           Post => Compose (Header_Bytes (0), Header_Bytes (1), Header_Bytes (2), Header_Bytes (3)) = Header_U32 (Bytes, Head);
+
+   -- Header bytes written at the tail of the buffer read back as the
+   -- stored header value at the tail position:
+   procedure Lemma_Header_Written (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Header_Bytes : in Length_Byte_Array)
+      with Ghost,
+           Global => null,
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Count <= Bytes'Length - Queue_Element_Storage_Overhead
+              and then (for all J in 0 .. Queue_Element_Storage_Overhead - 1 => Element_At (Bytes, Head, Count + J) = Header_Bytes (J)),
+           Post => Header_U32 (Bytes, Wrap_Index (Head, Count, Bytes'Length)) = Compose (Header_Bytes (0), Header_Bytes (1), Header_Bytes (2), Header_Bytes (3));
+
+   -- Content preservation composes across two successive buffer updates:
+   procedure Lemma_Content_Chain (B_First : in Basic_Types.Byte_Array; B_Second : in Basic_Types.Byte_Array; B_Third : in Basic_Types.Byte_Array; Head : in Natural; Count_First : in Natural; Count_Second : in Natural)
+      with Ghost,
+           Global => null,
+           Pre => B_First'First = 0
+              and then B_Second'First = 0
+              and then B_Third'First = 0
+              and then B_Second'Length = B_First'Length
+              and then B_Third'Length = B_First'Length
+              and then B_First'Length in 1 .. Max_Buffer_Size
+              and then Head < B_First'Length
+              and then Count_First <= Count_Second
+              and then Count_Second <= B_First'Length
+              and then Content_Preserved (B_First, B_Second, Head, Count_First)
+              and then Content_Preserved (B_Second, B_Third, Head, Count_Second),
+           Post => Content_Preserved (B_First, B_Third, Head, Count_First);
+
+   -- A header at the tail position survives an update that preserves the
+   -- content up to and including the header:
+   procedure Lemma_Header_Preserved (B_Old : in Basic_Types.Byte_Array; B_New : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural)
+      with Ghost,
+           Global => null,
+           Pre => B_Old'First = 0
+              and then B_New'First = 0
+              and then B_New'Length = B_Old'Length
+              and then B_Old'Length in 1 .. Max_Buffer_Size
+              and then Head < B_Old'Length
+              and then Count <= B_Old'Length - Queue_Element_Storage_Overhead
+              and then Content_Preserved (B_Old, B_New, Head, Count + Queue_Element_Storage_Overhead),
+           Post => Header_U32 (B_New, Wrap_Index (Head, Count, B_Old'Length)) = Header_U32 (B_Old, Wrap_Index (Head, Count, B_Old'Length));
+
+   -- Every record takes at least a header of bytes, which bounds the item
+   -- count from the byte count:
+   procedure Lemma_Records_Count_Bound (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural)
+      with Ghost,
+           Global => null,
+           Subprogram_Variant => (Decreases => Items),
+           Pre => Bytes'First = 0
+              and then Bytes'Length in 1 .. Max_Buffer_Size
+              and then Head < Bytes'Length
+              and then Count <= Bytes'Length
+              and then Records_Ok (Bytes, Head, Count, Items),
+           Post => Items <= Count / Queue_Element_Storage_Overhead;
 
    -- Internal type for queue:
    type Queue is new Queue_Base with record

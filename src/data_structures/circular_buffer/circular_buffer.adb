@@ -1,4 +1,5 @@
 with Safe_Deallocator;
+with Circular_Buffer.Core;
 
 package body Circular_Buffer with SPARK_Mode => On is
 
@@ -237,179 +238,6 @@ package body Circular_Buffer with SPARK_Mode => On is
       return To_Return;
    end Dump_Memory;
 
-   function Push (Self : in out Base'Class; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
-      Tail : constant Natural := (Self.Head + Self.Count) mod Self.Bytes'Length;
-      -- The length attribute handles empty arrays gracefully, returning zero:
-      Bytes_Length : constant Natural := Bytes'Length;
-   begin
-      pragma Assert (Self.Bytes.all'First = Natural'First, "Must be zero indexed.");
-      pragma Assert (Self.Bytes.all'Last >= Natural'First, "Must be zero indexed.");
-      pragma Assert (Tail <= Self.Bytes'Last, "This must be True by design.");
-
-      -- There is nothing to copy:
-      if Bytes_Length = 0 then
-         return Success;
-      end if;
-
-      -- Make there is enough free bytes left:
-      if Bytes_Length > Self.Bytes'Length or else (not Overwrite and then Self.Bytes'Length - Self.Count < Bytes_Length) then
-         return Too_Full;
-      end if;
-
-      -- Relate the modular tail computation to the conditional form used by
-      -- the ghost wrap index model. This assertion is proved and is trivial
-      -- at runtime:
-      pragma Assert (Tail = (if Self.Head + Self.Count < Self.Bytes'Length then Self.Head + Self.Count else Self.Head + Self.Count - Self.Bytes'Length));
-
-      declare
-         -- The inclusive end index of a single copy. This is computed after
-         -- the size checks above so that the sum cannot overflow for very
-         -- long input arrays. Before the SPARK conversion it was computed
-         -- unconditionally, where an enormous input array could overflow the
-         -- sum and raise Constraint_Error instead of returning Too_Full:
-         End_Index : constant Integer := Tail + Bytes_Length - 1;
-      begin
-         -- Set the correct end index if a roll over is going to happen:
-         if End_Index > Self.Bytes'Last then
-            declare
-               -- Calculate lengths of first and second copies:
-               First_Copy_Length : constant Positive := Self.Bytes'Last - Tail + 1;
-               Second_Copy_Length : constant Positive := Bytes_Length - First_Copy_Length;
-            begin
-               -- The addition of the two copies should make sense:
-               pragma Assert (First_Copy_Length + Second_Copy_Length = Bytes_Length);
-               -- Perform first copy to end of internal array:
-               Self.Bytes (Tail .. Self.Bytes'Last) := Bytes (Bytes'First .. Bytes'First + First_Copy_Length - 1);
-               -- Wrap around and copy bytes at beginning of internal array:
-               Self.Bytes (Self.Bytes'First .. Self.Bytes'First + Second_Copy_Length - 1) := Bytes (Bytes'First + First_Copy_Length .. Bytes'Last);
-            end;
-         else
-            -- Perform single copy onto internal array:
-            Self.Bytes (Tail .. End_Index) := Bytes;
-         end if;
-      end;
-
-      -- Set the and count:
-      Self.Count := @ + Bytes_Length;
-      if Overwrite and then Self.Count > Self.Bytes'Length then
-         -- We need to move head if an overwrite actually occurs, since we are
-         -- basically "popping" old data by doing the overwrite.
-         Self.Head := (@ + (Self.Count - Self.Bytes'Length)) mod Self.Bytes'Length;
-         -- The count should never be greater than the length of the buffer.
-         Self.Count := Self.Bytes'Length;
-      end if;
-
-      -- Set the max count:
-      if Self.Count > Self.Max_Count then
-         Self.Max_Count := Self.Count;
-      end if;
-
-      return Success;
-   end Push;
-
-   function Peek (Self : in Base'Class; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
-      -- The length attribute handles empty arrays gracefully, returning zero:
-      Bytes_Length : constant Natural := Bytes'Length;
-      Current_Head : Natural;
-      Num_Bytes_To_Copy : Integer;
-      End_Index : Integer;
-   begin
-      -- Initialized the number of bytes returned to zero:
-      Num_Bytes_Returned := 0;
-
-      -- There is nothing to copy:
-      if Bytes_Length = 0 then
-         return Success;
-      end if;
-
-      -- Return an error if there is no memory to peek on:
-      if Self.Count <= Offset then
-         return Empty;
-      end if;
-
-      -- The absolute head index for this peek. This is computed after the
-      -- emptiness check above so that the sum cannot overflow for very large
-      -- offsets. Before the SPARK conversion it was computed unconditionally,
-      -- where an enormous offset could overflow the sum and raise
-      -- Constraint_Error instead of returning Empty:
-      Current_Head := Self.Head + Offset;
-
-      -- Calculate the number of bytes we are going to return. The bound
-      -- check is phrased as a subtraction so that it cannot overflow for
-      -- very long input arrays:
-      Num_Bytes_Returned := Bytes_Length;
-      if Num_Bytes_Returned > Self.Count - Offset then
-         Num_Bytes_Returned := Self.Count - Offset;
-      end if;
-
-      -- Calculate the end index:
-      End_Index := Current_Head + Num_Bytes_Returned - 1;
-
-      -- Correct the end index if a roll over is going to happen:
-      if End_Index > Self.Bytes'Last then
-         End_Index := Self.Bytes'Last;
-      end if;
-
-      -- Calculate the number of bytes to copy:
-      Num_Bytes_To_Copy := End_Index - Current_Head + 1;
-
-      -- Copy bytes over:
-      if Num_Bytes_To_Copy > 0 then
-         Bytes (Bytes'First .. Bytes'First + Num_Bytes_To_Copy - 1) := Self.Bytes (Current_Head .. End_Index);
-      end if;
-
-      -- If the number of bytes copied was not the full amount then
-      -- we need to wrap around.
-      if Num_Bytes_To_Copy < Num_Bytes_Returned then
-         declare
-            Num_Bytes_Copied : Integer := Num_Bytes_To_Copy;
-            Bytes_Index : Natural;
-            Start_Offset : Natural := 0;
-         begin
-            -- If num bytes copied is negative, then make correction for
-            -- wrap around:
-            if Num_Bytes_Copied < 0 then
-               Num_Bytes_Copied := 0;
-               Start_Offset := -1 * Num_Bytes_To_Copy;
-            end if;
-            -- Do second copy:
-            Bytes_Index := Bytes'First + Num_Bytes_Copied;
-            Num_Bytes_To_Copy := Num_Bytes_Returned - Num_Bytes_Copied;
-            Bytes (Bytes_Index .. Bytes_Index + Num_Bytes_To_Copy - 1) := Self.Bytes (Start_Offset .. Start_Offset + Num_Bytes_To_Copy - 1);
-         end;
-      end if;
-
-      return Success;
-   end Peek;
-
-   function Pop (Self : in out Base'Class; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
-      Old_Head : constant Natural := Self.Head;
-      Stat : Pop_Status;
-   begin
-      Stat := Self.Peek (Bytes, Num_Bytes_Returned);
-      if Stat /= Success then
-         return Stat;
-      end if;
-
-      -- Set the new head and count if we removed any bytes.
-      if Self.Bytes'Length > 0 and then Num_Bytes_Returned > 0 then
-         Self.Head := (@ + Num_Bytes_Returned) mod Self.Bytes'Length;
-         -- Relate the modular head computation to the conditional form used
-         -- by the ghost wrap index model. This assertion is proved and is
-         -- trivial at runtime:
-         pragma Assert (Self.Head = (if Old_Head + Num_Bytes_Returned < Self.Bytes'Length then Old_Head + Num_Bytes_Returned else Old_Head + Num_Bytes_Returned - Self.Bytes'Length));
-         Self.Count := @ - Num_Bytes_Returned;
-      end if;
-
-      -- Optimization: set head to zero if count is zero, this
-      -- prevents rollover of the buffer as much as possible.
-      if Self.Count = 0 then
-         Self.Head := 0;
-      end if;
-
-      return Success;
-   end Pop;
-
    --
    -- Subprograms for Circular
    --
@@ -417,21 +245,21 @@ package body Circular_Buffer with SPARK_Mode => On is
    function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
       Stat : Push_Status;
    begin
-      Stat := Base (Self).Push (Bytes, Overwrite);
+      Stat := Core.Push (Base (Self), Bytes, Overwrite);
       return Stat;
    end Push;
 
    function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
       Stat : Pop_Status;
    begin
-      Stat := Base (Self).Pop (Bytes, Num_Bytes_Returned);
+      Stat := Core.Pop (Base (Self), Bytes, Num_Bytes_Returned);
       return Stat;
    end Pop;
 
    function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
       Stat : Pop_Status;
    begin
-      Stat := Base (Self).Peek (Bytes, Num_Bytes_Returned, Offset);
+      Stat := Core.Peek (Base (Self), Bytes, Num_Bytes_Returned, Offset);
       return Stat;
    end Peek;
 
@@ -446,152 +274,184 @@ package body Circular_Buffer with SPARK_Mode => On is
    --
    --
 
-   -- Serialize a length into big endian bytes for storage on the buffer. The
-   -- explicit byte composition avoids an address overlay, which keeps this
-   -- code compatible with SPARK.
-   function Length_To_Bytes (Value : in Natural) return Length_Byte_Array
-      with Post => Compose (Length_To_Bytes'Result (0), Length_To_Bytes'Result (1), Length_To_Bytes'Result (2), Length_To_Bytes'Result (3)) = Interfaces.Unsigned_32 (Value)
-   is
-      use Interfaces;
-      Value_U32 : constant Unsigned_32 := Unsigned_32 (Value);
-      To_Return : constant Length_Byte_Array := [
-         Basic_Types.Byte (Shift_Right (Value_U32, 24) and 16#FF#),
-         Basic_Types.Byte (Shift_Right (Value_U32, 16) and 16#FF#),
-         Basic_Types.Byte (Shift_Right (Value_U32, 8) and 16#FF#),
-         Basic_Types.Byte (Value_U32 and 16#FF#)
-      ];
-   begin
-      return To_Return;
-   end Length_To_Bytes;
+   --
+   -- Ghost lemma bodies. These perform the inductions over the record walk
+   -- that the queue subprogram proofs below rely on. None of this code is
+   -- ever compiled or executed:
+   --
 
-   -- Deserialize a length from the big endian bytes stored on the buffer,
-   -- range checking the value into a Natural via a modular intermediate.
-   function Bytes_To_Length (Bytes : in Length_Byte_Array) return Natural
-      with Pre => Compose (Bytes (0), Bytes (1), Bytes (2), Bytes (3)) <= Interfaces.Unsigned_32 (Natural'Last),
-           Post => Interfaces.Unsigned_32 (Bytes_To_Length'Result) = Compose (Bytes (0), Bytes (1), Bytes (2), Bytes (3))
-   is
-      use Interfaces;
-      Value_U32 : constant Unsigned_32 :=
-         Shift_Left (Unsigned_32 (Bytes (0)), 24) or
-         Shift_Left (Unsigned_32 (Bytes (1)), 16) or
-         Shift_Left (Unsigned_32 (Bytes (2)), 8) or
-         Unsigned_32 (Bytes (3));
+   procedure Lemma_Wrap_Offsets (Head : in Natural; Base_Offset : in Natural; Span : in Natural; Size : in Natural) is
    begin
-      pragma Assert (Value_U32 <= Unsigned_32 (Natural'Last), "Length found on buffer is out of range. This can only be false if there is a software bug.");
-      return Natural (Value_U32);
-   end Bytes_To_Length;
+      -- Follows from the definition of Wrap_Index by linear case analysis:
+      null;
+   end Lemma_Wrap_Offsets;
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status with SPARK_Mode => Off is
+   procedure Lemma_CP_Tail (B_Old : in Basic_Types.Byte_Array; B_New : in Basic_Types.Byte_Array; Head : in Natural; Offset : in Natural; Span : in Natural) is
    begin
-      -- Initialize length to zero:
-      Length := 0;
-
-      -- Make sure there is data on the queue:
-      if Self.Item_Count = 0 then
-         return Empty;
+      if Span > 0 then
+         Lemma_CP_Tail (B_Old, B_New, Head, Offset, Span - 1);
+         declare
+            Size : constant Natural := B_Old'Length;
+            Sub_Head : constant Natural := Wrap_Index (Head, Offset, Size);
+            K : constant Natural := Span - 1;
+         begin
+            pragma Assert (B_New'Length = Size);
+            pragma Assert (Wrap_Index (Sub_Head, K, Size) = Wrap_Index (Head, Offset + K, Size));
+            pragma Assert (Element_At (B_New, Head, Offset + K) = Element_At (B_Old, Head, Offset + K));
+            pragma Assert (Element_At (B_New, Sub_Head, K) = Element_At (B_Old, Sub_Head, K));
+         end;
       end if;
+   end Lemma_CP_Tail;
 
-      declare
-         Stat : Pop_Status;
-         Num_Bytes_Returned : Natural;
-         Length_Bytes : Length_Byte_Array := [others => 0];
-      begin
-         -- Deserialize the length from the buffer:
-         Stat := Base (Self).Peek (Length_Bytes, Num_Bytes_Returned);
-         pragma Assert (Stat = Success, "Peeking length failed. This can only be false if there is a software bug.");
-         pragma Assert (Num_Bytes_Returned = Queue_Element_Storage_Overhead, "Peeking length returned too few bytes. This can only be false if there is a software bug.");
-         Length := Bytes_To_Length (Length_Bytes);
-      end;
+   procedure Lemma_Records_Frame (B_Old : in Basic_Types.Byte_Array; B_New : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; Min : in Natural) is
+   begin
+      if Items > 0 then
+         declare
+            Element_Length : constant Natural := Header_Length (B_Old, Head);
+            Offset : constant Natural := Queue_Element_Storage_Overhead + Element_Length;
+            New_Head : constant Natural := Wrap_Index (Head, Offset, B_Old'Length);
+            New_Count : constant Natural := Count - Offset;
+         begin
+            -- The header bytes lie within the preserved region, so the head
+            -- record reads back identically:
+            pragma Assert (Header_U32 (B_New, Head) = Header_U32 (B_Old, Head));
+            -- The tail of the record walk lies within the preserved region
+            -- as well:
+            Lemma_CP_Tail (B_Old, B_New, Head, Offset, New_Count);
+            Lemma_Records_Frame (B_Old, B_New, New_Head, New_Count, Items - 1, Min);
+         end;
+      end if;
+   end Lemma_Records_Frame;
 
-      return Success;
+   procedure Lemma_Records_Append (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; Min : in Natural; New_Length : in Natural) is
+   begin
+      if Items = 0 then
+         -- The walk is empty, so the appended record starts at the head
+         -- index and is followed by an empty walk:
+         pragma Assert (Count = 0);
+         pragma Assert (Wrap_Index (Head, 0, Bytes'Length) = Head);
+         pragma Assert (Header_Length (Bytes, Head) = New_Length);
+         pragma Assert (Records_Ok (Bytes, Wrap_Index (Head, Queue_Element_Storage_Overhead + New_Length, Bytes'Length), 0, 0));
+      else
+         declare
+            Element_Length : constant Natural := Header_Length (Bytes, Head);
+            New_Head : constant Natural := Wrap_Index (Head, Queue_Element_Storage_Overhead + Element_Length, Bytes'Length);
+            New_Count : constant Natural := Count - Queue_Element_Storage_Overhead - Element_Length;
+         begin
+            -- The tail position of the shorter walk is the same buffer
+            -- index, so the appended record sits at its end too:
+            pragma Assert (Wrap_Index (New_Head, New_Count, Bytes'Length) = Wrap_Index (Head, Count, Bytes'Length));
+            Lemma_Records_Append (Bytes, New_Head, New_Count, Items - 1, Min, New_Length);
+         end;
+      end if;
+   end Lemma_Records_Append;
+
+   procedure Lemma_Records_Pop (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural; New_Head : in Natural; New_Count : in Natural) is
+      Element_Length : constant Natural := Header_Length (Bytes, Head);
+      Walk_Head : constant Natural := Wrap_Index (Head, Queue_Element_Storage_Overhead + Element_Length, Bytes'Length);
+   begin
+      pragma Assert (New_Count = Count - Queue_Element_Storage_Overhead - Element_Length);
+      if New_Count = 0 then
+         -- The remaining walk is empty, so it must hold zero records, and
+         -- the model holds at any head index:
+         pragma Assert (Records_Ok (Bytes, Walk_Head, 0, Items - 1));
+         pragma Assert (Items - 1 = 0);
+      end if;
+      pragma Assert (Records_Ok (Bytes, New_Head, New_Count, Items - 1));
+   end Lemma_Records_Pop;
+
+   procedure Lemma_Records_Head (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural) is
+   begin
+      -- Follows from one unfolding of Records_Ok:
+      null;
+   end Lemma_Records_Head;
+
+   procedure Lemma_Header_Read (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Header_Bytes : in Length_Byte_Array) is
+   begin
+      -- Follows from the definitions of Header_U32 and Compose:
+      null;
+   end Lemma_Header_Read;
+
+   procedure Lemma_Header_Written (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Header_Bytes : in Length_Byte_Array) is
+      Tail : constant Natural := Wrap_Index (Head, Count, Bytes'Length);
+   begin
+      -- The wrapped positions of the header bytes coincide with the
+      -- positions behind the head index where they were written:
+      Lemma_Wrap_Offsets (Head, Count, Queue_Element_Storage_Overhead, Bytes'Length);
+      pragma Assert
+         (for all J in 0 .. Queue_Element_Storage_Overhead - 1 =>
+            Wrap_Index (Tail, J, Bytes'Length) = Wrap_Index (Head, Count + J, Bytes'Length));
+      pragma Assert
+         (for all J in 0 .. Queue_Element_Storage_Overhead - 1 =>
+            Element_At (Bytes, Tail, J) = Header_Bytes (J));
+   end Lemma_Header_Written;
+
+   procedure Lemma_Content_Chain (B_First : in Basic_Types.Byte_Array; B_Second : in Basic_Types.Byte_Array; B_Third : in Basic_Types.Byte_Array; Head : in Natural; Count_First : in Natural; Count_Second : in Natural) is
+   begin
+      -- Pointwise chaining of the two preservation facts:
+      pragma Assert (Count_First <= Count_Second);
+      pragma Assert
+         (for all K in 0 .. Count_First - 1 =>
+            Element_At (B_Third, Head, K) = Element_At (B_Second, Head, K));
+      pragma Assert
+         (for all K in 0 .. Count_First - 1 =>
+            Element_At (B_Second, Head, K) = Element_At (B_First, Head, K));
+   end Lemma_Content_Chain;
+
+   procedure Lemma_Header_Preserved (B_Old : in Basic_Types.Byte_Array; B_New : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural) is
+      Size : constant Natural := B_Old'Length;
+      Tail : constant Natural := Wrap_Index (Head, Count, Size);
+   begin
+      pragma Assert (B_New'Length = Size);
+      -- Each header byte position behind the tail index coincides with a
+      -- position within the preserved window behind the head index:
+      pragma Assert (Wrap_Index (Tail, 0, Size) = Wrap_Index (Head, Count + 0, Size));
+      pragma Assert (Wrap_Index (Tail, 1, Size) = Wrap_Index (Head, Count + 1, Size));
+      pragma Assert (Wrap_Index (Tail, 2, Size) = Wrap_Index (Head, Count + 2, Size));
+      pragma Assert (Wrap_Index (Tail, 3, Size) = Wrap_Index (Head, Count + 3, Size));
+      pragma Assert (Element_At (B_New, Head, Count + 0) = Element_At (B_Old, Head, Count + 0));
+      pragma Assert (Element_At (B_New, Head, Count + 1) = Element_At (B_Old, Head, Count + 1));
+      pragma Assert (Element_At (B_New, Head, Count + 2) = Element_At (B_Old, Head, Count + 2));
+      pragma Assert (Element_At (B_New, Head, Count + 3) = Element_At (B_Old, Head, Count + 3));
+      pragma Assert (Element_At (B_New, Tail, 0) = Element_At (B_Old, Tail, 0));
+      pragma Assert (Element_At (B_New, Tail, 1) = Element_At (B_Old, Tail, 1));
+      pragma Assert (Element_At (B_New, Tail, 2) = Element_At (B_Old, Tail, 2));
+      pragma Assert (Element_At (B_New, Tail, 3) = Element_At (B_Old, Tail, 3));
+   end Lemma_Header_Preserved;
+
+   procedure Lemma_Records_Count_Bound (Bytes : in Basic_Types.Byte_Array; Head : in Natural; Count : in Natural; Items : in Natural) is
+   begin
+      if Items > 0 then
+         Lemma_Records_Count_Bound
+            (Bytes,
+             Wrap_Index (Head, Queue_Element_Storage_Overhead + Header_Length (Bytes, Head), Bytes'Length),
+             Count - Queue_Element_Storage_Overhead - Header_Length (Bytes, Head),
+             Items - 1);
+      end if;
+   end Lemma_Records_Count_Bound;
+
+   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status is
+      Stat : Pop_Status;
+   begin
+      Stat := Core.Do_Peek_Length (Self, Length);
+      return Stat;
    end Peek_Length;
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   procedure Do_Pop (Self : in out Queue_Base; Element_Length : in Natural) with SPARK_Mode => Off is
-      Bytes_To_Pop : constant Integer := Element_Length + Queue_Element_Storage_Overhead;
-      Ignore_Bytes : Basic_Types.Byte_Array (0 .. Bytes_To_Pop - 1);
-      Num_Bytes_Popped : Natural;
-      Stat : constant Pop_Status := Base (Self).Pop (Ignore_Bytes, Num_Bytes_Popped);
-   begin
-      pragma Assert (Stat = Success, "Popping bytes failed. This can only be false if there is a software bug.");
-      pragma Assert (Num_Bytes_Popped = Bytes_To_Pop, "Popping bytes returned too few bytes. This can only be false if there is a software bug.");
-
-      -- Decrement the counter:
-      Self.Item_Count := @ - 1;
-   end Do_Pop;
-
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Pop (Self : in out Queue_Base) return Pop_Status with SPARK_Mode => Off is
+   function Pop (Self : in out Queue_Base) return Pop_Status is
       Element_Length : Natural;
-      Stat : constant Pop_Status := Self.Peek_Length (Element_Length);
+      Stat : Pop_Status;
    begin
+      Stat := Core.Do_Peek_Length (Self, Element_Length);
+
       -- Check return status:
       if Stat /= Success then
          return Stat;
       end if;
 
-      Do_Pop (Self, Element_Length);
+      Core.Do_Pop (Self, Element_Length);
 
       return Success;
    end Pop;
-
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Status with SPARK_Mode => Off is
-      Len : constant Natural := Element_Length + Queue_Element_Storage_Overhead;
-      Stat : Push_Status;
-   begin
-      -- Make sure we can fit the data and the length:
-      if Len > Self.Num_Bytes_Free then
-         return Too_Full;
-      end if;
-
-      -- Serialize the length onto the buffer:
-      Stat := Base (Self).Push (Length_To_Bytes (Element_Length));
-      pragma Assert (Stat = Success, "Pushing length failed. This can only be false if there is a software bug.");
-
-      -- Increment the counters:
-      Self.Item_Count := @ + 1;
-      if Self.Item_Count > Self.Item_Max_Count then
-         Self.Item_Max_Count := Self.Item_Count;
-      end if;
-
-      return Success;
-   end Push_Length;
-
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   procedure Peek_Bytes (Self : in Queue_Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_To_Read : in Natural; Num_Bytes_Read : out Natural; Offset : in Natural := 0) with SPARK_Mode => Off is
-   begin
-      -- Initialize bytes read to zero:
-      Num_Bytes_Read := 0;
-
-      -- If there are bytes to peek then do that:
-      if Num_Bytes_To_Read > Offset then
-         declare
-            Num_Bytes_Returned : Natural;
-            Stat : Pop_Status;
-            Bytes_To_Peek : Natural := Num_Bytes_To_Read - Offset;
-         begin
-            -- Modify bytes to peek if it is longer than caller's byte array:
-            if Bytes_To_Peek > Bytes'Length then
-               Bytes_To_Peek := Bytes'Length;
-            end if;
-
-            -- Deserialize the data from the buffer:
-            Stat := Base (Self).Peek (Bytes (Bytes'First .. Bytes'First + Bytes_To_Peek - 1), Num_Bytes_Returned, Offset => Queue_Element_Storage_Overhead + Offset);
-            pragma Assert (Stat = Success, "Peeking bytes failed. This can only be false if there is a software bug.");
-            pragma Assert (Num_Bytes_Returned = Bytes_To_Peek, "Peeking bytes returned too few bytes. This can only be false if there is a software bug.");
-
-            -- Return the actual number of bytes read to caller:
-            Num_Bytes_Read := Bytes_To_Peek;
-         end;
-      end if;
-   end Peek_Bytes;
 
    function Get_Count (Self : in Queue_Base) return Natural is
    begin
@@ -603,9 +463,7 @@ package body Circular_Buffer with SPARK_Mode => On is
       return Self.Item_Max_Count;
    end Get_Max_Count;
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   overriding procedure Clear (Self : in out Queue_Base) with SPARK_Mode => Off is
+   overriding procedure Clear (Self : in out Queue_Base) is
    begin
       -- Call the base class implementation:
       Clear (Base (Self));
@@ -626,30 +484,52 @@ package body Circular_Buffer with SPARK_Mode => On is
    --
    --
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status with SPARK_Mode => Off is
-      Stat : Push_Status := Queue_Base (Self).Push_Length (Bytes'Length);
+   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status is
+      Old_Bytes : constant Basic_Types.Byte_Array := Self.Bytes.all with Ghost;
+      Old_Count : constant Natural := Self.Count with Ghost;
+      Old_Items : constant Natural := Self.Item_Count with Ghost;
+      Stat : Push_Status;
    begin
+      Stat := Core.Push_Length (Queue_Base (Self), Bytes'Length);
+
       -- Check return status:
       if Stat /= Success then
+         -- Ghost: nothing changed, so the record model is preserved:
+         Lemma_Records_Frame (Old_Bytes, Self.Bytes.all, Self.Head, Old_Count, Old_Items, 0);
          return Stat;
       end if;
 
-      -- Push the data bytes on to buffer:
-      Stat := Base (Self).Push (Bytes);
-      pragma Assert (Stat = Success, "Pushing bytes failed. This can only be false if there is a software bug.");
+      declare
+         Mid_Bytes : constant Basic_Types.Byte_Array := Self.Bytes.all with Ghost;
+      begin
+         -- Push the data bytes on to buffer:
+         Stat := Core.Push (Base (Self), Bytes);
+         pragma Assert (Stat = Success, "Pushing bytes failed. This can only be false if there is a software bug.");
+
+         -- Ghost: the old records survived both pushes untouched, and the
+         -- header and payload just pushed form one more record at the tail:
+         Lemma_Content_Chain (Old_Bytes, Mid_Bytes, Self.Bytes.all, Self.Head, Old_Count, Old_Count + Queue_Element_Storage_Overhead);
+         Lemma_Header_Preserved (Mid_Bytes, Self.Bytes.all, Self.Head, Old_Count);
+         Lemma_Records_Frame (Old_Bytes, Self.Bytes.all, Self.Head, Old_Count, Old_Items, 0);
+         Lemma_Records_Append (Self.Bytes.all, Self.Head, Old_Count, Old_Items, 0, Bytes'Length);
+      end;
 
       return Success;
    end Push;
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Do_Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Status with Side_Effects, SPARK_Mode => Off is
-      Stat : constant Pop_Status := Self.Peek_Length (Length);
+   function Do_Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Status
+      with Side_Effects,
+           Pre => Queue_Valid (Self),
+           Post => (if Self.Item_Count = 0 then Do_Peek'Result = Empty
+                    else Do_Peek'Result = Success
+                       and then Element_Length = Header_Length (Self.Bytes.all, Self.Head))
+   is
+      Stat : Pop_Status;
    begin
       -- Initialize the element length to zero:
       Element_Length := 0;
+
+      Stat := Core.Do_Peek_Length (Queue_Base (Self), Length);
 
       -- Check return status:
       if Stat /= Success then
@@ -663,36 +543,34 @@ package body Circular_Buffer with SPARK_Mode => On is
 
       -- Read the bytes from the queue:
       if Element_Length > 0 then
-         Queue_Base (Self).Peek_Bytes (Bytes, Element_Length, Length, Offset);
+         Core.Peek_Bytes (Queue_Base (Self), Bytes, Element_Length, Length, Offset);
       end if;
 
       return Success;
    end Do_Peek;
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status with SPARK_Mode => Off is
+   function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
       Ignore : Natural;
+      Stat : Pop_Status;
    begin
-      -- Initialize the length to zero:
-      Length := 0;
-      return Self.Do_Peek (Bytes, Length, Ignore, Offset);
+      Stat := Self.Do_Peek (Bytes, Length, Ignore, Offset);
+      return Stat;
    end Peek;
 
-   -- Not yet analyzed. This subprogram is converted to SPARK along with the
-   -- record structure model of the queue in a subsequent commit.
-   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status with SPARK_Mode => Off is
+   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
       -- Peek some bytes:
       Element_Length : Natural;
-      Stat : constant Pop_Status := Self.Do_Peek (Bytes, Length, Element_Length, Offset);
+      Stat : Pop_Status;
    begin
+      Stat := Self.Do_Peek (Bytes, Length, Element_Length, Offset);
+
       -- Check return status:
       if Stat /= Success then
          return Stat;
       end if;
 
       -- Pop the bytes from the base:
-      Queue_Base (Self).Do_Pop (Element_Length);
+      Core.Do_Pop (Queue_Base (Self), Element_Length);
 
       return Success;
    end Pop;
