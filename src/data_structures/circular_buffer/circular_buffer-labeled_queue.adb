@@ -15,11 +15,12 @@ package body Circular_Buffer.Labeled_Queue is
       end if;
 
       declare
-         -- Optimization: create a byte array that overlays the label variable then
-         -- pass this byte array into the push function to get filled with the length.
-         -- This avoids a double copy of the length data:
-         Label_Bytes : Label_Serializer.Byte_Array with Import, Convention => Ada, Address => Label'Address;
+         -- Serialize the label into a byte array with an explicit copy. This
+         -- avoids an address overlay, which keeps this code compatible with
+         -- SPARK.
+         Label_Bytes : Label_Serializer.Byte_Array;
       begin
+         Label_Serializer.To_Byte_Array (Dest => Label_Bytes, Src => Label);
          -- Push the label onto the buffer:
          Stat := Base (Self).Push (Label_Bytes);
          pragma Assert (Stat = Success, "Pushing label failed. This can only be false if there is a software bug.");
@@ -54,15 +55,16 @@ package body Circular_Buffer.Labeled_Queue is
 
       declare
          Num_Bytes_Returned : Natural;
-         -- Optimization: create a byte array that overlays the label variable then
-         -- pass this byte array into the peek function to get filled with the label.
-         -- This avoids a double copy of the label data:
-         Label_Bytes : Label_Serializer.Byte_Array with Import, Convention => Ada, Address => Label'Address;
+         Label_Bytes : Label_Serializer.Byte_Array := [others => 0];
       begin
          -- Deserialize the label from the buffer:
          Stat := Base (Self).Peek (Label_Bytes, Num_Bytes_Returned, Offset => Length_Serializer.Serialized_Length);
          pragma Assert (Stat = Success, "Peeking label failed. This can only be false if there is a software bug.");
          pragma Assert (Num_Bytes_Returned = Label_Serializer.Serialized_Length, "Peeking label returned too few bytes. This can only be false if there is a software bug.");
+         -- Deserialize the label from the byte array with an explicit copy.
+         -- This avoids an address overlay, which keeps this code compatible
+         -- with SPARK.
+         Label_Serializer.From_Byte_Array (Dest => Label, Src => Label_Bytes);
       end;
 
       return Success;

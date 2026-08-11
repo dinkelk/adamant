@@ -376,6 +376,35 @@ package body Circular_Buffer is
    --
    --
 
+   -- Serialize a length into big endian bytes for storage on the buffer. The
+   -- explicit byte composition avoids an address overlay, which keeps this
+   -- code compatible with SPARK.
+   function Length_To_Bytes (Value : in Natural) return Length_Serializer.Byte_Array is
+      use Interfaces;
+      Value_U32 : constant Unsigned_32 := Unsigned_32 (Value);
+   begin
+      return [
+         Basic_Types.Byte (Shift_Right (Value_U32, 24) and 16#FF#),
+         Basic_Types.Byte (Shift_Right (Value_U32, 16) and 16#FF#),
+         Basic_Types.Byte (Shift_Right (Value_U32, 8) and 16#FF#),
+         Basic_Types.Byte (Value_U32 and 16#FF#)
+      ];
+   end Length_To_Bytes;
+
+   -- Deserialize a length from the big endian bytes stored on the buffer,
+   -- range checking the value into a Natural via a modular intermediate.
+   function Bytes_To_Length (Bytes : in Length_Serializer.Byte_Array) return Natural is
+      use Interfaces;
+      Value_U32 : constant Unsigned_32 :=
+         Shift_Left (Unsigned_32 (Bytes (0)), 24) or
+         Shift_Left (Unsigned_32 (Bytes (1)), 16) or
+         Shift_Left (Unsigned_32 (Bytes (2)), 8) or
+         Unsigned_32 (Bytes (3));
+   begin
+      pragma Assert (Value_U32 <= Unsigned_32 (Natural'Last), "Length found on buffer is out of range. This can only be false if there is a software bug.");
+      return Natural (Value_U32);
+   end Bytes_To_Length;
+
    function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status is
    begin
       -- Initialize length to zero:
@@ -389,15 +418,13 @@ package body Circular_Buffer is
       declare
          Stat : Pop_Status;
          Num_Bytes_Returned : Natural;
-         -- Optimization: create a byte array that overlays the length variable then
-         -- pass this byte array into the peek function to get filled with the length.
-         -- This avoids a double copy of the length data:
-         Length_Bytes : Length_Serializer.Byte_Array with Import, Convention => Ada, Address => Length'Address;
+         Length_Bytes : Length_Serializer.Byte_Array := [others => 0];
       begin
          -- Deserialize the length from the buffer:
          Stat := Base (Self).Peek (Length_Bytes, Num_Bytes_Returned);
          pragma Assert (Stat = Success, "Peeking length failed. This can only be false if there is a software bug.");
          pragma Assert (Num_Bytes_Returned = Length_Serializer.Serialized_Length, "Peeking length returned too few bytes. This can only be false if there is a software bug.");
+         Length := Bytes_To_Length (Length_Bytes);
       end;
 
       return Success;
@@ -439,16 +466,9 @@ package body Circular_Buffer is
          return Too_Full;
       end if;
 
-      declare
-         -- Optimization: create a byte array that overlays the length variable then
-         -- pass this byte array into the push function to get filled with the length.
-         -- This avoids a double copy of the length data:
-         Length_Bytes : Length_Serializer.Byte_Array with Import, Convention => Ada, Address => Element_Length'Address;
-      begin
-         -- Serialized the length onto the buffer:
-         Stat := Base (Self).Push (Length_Bytes);
-         pragma Assert (Stat = Success, "Pushing length failed. This can only be false if there is a software bug.");
-      end;
+      -- Serialize the length onto the buffer:
+      Stat := Base (Self).Push (Length_To_Bytes (Element_Length));
+      pragma Assert (Stat = Success, "Pushing length failed. This can only be false if there is a software bug.");
 
       -- Increment the counters:
       Self.Item_Count := @ + 1;
