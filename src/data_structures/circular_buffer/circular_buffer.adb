@@ -1,27 +1,55 @@
 with Safe_Deallocator;
-with Interfaces;
 
-package body Circular_Buffer is
+package body Circular_Buffer with SPARK_Mode => On is
+
+   -- See the note in the package specification. All contracts and ghost code
+   -- are for proof only and are disabled at runtime:
+   pragma Assertion_Policy
+      (Pre => Ignore,
+       Pre'Class => Ignore,
+       Post => Ignore,
+       Post'Class => Ignore,
+       Contract_Cases => Ignore,
+       Ghost => Ignore,
+       Loop_Invariant => Ignore,
+       Loop_Variant => Ignore,
+       Assert_And_Cut => Ignore,
+       Subprogram_Variant => Ignore);
 
    --
    -- Subprograms for Base
    --
 
-   procedure Init (Self : in out Base; Size : in Natural) is
+   -- The body is not analyzed by SPARK since assigning a new allocation over
+   -- a potentially reused access value is outside the SPARK ownership model.
+   -- The postcondition holds because the callers obeying the precondition
+   -- provide a reset buffer, and the allocation below is zero indexed with
+   -- the requested positive size.
+   procedure Init (Self : in out Base; Size : in Natural) with SPARK_Mode => Off is
    begin
       Self.Bytes := new Basic_Types.Byte_Array (0 .. Size - 1);
       Self.Allocated := True;
    end Init;
 
-   procedure Init (Self : in out Base; Bytes : in not null Basic_Types.Byte_Array_Access) is
+   -- The body is not analyzed by SPARK since it adopts caller provided,
+   -- possibly aliased memory, which is outside the SPARK ownership model.
+   -- The assertions below check the properties of the provided memory that
+   -- the postcondition promises to the proof, except for the maximum size
+   -- bound, which is also asserted. This project always builds with
+   -- assertions enabled, so these checks are live at runtime.
+   procedure Init (Self : in out Base; Bytes : in not null Basic_Types.Byte_Array_Access) with SPARK_Mode => Off is
    begin
       Self.Bytes := Bytes;
       pragma Assert (Self.Bytes.all'First = Natural'First, "Must be zero indexed.");
       pragma Assert (Self.Bytes.all'Last >= Natural'First, "Must be zero indexed.");
+      pragma Assert (Self.Bytes.all'Length <= Max_Buffer_Size, "Buffer size is outside the verified domain.");
       Self.Allocated := False;
    end Init;
 
-   procedure Destroy (Self : in out Base) is
+   -- The body is not analyzed by SPARK since conditional deallocation of
+   -- possibly adopted memory is outside the SPARK ownership model. The
+   -- postcondition holds because Clear resets the head and count below.
+   procedure Destroy (Self : in out Base) with SPARK_Mode => Off is
       procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Basic_Types.Byte_Array, Name => Basic_Types.Byte_Array_Access);
    begin
       if Self.Allocated then
@@ -70,9 +98,16 @@ package body Circular_Buffer is
    end Num_Bytes_Total;
 
    function Current_Percent_Used (Self : in Base) return Basic_Types.Byte is
-      use Basic_Types;
    begin
       if Self.Bytes /= null and then Self.Bytes'Length > 0 then
+         -- A count so large that the multiplication below would overflow
+         -- means the buffer is essentially full. Before the SPARK conversion
+         -- this case raised Constraint_Error and was mapped to 100 by an
+         -- exception handler, which SPARK does not allow. The explicit check
+         -- returns the same result on the same inputs:
+         if Self.Count > Integer'Last / 100 then
+            return 100;
+         end if;
          declare
             Usage : constant Integer := (Self.Count * 100) / Self.Bytes'Length;
          begin
@@ -85,16 +120,16 @@ package body Circular_Buffer is
       else
          return 0;
       end if;
-   exception
-      -- Handle out of bounds error for integer, and say queue is full
-      when others =>
-         return 100;
    end Current_Percent_Used;
 
    function Max_Percent_Used (Self : in Base) return Basic_Types.Byte is
-      use Basic_Types;
    begin
       if Self.Bytes /= null and then Self.Bytes'Length > 0 then
+         -- See the comment in Current_Percent_Used above. This check
+         -- replicates the behavior of the removed exception handler:
+         if Self.Max_Count > Integer'Last / 100 then
+            return 100;
+         end if;
          declare
             Usage : constant Integer := (Self.Max_Count * 100) / Self.Bytes'Length;
          begin
@@ -107,10 +142,6 @@ package body Circular_Buffer is
       else
          return 0;
       end if;
-   exception
-      -- Handle out of bounds error for integer, and say queue is full
-      when others =>
-         return 100;
    end Max_Percent_Used;
 
    function Get_Meta_Data (Self : in Base) return Circular_Buffer_Meta.T is
@@ -118,7 +149,14 @@ package body Circular_Buffer is
       return (Head => Interfaces.Unsigned_32 (Self.Head), Count => Interfaces.Unsigned_32 (Self.Count), Size => Interfaces.Unsigned_32 (Self.Bytes'Length));
    end Get_Meta_Data;
 
-   function Do_Dump (Self : in Base; Head : in Natural; Tail : in Natural) return Pointer_Dump is
+   -- Declaration provides the contract that the callers below are proved
+   -- against:
+   function Do_Dump (Self : in Base; Head : in Natural; Tail : in Natural) return Pointer_Dump
+      with Pre => Valid (Self) and then (if Self.Count > 0 then Head < Self.Bytes'Length and then Tail < Self.Bytes'Length);
+
+   -- The body is not analyzed by SPARK since it hands out addresses of the
+   -- internal buffer through the Byte_Array_Pointer abstraction:
+   function Do_Dump (Self : in Base; Head : in Natural; Tail : in Natural) return Pointer_Dump with SPARK_Mode => Off is
       To_Return : Pointer_Dump;
    begin
       if Self.Count > 0 then
@@ -188,7 +226,9 @@ package body Circular_Buffer is
       return [Byte_Array_Pointer.Null_Pointer, Byte_Array_Pointer.Null_Pointer];
    end Dump_Oldest;
 
-   function Dump_Memory (Self : in Base) return Pointer_Dump is
+   -- The body is not analyzed by SPARK since it hands out addresses of the
+   -- internal buffer through the Byte_Array_Pointer abstraction:
+   function Dump_Memory (Self : in Base) return Pointer_Dump with SPARK_Mode => Off is
       To_Return : Pointer_Dump;
    begin
       -- Fill the first pointer with the entire memory:
@@ -197,44 +237,57 @@ package body Circular_Buffer is
       return To_Return;
    end Dump_Memory;
 
-   function Push (Self : in out Base; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
+   function Push (Self : in out Base'Class; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
       Tail : constant Natural := (Self.Head + Self.Count) mod Self.Bytes'Length;
-      -- Compute negative length to handle empty array gracefully
-      Bytes_Length : constant Integer := Bytes'Last - Bytes'First + 1;
-      End_Index : constant Integer := Tail + Bytes_Length - 1;
+      -- The length attribute handles empty arrays gracefully, returning zero:
+      Bytes_Length : constant Natural := Bytes'Length;
    begin
       pragma Assert (Self.Bytes.all'First = Natural'First, "Must be zero indexed.");
       pragma Assert (Self.Bytes.all'Last >= Natural'First, "Must be zero indexed.");
       pragma Assert (Tail <= Self.Bytes'Last, "This must be True by design.");
 
       -- There is nothing to copy:
-      if Bytes_Length <= 0 then
+      if Bytes_Length = 0 then
          return Success;
       end if;
 
       -- Make there is enough free bytes left:
-      if Bytes_Length > Self.Bytes'Length or else (not Overwrite and then Self.Num_Bytes_Free < Bytes_Length) then
+      if Bytes_Length > Self.Bytes'Length or else (not Overwrite and then Self.Bytes'Length - Self.Count < Bytes_Length) then
          return Too_Full;
       end if;
 
-      -- Set the correct end index if a roll over is going to happen:
-      if End_Index > Self.Bytes'Last then
-         declare
-            -- Calculate lengths of first and second copies:
-            First_Copy_Length : constant Positive := Self.Bytes'Last - Tail + 1;
-            Second_Copy_Length : constant Positive := Bytes_Length - First_Copy_Length;
-         begin
-            -- The addition of the two copies should make sense:
-            pragma Assert (First_Copy_Length + Second_Copy_Length = Bytes_Length);
-            -- Perform first copy to end of internal array:
-            Self.Bytes (Tail .. Self.Bytes'Last) := Bytes (Bytes'First .. Bytes'First + First_Copy_Length - 1);
-            -- Wrap around and copy bytes at beginning of internal array:
-            Self.Bytes (Self.Bytes'First .. Self.Bytes'First + Second_Copy_Length - 1) := Bytes (Bytes'First + First_Copy_Length .. Bytes'Last);
-         end;
-      else
-         -- Perform single copy onto internal array:
-         Self.Bytes (Tail .. End_Index) := Bytes;
-      end if;
+      -- Relate the modular tail computation to the conditional form used by
+      -- the ghost wrap index model. This assertion is proved and is trivial
+      -- at runtime:
+      pragma Assert (Tail = (if Self.Head + Self.Count < Self.Bytes'Length then Self.Head + Self.Count else Self.Head + Self.Count - Self.Bytes'Length));
+
+      declare
+         -- The inclusive end index of a single copy. This is computed after
+         -- the size checks above so that the sum cannot overflow for very
+         -- long input arrays. Before the SPARK conversion it was computed
+         -- unconditionally, where an enormous input array could overflow the
+         -- sum and raise Constraint_Error instead of returning Too_Full:
+         End_Index : constant Integer := Tail + Bytes_Length - 1;
+      begin
+         -- Set the correct end index if a roll over is going to happen:
+         if End_Index > Self.Bytes'Last then
+            declare
+               -- Calculate lengths of first and second copies:
+               First_Copy_Length : constant Positive := Self.Bytes'Last - Tail + 1;
+               Second_Copy_Length : constant Positive := Bytes_Length - First_Copy_Length;
+            begin
+               -- The addition of the two copies should make sense:
+               pragma Assert (First_Copy_Length + Second_Copy_Length = Bytes_Length);
+               -- Perform first copy to end of internal array:
+               Self.Bytes (Tail .. Self.Bytes'Last) := Bytes (Bytes'First .. Bytes'First + First_Copy_Length - 1);
+               -- Wrap around and copy bytes at beginning of internal array:
+               Self.Bytes (Self.Bytes'First .. Self.Bytes'First + Second_Copy_Length - 1) := Bytes (Bytes'First + First_Copy_Length .. Bytes'Last);
+            end;
+         else
+            -- Perform single copy onto internal array:
+            Self.Bytes (Tail .. End_Index) := Bytes;
+         end if;
+      end;
 
       -- Set the and count:
       Self.Count := @ + Bytes_Length;
@@ -254,10 +307,10 @@ package body Circular_Buffer is
       return Success;
    end Push;
 
-   function Peek (Self : in Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
-      Current_Head : constant Natural := Self.Head + Offset;
-      -- Compute negative length to handle empty array gracefully
-      Bytes_Length : constant Integer := Bytes'Last - Bytes'First + 1;
+   function Peek (Self : in Base'Class; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
+      -- The length attribute handles empty arrays gracefully, returning zero:
+      Bytes_Length : constant Natural := Bytes'Length;
+      Current_Head : Natural;
       Num_Bytes_To_Copy : Integer;
       End_Index : Integer;
    begin
@@ -265,7 +318,7 @@ package body Circular_Buffer is
       Num_Bytes_Returned := 0;
 
       -- There is nothing to copy:
-      if Bytes_Length <= 0 then
+      if Bytes_Length = 0 then
          return Success;
       end if;
 
@@ -274,9 +327,18 @@ package body Circular_Buffer is
          return Empty;
       end if;
 
-      -- Calculate the number of bytes we are going to return:
+      -- The absolute head index for this peek. This is computed after the
+      -- emptiness check above so that the sum cannot overflow for very large
+      -- offsets. Before the SPARK conversion it was computed unconditionally,
+      -- where an enormous offset could overflow the sum and raise
+      -- Constraint_Error instead of returning Empty:
+      Current_Head := Self.Head + Offset;
+
+      -- Calculate the number of bytes we are going to return. The bound
+      -- check is phrased as a subtraction so that it cannot overflow for
+      -- very long input arrays:
       Num_Bytes_Returned := Bytes_Length;
-      if Num_Bytes_Returned + Offset > Self.Count then
+      if Num_Bytes_Returned > Self.Count - Offset then
          Num_Bytes_Returned := Self.Count - Offset;
       end if;
 
@@ -320,9 +382,11 @@ package body Circular_Buffer is
       return Success;
    end Peek;
 
-   function Pop (Self : in out Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
-      Stat : constant Pop_Status := Self.Peek (Bytes, Num_Bytes_Returned);
+   function Pop (Self : in out Base'Class; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
+      Old_Head : constant Natural := Self.Head;
+      Stat : Pop_Status;
    begin
+      Stat := Self.Peek (Bytes, Num_Bytes_Returned);
       if Stat /= Success then
          return Stat;
       end if;
@@ -330,6 +394,10 @@ package body Circular_Buffer is
       -- Set the new head and count if we removed any bytes.
       if Self.Bytes'Length > 0 and then Num_Bytes_Returned > 0 then
          Self.Head := (@ + Num_Bytes_Returned) mod Self.Bytes'Length;
+         -- Relate the modular head computation to the conditional form used
+         -- by the ghost wrap index model. This assertion is proved and is
+         -- trivial at runtime:
+         pragma Assert (Self.Head = (if Old_Head + Num_Bytes_Returned < Self.Bytes'Length then Old_Head + Num_Bytes_Returned else Old_Head + Num_Bytes_Returned - Self.Bytes'Length));
          Self.Count := @ - Num_Bytes_Returned;
       end if;
 
@@ -346,23 +414,25 @@ package body Circular_Buffer is
    -- Subprograms for Circular
    --
 
-   overriding function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
+   function Push (Self : in out Circular; Bytes : in Basic_Types.Byte_Array; Overwrite : in Boolean := False) return Push_Status is
+      Stat : Push_Status;
    begin
-      return Base (Self).Push (Bytes, Overwrite);
+      Stat := Base (Self).Push (Bytes, Overwrite);
+      return Stat;
    end Push;
 
-   overriding function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
+   function Pop (Self : in out Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural) return Pop_Status is
+      Stat : Pop_Status;
    begin
-      -- Initialize the number of bytes returned to zero:
-      Num_Bytes_Returned := 0;
-      return Base (Self).Pop (Bytes, Num_Bytes_Returned);
+      Stat := Base (Self).Pop (Bytes, Num_Bytes_Returned);
+      return Stat;
    end Pop;
 
-   overriding function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
+   function Peek (Self : in Circular; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_Returned : out Natural; Offset : in Natural := 0) return Pop_Status is
+      Stat : Pop_Status;
    begin
-      -- Initialize the number of bytes returned to zero:
-      Num_Bytes_Returned := 0;
-      return Base (Self).Peek (Bytes, Num_Bytes_Returned, Offset);
+      Stat := Base (Self).Peek (Bytes, Num_Bytes_Returned, Offset);
+      return Stat;
    end Peek;
 
    procedure Make_Full (Self : in out Circular; Head_Index : Natural := 0) is
@@ -379,21 +449,27 @@ package body Circular_Buffer is
    -- Serialize a length into big endian bytes for storage on the buffer. The
    -- explicit byte composition avoids an address overlay, which keeps this
    -- code compatible with SPARK.
-   function Length_To_Bytes (Value : in Natural) return Length_Serializer.Byte_Array is
+   function Length_To_Bytes (Value : in Natural) return Length_Byte_Array
+      with Post => Compose (Length_To_Bytes'Result (0), Length_To_Bytes'Result (1), Length_To_Bytes'Result (2), Length_To_Bytes'Result (3)) = Interfaces.Unsigned_32 (Value)
+   is
       use Interfaces;
       Value_U32 : constant Unsigned_32 := Unsigned_32 (Value);
-   begin
-      return [
+      To_Return : constant Length_Byte_Array := [
          Basic_Types.Byte (Shift_Right (Value_U32, 24) and 16#FF#),
          Basic_Types.Byte (Shift_Right (Value_U32, 16) and 16#FF#),
          Basic_Types.Byte (Shift_Right (Value_U32, 8) and 16#FF#),
          Basic_Types.Byte (Value_U32 and 16#FF#)
       ];
+   begin
+      return To_Return;
    end Length_To_Bytes;
 
    -- Deserialize a length from the big endian bytes stored on the buffer,
    -- range checking the value into a Natural via a modular intermediate.
-   function Bytes_To_Length (Bytes : in Length_Serializer.Byte_Array) return Natural is
+   function Bytes_To_Length (Bytes : in Length_Byte_Array) return Natural
+      with Pre => Compose (Bytes (0), Bytes (1), Bytes (2), Bytes (3)) <= Interfaces.Unsigned_32 (Natural'Last),
+           Post => Interfaces.Unsigned_32 (Bytes_To_Length'Result) = Compose (Bytes (0), Bytes (1), Bytes (2), Bytes (3))
+   is
       use Interfaces;
       Value_U32 : constant Unsigned_32 :=
          Shift_Left (Unsigned_32 (Bytes (0)), 24) or
@@ -405,7 +481,9 @@ package body Circular_Buffer is
       return Natural (Value_U32);
    end Bytes_To_Length;
 
-   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Peek_Length (Self : in Queue_Base; Length : out Natural) return Pop_Status with SPARK_Mode => Off is
    begin
       -- Initialize length to zero:
       Length := 0;
@@ -418,20 +496,22 @@ package body Circular_Buffer is
       declare
          Stat : Pop_Status;
          Num_Bytes_Returned : Natural;
-         Length_Bytes : Length_Serializer.Byte_Array := [others => 0];
+         Length_Bytes : Length_Byte_Array := [others => 0];
       begin
          -- Deserialize the length from the buffer:
          Stat := Base (Self).Peek (Length_Bytes, Num_Bytes_Returned);
          pragma Assert (Stat = Success, "Peeking length failed. This can only be false if there is a software bug.");
-         pragma Assert (Num_Bytes_Returned = Length_Serializer.Serialized_Length, "Peeking length returned too few bytes. This can only be false if there is a software bug.");
+         pragma Assert (Num_Bytes_Returned = Queue_Element_Storage_Overhead, "Peeking length returned too few bytes. This can only be false if there is a software bug.");
          Length := Bytes_To_Length (Length_Bytes);
       end;
 
       return Success;
    end Peek_Length;
 
-   procedure Do_Pop (Self : in out Queue_Base; Element_Length : in Natural) is
-      Bytes_To_Pop : constant Integer := Element_Length + Length_Serializer.Serialized_Length;
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   procedure Do_Pop (Self : in out Queue_Base; Element_Length : in Natural) with SPARK_Mode => Off is
+      Bytes_To_Pop : constant Integer := Element_Length + Queue_Element_Storage_Overhead;
       Ignore_Bytes : Basic_Types.Byte_Array (0 .. Bytes_To_Pop - 1);
       Num_Bytes_Popped : Natural;
       Stat : constant Pop_Status := Base (Self).Pop (Ignore_Bytes, Num_Bytes_Popped);
@@ -443,7 +523,9 @@ package body Circular_Buffer is
       Self.Item_Count := @ - 1;
    end Do_Pop;
 
-   function Pop (Self : in out Queue_Base) return Pop_Status is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Pop (Self : in out Queue_Base) return Pop_Status with SPARK_Mode => Off is
       Element_Length : Natural;
       Stat : constant Pop_Status := Self.Peek_Length (Element_Length);
    begin
@@ -457,8 +539,10 @@ package body Circular_Buffer is
       return Success;
    end Pop;
 
-   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Status is
-      Len : constant Natural := Element_Length + Length_Serializer.Serialized_Length;
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Push_Length (Self : in out Queue_Base; Element_Length : in Natural) return Push_Status with SPARK_Mode => Off is
+      Len : constant Natural := Element_Length + Queue_Element_Storage_Overhead;
       Stat : Push_Status;
    begin
       -- Make sure we can fit the data and the length:
@@ -479,7 +563,9 @@ package body Circular_Buffer is
       return Success;
    end Push_Length;
 
-   procedure Peek_Bytes (Self : in Queue_Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_To_Read : in Natural; Num_Bytes_Read : out Natural; Offset : in Natural := 0) is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   procedure Peek_Bytes (Self : in Queue_Base; Bytes : in out Basic_Types.Byte_Array; Num_Bytes_To_Read : in Natural; Num_Bytes_Read : out Natural; Offset : in Natural := 0) with SPARK_Mode => Off is
    begin
       -- Initialize bytes read to zero:
       Num_Bytes_Read := 0;
@@ -497,7 +583,7 @@ package body Circular_Buffer is
             end if;
 
             -- Deserialize the data from the buffer:
-            Stat := Base (Self).Peek (Bytes (Bytes'First .. Bytes'First + Bytes_To_Peek - 1), Num_Bytes_Returned, Offset => Length_Serializer.Serialized_Length + Offset);
+            Stat := Base (Self).Peek (Bytes (Bytes'First .. Bytes'First + Bytes_To_Peek - 1), Num_Bytes_Returned, Offset => Queue_Element_Storage_Overhead + Offset);
             pragma Assert (Stat = Success, "Peeking bytes failed. This can only be false if there is a software bug.");
             pragma Assert (Num_Bytes_Returned = Bytes_To_Peek, "Peeking bytes returned too few bytes. This can only be false if there is a software bug.");
 
@@ -517,7 +603,9 @@ package body Circular_Buffer is
       return Self.Item_Max_Count;
    end Get_Max_Count;
 
-   overriding procedure Clear (Self : in out Queue_Base) is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   overriding procedure Clear (Self : in out Queue_Base) with SPARK_Mode => Off is
    begin
       -- Call the base class implementation:
       Clear (Base (Self));
@@ -538,7 +626,9 @@ package body Circular_Buffer is
    --
    --
 
-   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Push (Self : in out Queue; Bytes : in Basic_Types.Byte_Array) return Push_Status with SPARK_Mode => Off is
       Stat : Push_Status := Queue_Base (Self).Push_Length (Bytes'Length);
    begin
       -- Check return status:
@@ -553,7 +643,9 @@ package body Circular_Buffer is
       return Success;
    end Push;
 
-   function Do_Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Do_Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Element_Length : out Natural; Offset : in Natural := 0) return Pop_Status with Side_Effects, SPARK_Mode => Off is
       Stat : constant Pop_Status := Self.Peek_Length (Length);
    begin
       -- Initialize the element length to zero:
@@ -577,7 +669,9 @@ package body Circular_Buffer is
       return Success;
    end Do_Peek;
 
-   overriding function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Peek (Self : in Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status with SPARK_Mode => Off is
       Ignore : Natural;
    begin
       -- Initialize the length to zero:
@@ -585,7 +679,9 @@ package body Circular_Buffer is
       return Self.Do_Peek (Bytes, Length, Ignore, Offset);
    end Peek;
 
-   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status is
+   -- Not yet analyzed. This subprogram is converted to SPARK along with the
+   -- record structure model of the queue in a subsequent commit.
+   function Pop (Self : in out Queue; Bytes : in out Basic_Types.Byte_Array; Length : out Natural; Offset : in Natural := 0) return Pop_Status with SPARK_Mode => Off is
       -- Peek some bytes:
       Element_Length : Natural;
       Stat : constant Pop_Status := Self.Do_Peek (Bytes, Length, Element_Length, Offset);

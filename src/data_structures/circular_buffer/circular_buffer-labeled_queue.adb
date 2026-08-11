@@ -1,5 +1,3 @@
-with Serializer;
-
 package body Circular_Buffer.Labeled_Queue is
 
    --
@@ -58,7 +56,7 @@ package body Circular_Buffer.Labeled_Queue is
          Label_Bytes : Label_Serializer.Byte_Array := [others => 0];
       begin
          -- Deserialize the label from the buffer:
-         Stat := Base (Self).Peek (Label_Bytes, Num_Bytes_Returned, Offset => Length_Serializer.Serialized_Length);
+         Stat := Base (Self).Peek (Label_Bytes, Num_Bytes_Returned, Offset => Queue_Element_Storage_Overhead);
          pragma Assert (Stat = Success, "Peeking label failed. This can only be false if there is a software bug.");
          pragma Assert (Num_Bytes_Returned = Label_Serializer.Serialized_Length, "Peeking label returned too few bytes. This can only be false if there is a software bug.");
          -- Deserialize the label from the byte array with an explicit copy.

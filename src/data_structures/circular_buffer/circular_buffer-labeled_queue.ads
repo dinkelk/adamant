@@ -1,4 +1,5 @@
 with Basic_Types;
+with Serializer;
 
 generic
    type Label_Type is private;
