@@ -21,14 +21,14 @@ package body Component.Gps_Time.Implementation is
    ---------------------------------------
    -- The system time is provided via this connector.
    overriding function Sys_Time_T_Return (Self : in out Instance) return Sys_Time.T is
-      Ignore : Instance renames Self;
       Current_Time : constant Time := Clock;
       To_Return : Sys_Time.T;
       Status : Sys_Time_Status;
-      pragma Unreferenced (Status);
    begin
       Status := To_Sys_Time (Current_Time, To_Return);
-      -- To do generate an event here, maybe
+      if Status /= Success then
+         Self.Event_T_Send_If_Connected (Self.Events.Time_Conversion_Error (To_Return, To_Return));
+      end if;
       return To_Return;
    end Sys_Time_T_Return;
 
