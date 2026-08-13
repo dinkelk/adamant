@@ -66,6 +66,13 @@ package body Memory_Stuffer_Tests.Implementation is
       use Command_Protector_Enums.Armed_State;
       T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
 
+      procedure Reset_Regions is
+      begin
+         Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+         Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+         Region_3 := [66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77];
+      end Reset_Regions;
+
       procedure Init_Nominal is
       begin
          T.Component_Instance.Init (Regions'Access, Protection_List'Access);
@@ -108,6 +115,9 @@ package body Memory_Stuffer_Tests.Implementation is
             null;
       end Init_Size_Mismatch_2;
    begin
+      -- Reset memory regions to known state for test independence:
+      Reset_Regions;
+
       -- Make sure no events are thrown at start up:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
 
@@ -141,6 +151,10 @@ package body Memory_Stuffer_Tests.Implementation is
       T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T;
    begin
+      -- Reset memory regions to known state for test independence:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
       -- Init both regions with no protection:
       T.Component_Instance.Init (Regions'Access, null);
 
@@ -297,7 +311,11 @@ package body Memory_Stuffer_Tests.Implementation is
       T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T;
    begin
-      -- Init both regions with no protection:
+      -- Reset memory regions to known state for test independence:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init both regions with protection:
       T.Component_Instance.Init (Regions'Access, Protection_List'Access);
 
       -- Send a command to stuff a memory region:
@@ -389,8 +407,8 @@ package body Memory_Stuffer_Tests.Implementation is
       Put_Line (Basic_Types.Representation.Image (Region_2));
       -- Make sure region 1 is unchanged.
       Byte_Array_Assert.Eq (Region_1, [8, 8, 7, 7, 7, 8, 8, 8, 8, 9]);
-      -- Make sure region 2 is unchanged.
-      Byte_Array_Assert.Eq (Region_2, [254, 254, 254, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 253, 253, 253, 255, 255]);
+      -- Make sure region 2 is unchanged (still at initial values since write was denied).
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
 
       -- Send arm command:
       T.Command_T_Send (T.Commands.Arm_Protected_Write ((Timeout => 2)));
@@ -484,6 +502,7 @@ package body Memory_Stuffer_Tests.Implementation is
       Put_Line (Basic_Types.Representation.Image (Region_2));
       Byte_Array_Assert.Eq (Region_2, [254, 254, 254, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 253, 253, 253, 255, 255]);
 
+
       -- Make sure no memory releases were sent.
       Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 0);
    end Test_Protected_Stuffing;
@@ -496,7 +515,11 @@ package body Memory_Stuffer_Tests.Implementation is
       T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T;
    begin
-      -- Init both regions with no protection:
+      -- Reset memory regions to known state for test independence:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init both regions with protection:
       T.Component_Instance.Init (Regions'Access, Protection_List'Access);
 
       -- Send arm command:
@@ -694,7 +717,11 @@ package body Memory_Stuffer_Tests.Implementation is
       T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T;
    begin
-      -- Init both regions with no protection:
+      -- Reset memory regions to known state for test independence:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init both regions with protection:
       T.Component_Instance.Init (Regions'Access, Protection_List'Access);
 
       -- Send arm command:
@@ -737,9 +764,9 @@ package body Memory_Stuffer_Tests.Implementation is
       Memory_Region_Assert.Eq (T.Protected_Write_Denied_History.Get (1), Region);
       Natural_Assert.Eq (T.Protected_Write_Enabled_History.Get_Count, 1);
 
-      -- Check memory:
-      Byte_Array_Assert.Eq (Region_2, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]);
-      Byte_Array_Assert.Eq (Region_1, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+      -- Check memory (unchanged from reset since write was denied):
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+      Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Send arm command:
       T.Command_T_Send (T.Commands.Arm_Protected_Write ((Timeout => 2)));
@@ -766,7 +793,7 @@ package body Memory_Stuffer_Tests.Implementation is
 
       -- Check memory:
       Byte_Array_Assert.Eq (Region_2, [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
-      Byte_Array_Assert.Eq (Region_1, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+      Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Make sure no memory releases were sent.
       Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 0);
@@ -780,6 +807,10 @@ package body Memory_Stuffer_Tests.Implementation is
       T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T;
    begin
+      -- Reset memory regions to known state for test independence:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
       -- Init both regions with no protection:
       T.Component_Instance.Init (Regions'Access, null);
 
@@ -794,8 +825,8 @@ package body Memory_Stuffer_Tests.Implementation is
       Memory_Region_Assert.Eq (T.Invalid_Memory_Region_History.Get (1), Region);
 
       -- Check memory:
-      Byte_Array_Assert.Eq (Region_2, [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
-      Byte_Array_Assert.Eq (Region_1, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+      Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Write invalid address:
       Region := (Address => Region_1_Address + Storage_Offset (1), Length => Region_1'Length);
@@ -808,8 +839,8 @@ package body Memory_Stuffer_Tests.Implementation is
       Memory_Region_Assert.Eq (T.Invalid_Memory_Region_History.Get (2), Region);
 
       -- Check memory:
-      Byte_Array_Assert.Eq (Region_2, [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
-      Byte_Array_Assert.Eq (Region_1, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+      Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Write invalid address:
       Region := (Address => Region_2_Address - Storage_Offset (1), Length => 0);
@@ -822,8 +853,8 @@ package body Memory_Stuffer_Tests.Implementation is
       Memory_Region_Assert.Eq (T.Invalid_Memory_Region_History.Get (3), Region);
 
       -- Check memory:
-      Byte_Array_Assert.Eq (Region_2, [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
-      Byte_Array_Assert.Eq (Region_1, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+      Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Write valid address, zero length:
       Region := (Address => Region_1_Address, Length => 0);
@@ -836,8 +867,8 @@ package body Memory_Stuffer_Tests.Implementation is
       Memory_Region_Assert.Eq (T.Invalid_Memory_Region_History.Get (4), Region);
 
       -- Check memory:
-      Byte_Array_Assert.Eq (Region_2, [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
-      Byte_Array_Assert.Eq (Region_1, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+      Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Write valid address, zero length:
       Region := (Address => Region_1_Address, Length => Region_1'Length);
@@ -849,7 +880,7 @@ package body Memory_Stuffer_Tests.Implementation is
       Natural_Assert.Eq (T.Invalid_Memory_Region_History.Get_Count, 4);
 
       -- Check memory:
-      Byte_Array_Assert.Eq (Region_2, [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]);
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
       Byte_Array_Assert.Eq (Region_1, [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
 
       -- Make sure no memory releases were sent.
@@ -862,6 +893,11 @@ package body Memory_Stuffer_Tests.Implementation is
       Region : constant Memory_Region.T := (Address => Region_1_Address, Length => Region_1'Length);
       Cmd : Command.T;
    begin
+      -- Reset memory regions and initialize component for test independence:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+      T.Component_Instance.Init (Regions'Access, Protection_List'Access);
+
       -- Make the command invalid by modifying its length.
       Ser_Status_Assert.Eq (T.Commands.Write_Memory ((Region.Address, Region.Length, [others => 4]), Cmd), Success);
       Cmd.Header.Arg_Buffer_Length := 0;
@@ -1047,5 +1083,103 @@ package body Memory_Stuffer_Tests.Implementation is
       Byte_Array_Assert.Eq (Region_1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
       Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
    end Test_Memory_Region_Copy_Invalid_Address;
+
+   overriding procedure Test_Arm_Zero_Timeout (Self : in out Instance) is
+      use Command_Protector_Enums.Armed_State;
+      use Serializer_Types;
+      Region : Memory_Region.T;
+      T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
+      Cmd : Command.T;
+   begin
+      -- Reset memory regions:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init with protection:
+      T.Component_Instance.Init (Regions'Access, Protection_List'Access);
+
+      -- Send arm command with zero timeout:
+      T.Command_T_Send (T.Commands.Arm_Protected_Write ((Timeout => 0)));
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (1), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Arm_Protected_Write_Id, Status => Success));
+
+      -- Expect system to be armed:
+      Natural_Assert.Eq (T.Protected_Write_Enabled_History.Get_Count, 1);
+
+      -- Send a single tick — should immediately time out since timeout is 0:
+      T.Tick_T_Send (((90, 0), 0));
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Expect timeout event:
+      Natural_Assert.Eq (T.Protected_Write_Disabled_Timeout_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Armed_State_History.Get_Count, 2);
+      Packed_Arm_State_Assert.Eq (T.Armed_State_History.Get (2), (State => Unarmed));
+
+      -- Try to write to protected Region_2 — should be denied:
+      Region := (Address => Region_2_Address, Length => Region_2'Length);
+      Ser_Status_Assert.Eq (T.Commands.Write_Memory ((Region.Address, Region.Length, [others => 42]), Cmd), Success);
+      T.Command_T_Send (Cmd);
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);
+      Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (2), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Write_Memory_Id, Status => Failure));
+      Natural_Assert.Eq (T.Protected_Write_Denied_History.Get_Count, 1);
+
+      -- Memory unchanged:
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+   end Test_Arm_Zero_Timeout;
+
+   overriding procedure Test_Memory_Region_Copy_Protected (Self : in out Instance) is
+      use Memory_Enums.Memory_Copy_Status;
+      Region : Memory_Region.T;
+      Region_Copy : Memory_Region_Copy.T;
+      T : Component.Memory_Stuffer.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      -- Reset memory regions:
+      Region_1 := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      Region_2 := [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79];
+
+      -- Init with protection list (Region_1 unprotected, Region_2 protected):
+      T.Component_Instance.Init (Regions'Access, Protection_List'Access);
+
+      -- Make sure no events are thrown at start up:
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 0);
+
+      -- Attempt to copy to protected Region_2 — should be rejected:
+      Region := (Address => Region_3_Address, Length => Region_2'Length);
+      Region_Copy := (Source_Region => Region, Destination_Address => Region_2_Address);
+      T.Memory_Region_Copy_T_Send (Region_Copy);
+
+      -- Drain the queue:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Expect rejection event and failure release:
+      Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 1);
+      Memory_Region_Release_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get (1), (Region => Region, Status => Failure));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Protected_Write_Denied_History.Get_Count, 1);
+
+      -- Check memory is unchanged:
+      Byte_Array_Assert.Eq (Region_2, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
+
+      -- Copy to unprotected Region_1 — should succeed:
+      Region := (Address => Region_3_Address, Length => Region_1'Length);
+      Region_Copy := (Source_Region => Region, Destination_Address => Region_1_Address);
+      T.Memory_Region_Copy_T_Send (Region_Copy);
+
+      -- Drain the queue:
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Expect success:
+      Natural_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get_Count, 2);
+      Memory_Region_Release_Assert.Eq (T.Memory_Region_Release_T_Recv_Sync_History.Get (2), (Region => Region, Status => Success));
+      Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Copying_Memory_History.Get_Count, 1);
+      Natural_Assert.Eq (T.Memory_Copied_History.Get_Count, 1);
+
+      -- Check memory:
+      Byte_Array_Assert.Eq (Region_1, [66, 67, 68, 69, 70, 71, 72, 73, 74, 75]);
+   end Test_Memory_Region_Copy_Protected;
 
 end Memory_Stuffer_Tests.Implementation;

@@ -88,16 +88,22 @@ package body Component.Memory_Stuffer.Implementation is
       Destination_Region : constant Memory_Region.T := (Arg.Destination_Address, Arg.Source_Region.Length);
       Status : Memory_Enums.Memory_Copy_Status.E := Success;
    begin
-      -- There is no protected region checking here, since this is a backdoor copy that
-      -- bypasses a direct stuff.
-
       -- Do copy memory if the destination region is valid. We do not necessarily manage the source
       -- region, so we don't check it.
       if Memory_Manager_Types.Is_Region_Valid (Destination_Region, Self.Regions, Ptr, Ignore) then
-         -- OK the memory region is valid. Perform actual memory copy:
-         Self.Event_T_Send_If_Connected (Self.Events.Copying_Memory (Self.Sys_Time_T_Get, Arg));
-         Copy (Ptr, Unpack (Arg.Source_Region));
-         Self.Event_T_Send_If_Connected (Self.Events.Memory_Copied (Self.Sys_Time_T_Get, Arg));
+         -- Check if the destination region is protected. If so, reject the copy
+         -- since there is no arm mechanism for the copy path.
+         if Self.Region_Protection_List /= null and then
+            Self.Region_Protection_List.all (Ignore) = Memory_Manager_Types.Protected_Region
+         then
+            Self.Event_T_Send_If_Connected (Self.Events.Protected_Write_Denied (Self.Sys_Time_T_Get, Destination_Region));
+            Status := Failure;
+         else
+            -- OK the memory region is valid and unprotected. Perform actual memory copy:
+            Self.Event_T_Send_If_Connected (Self.Events.Copying_Memory (Self.Sys_Time_T_Get, Arg));
+            Copy (Ptr, Unpack (Arg.Source_Region));
+            Self.Event_T_Send_If_Connected (Self.Events.Memory_Copied (Self.Sys_Time_T_Get, Arg));
+         end if;
       else
          -- Invalid, return failure status:
          Self.Event_T_Send_If_Connected (Self.Events.Invalid_Copy_Destination (Self.Sys_Time_T_Get, Destination_Region));
@@ -171,6 +177,10 @@ package body Component.Memory_Stuffer.Implementation is
       Was_Armed : Boolean := True;
    begin
       -- Unarm the system if we are armed.
+      -- Note: The get-then-act pattern below (Get_State followed by Unarm) is safe
+      -- because tick and command dispatch are serialized on the same active component
+      -- queue. If the architecture ever changes to allow concurrent dispatch, this
+      -- should be replaced with an atomic Get_And_Unarm operation on the protected object.
       declare
          use Command_Protector_Enums.Armed_State;
          -- Get the armed state:
@@ -212,6 +222,12 @@ package body Component.Memory_Stuffer.Implementation is
 
             -- If we are allowed to write the memory region then do so, otherwise throw an event:
             if Do_Write then
+               -- Defense-in-depth: validate Arg.Length does not exceed Arg.Data bounds
+               -- before slicing, since Arg.Length comes from external command input.
+               if Arg.Length > Arg.Data'Length then
+                  Self.Event_T_Send_If_Connected (Self.Events.Invalid_Memory_Region (Self.Sys_Time_T_Get, Region));
+                  return Failure;
+               end if;
                -- Perform actual memory stuff:
                Self.Event_T_Send_If_Connected (Self.Events.Writing_Memory (Self.Sys_Time_T_Get, Region));
                Copy_To (Ptr, Arg.Data (Arg.Data'First .. Arg.Data'First + Arg.Length - 1));
