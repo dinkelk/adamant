@@ -6,11 +6,16 @@ package body Component.Connector_Protector.Implementation is
 
    protected body Protected_Connector is
 
-      procedure Call (Self : in out Instance; Arg : in T) is
+      procedure Call (Inst : in out Instance; Arg : in T) is
       begin
+         -- Guard against reentrant calls which would be a bounded error
+         -- (ARM 9.5.1) resulting in deadlock or Program_Error:
+         pragma Assert (not In_Call, "Reentrant call to Connector_Protector detected");
+         In_Call := True;
          -- Simply call the connector from within the protected
          -- procedure.
-         Self.T_Send (Arg);
+         Inst.T_Send (Arg);
+         In_Call := False;
       end Call;
 
    end Protected_Connector;
@@ -24,5 +29,18 @@ package body Component.Connector_Protector.Implementation is
       -- Call protected connector procedure:
       Self.P_Connector.Call (Self, Arg);
    end T_Recv_Sync;
+
+   ---------------------------------------
+   -- Invoker connector primitives:
+   ---------------------------------------
+   -- This should never be called for a Connector_Protector. If it is, it
+   -- indicates incorrect assembly wiring (e.g., connected to an async
+   -- receiver with a queue that can overflow).
+   overriding procedure T_Send_Dropped (Self : in out Instance; Arg : in T) is
+      pragma Unreferenced (Self);
+      pragma Unreferenced (Arg);
+   begin
+      pragma Assert (False, "T_Send_Dropped should never be called for Connector_Protector");
+   end T_Send_Dropped;
 
 end Component.Connector_Protector.Implementation;
