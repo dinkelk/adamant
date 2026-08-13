@@ -1,9 +1,9 @@
 ---
 description:
-  The CCSDS downsampler is a component that is intended to filter down packets that are listed in the downsample list. The input list has two items, one is the APID, and the other is the filter factor.
-  The filter factor is used to know the cadence of filtering and sending packets. This is maintained by a protected binary tree object which takes the APID of the packets from the input list, and adding them to a binary tree with the filter factor.
-  When the packet is received, the APID is checked for filtering and then the filter factor to determine if we send them on or not. Packets that are not in the input list will not be filtered and sent as normal.
-  As a note, the larger that the downsampled list is, the more there is to check in the supporting binary tree. It's recommended that the downsampled list contain less than a couple hundred items.
+  The CCSDS downsampler filters packets based on a configurable downsample list. Each entry in the list pairs an APID with a filter factor that controls how often packets of that APID are forwarded.
+  Internally, a protected binary tree maps each APID to its filter factor and a running count. When a packet arrives, its APID is looked up in the tree. If the count is a multiple of the filter factor, the packet is passed through; otherwise it is filtered. A filter factor of 0 filters all packets for that APID. A filter factor of 1 passes all packets.
+  Packets whose APID is not in the downsample list are always forwarded unfiltered.
+  The binary tree lookup time grows with the number of entries. It is recommended that the downsample list contain fewer than 200 entries.
 execution: passive
 init:
   description:
