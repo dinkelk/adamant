@@ -6,3 +6,4 @@ requirements:
   - text: The component will service a downstream pet connector while all critical tasks are sending pets to the task watchdog component normally.
   - text: The component will be able to enable and disable watchdog by command for each petter.
   - text: The component will be able to change the limit value of ticks since the last pet by command for each petter.
+  - text: The component will be able to change the action (disabled, warn, error_fault) by command for each petter.

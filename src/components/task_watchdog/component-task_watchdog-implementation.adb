@@ -229,11 +229,14 @@ package body Component.Task_Watchdog.Implementation is
                      null;
                end case;
 
-               -- If critical, then set the flag not to pet the hardware watchdog and send an event.
-               -- The critical flag should only be set to true if the task is critical and in an error state
+               -- If critical, then set the flag not to pet the hardware watchdog.
+               -- The critical flag should only be set to true if the task is critical and in an error state.
+               -- Only send the event on the first failure detection (not every tick) to avoid flooding the event bus.
                if Is_Critical then
                   Critical_Tasks_Running_Well := False;
-                  Self.Event_T_Send_If_Connected (Self.Events.Critical_Task_Not_Petting (Timestamp, (Index => Idx)));
+                  if Status = Warn_Failure or else Status = Fault_Failure then
+                     Self.Event_T_Send_If_Connected (Self.Events.Critical_Task_Not_Petting (Timestamp, (Index => Idx)));
+                  end if;
                end if;
             end;
          end loop;
@@ -300,8 +303,14 @@ package body Component.Task_Watchdog.Implementation is
       Connector_Index : constant Connector_Types.Connector_Index_Type := Arg.Index;
       Updated_Limit : Missed_Pet_Limit_Type;
    begin
-      -- Check connector index to make sure its in range
-      if Connector_Index <= (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
+      -- Check connector index to make sure its in range (both lower and upper bounds).
+      -- Note: The lower bound check is kept for correctness even though the compiler
+      -- may optimize it away when the index type starts at zero.
+      pragma Warnings (Off, "condition can only be*");
+      pragma Warnings (Off, "condition is always*");
+      if Connector_Index >= Pet_T_Recv_Sync_Index'First and then Connector_Index <= (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
+         pragma Warnings (On, "condition can only be*");
+         pragma Warnings (On, "condition is always*");
          Self.Task_Watchdog_Entries.Set_Pet_Limit (Connector_Index, Arg.New_Limit);
          -- Once set, send an event and update the data product
          Updated_Limit := Self.Task_Watchdog_Entries.Get_Pet_Count_Limit (Connector_Index);
@@ -323,8 +332,14 @@ package body Component.Task_Watchdog.Implementation is
       Connector_Index : constant Connector_Types.Connector_Index_Type := Arg.Index;
       Updated_Action : Watchdog_Action_State.E;
    begin
-      -- Check connector index to make sure its in range
-      if Connector_Index > (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
+      -- Check connector index to make sure its in range (both lower and upper bounds).
+      -- Note: The lower bound check is kept for correctness even though the compiler
+      -- may optimize it away when the index type starts at zero.
+      pragma Warnings (Off, "condition can only be*");
+      pragma Warnings (Off, "condition is always*");
+      if Connector_Index < Pet_T_Recv_Sync_Index'First or else Connector_Index > (Pet_T_Recv_Sync_Index'First + Self.Pet_T_Recv_Sync_Count - 1) then
+         pragma Warnings (On, "condition can only be*");
+         pragma Warnings (On, "condition is always*");
          -- Out of range so send an error
          Self.Event_T_Send_If_Connected (Self.Events.Watchdog_Action_Change_Index_Out_Of_Range (Timestamp, (Index => Connector_Index)));
          return Failure;
