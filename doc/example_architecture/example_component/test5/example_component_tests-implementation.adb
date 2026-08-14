@@ -30,6 +30,8 @@ package body Example_Component_Tests.Implementation is
    begin
       -- Free component heap:
       Self.Tester.Final_Base;
+      -- Reset per-scenario component state for cross-test reuse:
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
