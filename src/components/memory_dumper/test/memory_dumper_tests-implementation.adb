@@ -11,7 +11,6 @@ with Memory_Region_Positive.Assertion; use Memory_Region_Positive.Assertion;
 with Memory_Region_Positive.Representation;
 with Memory_Region_Crc.Assertion; use Memory_Region_Crc.Assertion;
 with Memory_Region_Crc.Representation;
-with Memory_Dumper_Packets;
 with Byte_Array_Pointer.Assertion; use Byte_Array_Pointer.Assertion;
 with Packet_Types;
 with Smart_Assert;
@@ -63,7 +62,6 @@ package body Memory_Dumper_Tests.Implementation is
       use System;
       T : Component.Memory_Dumper.Implementation.Tester.Instance_Access renames Self.Tester;
       Region : Memory_Region_Positive.T;
-      Packets : Memory_Dumper_Packets.Instance;
    begin
       -- Make sure no events are thrown at start up:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
@@ -94,7 +92,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (1), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (1).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (1).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (1).Memory_Pointer, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
       -- Send command to dump entire second region:
@@ -123,7 +121,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (2), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (2).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (2).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (2).Memory_Pointer, [98, 97, 96, 95, 94, 93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79]);
 
       -- Send command to dump partial first region:
@@ -146,7 +144,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (3), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (3).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (3).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (3).Memory_Pointer, [1, 2, 3, 4, 5]);
 
       -- Send command to dump partial second region:
@@ -169,7 +167,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Dumping_Memory_History.Get (4), Region);
 
       -- Check memory dump:
-      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (4).Id, Packets.Get_Memory_Dump_Packet_Id);
+      Packet_Id_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (4).Id, T.Packets.Get_Memory_Dump_Packet_Id);
       Byte_Array_Pointer_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get (4).Memory_Pointer, [86, 85, 84, 83, 82, 81]);
    end Test_Nominal_Dumping;
 
@@ -352,7 +350,7 @@ package body Memory_Dumper_Tests.Implementation is
       Natural_Assert.Eq (T.Invalid_Memory_Region_History.Get_Count, 2);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (2), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with address out of range:
       Region := (Address => Region_1_Address - Storage_Offset (1), Length => Region_1'Length);
       Put_Line ("Sending region with address out of range:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -373,7 +371,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (3), Region);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (4), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with everything out of range:
       Region := (Address => Region_2_Address - Storage_Offset (1), Length => Region_1'Length + 2);
       Put_Line ("Sending region with everything out of range:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -394,7 +392,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (5), Region);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (6), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with region extending past boundary:
       Region := (Address => Region_2_Address + Storage_Offset (5), Length => 16);
       Put_Line ("Sending region with everything out of range:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -436,7 +434,7 @@ package body Memory_Dumper_Tests.Implementation is
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (9), Region);
       Memory_Region_Positive_Assert.Eq (T.Invalid_Memory_Region_History.Get (10), Region);
 
-      -- Send command to crc entire first region:
+      -- Send command with valid sub-region of region 2:
       Region := (Address => Region_2_Address + Storage_Offset (5), Length => 15);
       Put_Line ("Sending valid region:");
       Put_Line (Memory_Region_Positive.Representation.Image (Region));
@@ -449,7 +447,7 @@ package body Memory_Dumper_Tests.Implementation is
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (11), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Crc_Memory_Id, Status => Success));
       Command_Response_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get (12), (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Memory_Id, Status => Success));
 
-      -- One error event should have been returned.
+      -- Success events should have been returned (no additional error events).
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 13);
       Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);

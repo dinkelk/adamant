@@ -45,8 +45,12 @@ package body Component.Memory_Dumper.Implementation is
       Ignore : Natural;
    begin
       if Memory_Manager_Types.Is_Region_Valid (Arg, Self.Regions, Ptr, Ignore) then
-         Self.Event_T_Send_If_Connected (Self.Events.Dumping_Memory (Self.Sys_Time_T_Get, Arg));
-         Self.Memory_Dump_Send ((Id => Self.Packets.Get_Memory_Dump_Packet_Id, Memory_Pointer => Ptr));
+         declare
+            Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+         begin
+            Self.Event_T_Send_If_Connected (Self.Events.Dumping_Memory (Time, Arg));
+            Self.Memory_Dump_Send ((Id => Self.Packets.Get_Memory_Dump_Packet_Id, Memory_Pointer => Ptr));
+         end;
          return Success;
       else
          Self.Event_T_Send_If_Connected (Self.Events.Invalid_Memory_Region (Self.Sys_Time_T_Get, Arg));
@@ -62,13 +66,13 @@ package body Component.Memory_Dumper.Implementation is
       Ignore : Natural;
    begin
       if Memory_Manager_Types.Is_Region_Valid (Arg, Self.Regions, Ptr, Ignore) then
-         Self.Event_T_Send_If_Connected (Self.Events.Crcing_Memory (Self.Sys_Time_T_Get, Arg));
-         -- Calculate CRC:
-         Crc := Crc_16.Compute_Crc_16 (Ptr);
-         -- Report CRC:
          declare
             Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
          begin
+            Self.Event_T_Send_If_Connected (Self.Events.Crcing_Memory (Time, Arg));
+            -- Calculate CRC:
+            Crc := Crc_16.Compute_Crc_16 (Ptr);
+            -- Report CRC:
             Self.Event_T_Send_If_Connected (Self.Events.Memory_Crc (Time, (Region => (Address => Arg.Address, Length => Arg.Length), Crc => Crc)));
             Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Crc_Report (Time, (Region => (Address => Arg.Address, Length => Arg.Length), Crc => Crc)));
          end;
@@ -78,6 +82,12 @@ package body Component.Memory_Dumper.Implementation is
          return Failure;
       end if;
    end Crc_Memory;
+
+   -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
+   overriding procedure Command_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Command.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Command_Dropped (Self.Sys_Time_T_Get, Arg.Header));
+   end Command_T_Recv_Async_Dropped;
 
    -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:
    overriding procedure Invalid_Command (Self : in out Instance; Cmd : in Command.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type) is
