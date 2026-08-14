@@ -6,7 +6,7 @@ package Ccsds_Router_Types is
    -- Destination table, contains array of destinations which are indexes into the output
    -- connector.
    type Destination_Table is array (Natural range <>) of Connector_Types.Connector_Index_Type;
-   type Destination_Table_Access is access all Destination_Table;
+   type Destination_Table_Access is access constant Destination_Table;
 
    -- A mode type which stores what kind of action to take regarding sequence counts
    -- for each APID:
