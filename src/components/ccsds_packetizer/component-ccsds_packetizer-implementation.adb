@@ -21,6 +21,13 @@ package body Component.Ccsds_Packetizer.Implementation is
    pragma Compile_Time_Error
       ((Ccsds_Space_Packet.Ccsds_Data_Type'Length) < (Packet_Types.Packet_Buffer_Type'Length + Sys_Time.Size_In_Bytes + Crc_16.Crc_16_Type'Length), "Size mismatch detected. The size of a CCSDS packet is not large enough to hold an entire Adamant packet.");
 
+   -- Verify that Ccsds_Space_Packet.T has no unexpected padding, which would
+   -- break the memory overlay used for CRC computation. The record size must
+   -- equal the sum of the header and data field sizes.
+   pragma Compile_Time_Error
+      (Ccsds_Space_Packet.T'Size /= Ccsds_Primary_Header.T'Size + Ccsds_Space_Packet.Ccsds_Data_Type'Size,
+       "Ccsds_Space_Packet.T has unexpected padding between Header and Data. The CRC overlay assumes a contiguous layout.");
+
    ---------------------------------------
    -- Private functions:
    ---------------------------------------
@@ -31,6 +38,12 @@ package body Component.Ccsds_Packetizer.Implementation is
       use Crc_16;
       use Ccsds_Primary_Header;
       use Ccsds_Enums;
+
+      -- Validate Buffer_Length before use. A corrupted or out-of-range value
+      -- could cause Constraint_Error on the slice operations below.
+      pragma Assert
+         (P.Header.Buffer_Length <= Packet_Types.Packet_Buffer_Type'Length,
+          "Buffer_Length exceeds maximum packet buffer capacity");
 
       -- CCSDS Packet:
       To_Return : Ccsds_Space_Packet.T := (
