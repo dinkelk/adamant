@@ -47,6 +47,19 @@ package body Component.Parameter_Store.Implementation is
       end if;
    end Set_Up;
 
+   --  Reset per-scenario state for cross-test reuse. The bareboard
+   --  Tester is a static singleton across scenarios, so the packet
+   --  generator's Sequence_Count carries over and the
+   --  Test_Nominal_Table_Upload assertion that a fresh dump has
+   --  Sequence_Count = 0 sees the accumulated count from prior
+   --  scenarios. Reset on tear-down to put it back to zero.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Bytes := null;
+      Self.Dump_Parameters_On_Change := False;
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    -- Helper function to construct and send a parameters packet filled with
    -- the parameter table data. Branches on the wired dump pathway:
    --   * Packet.T path: build a single Stored_Parameters packet (Computed_Crc

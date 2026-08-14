@@ -30,6 +30,19 @@ package body Component.Memory_Packetizer_Fixed_Id.Implementation is
       Do_Set_Max_Packet_Rate (Self, Max_Packets_Per_Time_Period, Time_Period_In_Seconds);
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  rate-limiting state (window start, packets-sent count) and the
+   --  packet generator's per-packet Sequence_Count rely on record-
+   --  default initialization that fires only on heap allocation, so
+   --  they would otherwise leak between scenarios.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Next_Period_Start := Ada.Real_Time.Time_First;
+      Self.Num_Packets_Sent := 0;
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    -- Send out max sends per tick data product:
    overriding procedure Set_Up (Self : in out Instance) is
    begin

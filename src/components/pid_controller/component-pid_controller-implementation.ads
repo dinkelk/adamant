@@ -26,6 +26,15 @@ package Component.Pid_Controller.Implementation is
    -- Moving_Average_Init_Samples : Integer - The number of samples to initialize the object with. Must be less than the max, and is optional to set to the max with -1
    --
    overriding procedure Init (Self : in out Instance; Control_Frequency : in Short_Float; Database_Update_Period : in Unsigned_16; Moving_Average_Max_Samples : in Natural; Moving_Average_Init_Samples : in Integer := -1);
+
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- Protected objects for protecting data that can be modified by synchronous command.

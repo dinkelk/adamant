@@ -21,6 +21,21 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
       Self.State := Enabled_State;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; record
+   --  defaults fire only on heap allocation, so transaction/cycle
+   --  counts and the Sync_Once flag would otherwise leak between
+   --  scenarios.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Cycle_Count := Natural'First;
+      Self.Sync_Once := False;
+      Self.Transaction_Count := Interfaces.Unsigned_16'First;
+      Self.Follow_Up_Message_Count := Interfaces.Unsigned_16'First;
+      Self.Delay_Request_Message_Count := Interfaces.Unsigned_16'First;
+      Self.Unexpected_Message_Count := Interfaces.Unsigned_16'First;
+   end Final;
+
    -- Send out data products:
    overriding procedure Set_Up (Self : in out Instance) is
       Time_Stamp : constant Sys_Time.T := Self.Sys_Time_T_Get;

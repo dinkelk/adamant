@@ -44,6 +44,11 @@ package body Component.Ccsds_Downsampler.Implementation is
          return Apid_Tree_Package.Get_Tree_Entry (Index);
       end Get_Tree_Entry;
 
+      procedure Destroy is
+      begin
+         Apid_Tree_Package.Destroy;
+      end Destroy;
+
    end Protected_Apid_Entries;
 
    -- Helper procedure to send a data product
@@ -88,6 +93,15 @@ package body Component.Ccsds_Downsampler.Implementation is
       -- For each item in the list, add the apid and filter factor to the internal tree
       Self.Apid_Entries.Init (Downsample_List);
    end Init;
+
+   --  Reset per-scenario state for cross-test reuse. Tear down the
+   --  binary tree storage so the next scenario's Init starts fresh
+   --  (otherwise the tree size leaks across scenarios under static
+   --  Tester reuse on bareboard).
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Apid_Entries.Destroy;
+   end Final;
 
    ---------------------------------------
    -- Invokee connector primitives:

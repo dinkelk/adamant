@@ -24,6 +24,14 @@ package Component.Memory_Stuffer.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Memory_Regions : in not null Memory_Manager_Types.Memory_Region_Array_Access; Memory_Region_Protection_List : in Memory_Manager_Types.Memory_Protection_Array_Access := null);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:

@@ -24,6 +24,14 @@ package Component.Memory_Packetizer_Fixed_Id.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:

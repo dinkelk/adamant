@@ -26,6 +26,14 @@ package Component.Time_Of_Tone_Master.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Sync_Period : in Positive := 1; Enabled_State : in Tat_State.Tat_State_Type := Tat_State.Enabled);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- Protected object for protecting data that can be modified by synchronous command.

@@ -32,6 +32,15 @@ package body Component.Time_At_Tone_Master.Implementation is
       end case;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  transaction count relies on record-default initialization that
+   --  fires only on heap allocation.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Transaction_Count := 0;
+   end Final;
+
    -- Send out data products:
    overriding procedure Set_Up (Self : in out Instance) is
       use Tat_State;

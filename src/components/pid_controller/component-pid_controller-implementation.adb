@@ -74,6 +74,23 @@ package body Component.Pid_Controller.Implementation is
 
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  controller's previous error / integral / derivative outputs,
+   --  the diagnostic subpacket count, and the packet generator's
+   --  sequence counts all rely on record-default initialization
+   --  that fires only on heap allocation, so without this reset
+   --  they leak between scenarios. Init does not touch any of these.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Control_Error_Prev := 0.0;
+      Self.Control_Out_Prev_I := 0.0;
+      Self.Control_Out_Prev_D := 0.0;
+      Self.Diagnostic_Subpacket_Count := 0;
+      Self.Ma_Stats.Destroy;
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------

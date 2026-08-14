@@ -26,6 +26,14 @@ package Component.Ccsds_Downsampler.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Downsample_List : in not null Ccsds_Downsampler_Types.Ccsds_Downsample_Packet_List_Access);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
    -- Helper procedure that will take a tree entry and create a data product for the filter factor
    procedure Send_Filter_Data_Product (Self : in out Instance; Tree_Entry : in Ccsds_Downsampler_Tree_Entry; Tree_Index : in Positive);
@@ -42,6 +50,9 @@ private
       function Get_Tree_Last_Index return Natural;
       -- Function to get the element when given an index.
       function Get_Tree_Entry (Index : in Positive) return Ccsds_Downsampler_Tree_Entry;
+      -- Reset the underlying tree storage and counters. Used by tests
+      -- that share a static instance across scenarios.
+      procedure Destroy;
 
    private
       Apid_Tree_Package : Apid_Tree.Instance;

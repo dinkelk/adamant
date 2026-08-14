@@ -33,6 +33,19 @@ package body Component.Memory_Stuffer.Implementation is
       end if;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  region pointers and the protected arm-state are initialized
+   --  via Init / record-default that fire only on heap allocation,
+   --  so without this reset the next scenario inherits stale region
+   --  references and arm state from the prior scenario.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Regions := null;
+      Self.Region_Protection_List := null;
+      Self.Command_Arm_State.Unarm;
+   end Final;
+
    overriding procedure Set_Up (Self : in out Instance) is
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
       Start_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
