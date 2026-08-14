@@ -22,15 +22,15 @@ package body Component.Memory_Packetizer.Implementation is
    -- This initialization function is used to set a threshold for the maximum number of packets that the component will produce in a single time period. A time period is measured in an integer number of seconds. The component also needs to keep track of the sequence counts for each packet ID that it receives. To do this, it needs to allocate internal memory to keep track of the last sequence count for each packet. A maximum number of unique packet IDs is provided in this function to allocate the necessary memory to keep track of this information.
    --
    -- Init Parameters:
-   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
-   -- Time_Period_In_Seconds : Positive - The time period in seconds over which the measure the number of packets produced.
+   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single time period. The component will stop producing packets if the threshold is met, until the end of the current time period has elapsed.
+   -- Time_Period_In_Seconds : Positive - The time period in seconds over which to measure the number of packets produced.
    -- Max_Packet_Ids : Positive - The maximum number of unique packet IDs that this component is expected to receive during operations. This value is used to allocate a small amount of memory at initialization to keep track of the sequence count for each produced packet. If this memory becomes fully used, any new unique packet IDs received will trigger an event and will be emitted with a sequence count of zero. This misconfiguration should easily be detectable during test.
    --
    overriding procedure Init (Self : in out Instance; Max_Packets_Per_Time_Period : in Natural; Time_Period_In_Seconds : in Positive := 1; Max_Packet_Ids : in Positive := 10) is
    begin
       -- Allocate space to store the sequence number list:
       Self.Sequence_Count_List := new Sequence_Count_Tracker_List (1 .. Max_Packet_Ids);
-      -- Sent the maximum packet rate:
+      -- Set the maximum packet rate:
       Do_Set_Max_Packet_Rate (Self, Max_Packets_Per_Time_Period, Time_Period_In_Seconds);
    end Init;
 
@@ -170,12 +170,9 @@ package body Component.Memory_Packetizer.Implementation is
             -- Increment the number of packets:
             Self.Num_Packets_Sent := @ + 1;
 
-            -- Increment the sequence count, only if we are tracking this id's sequence count:
-            if Sequence_Count_Entry_Index >= Self.Sequence_Count_List'First and then
-                Sequence_Count_Entry_Index <= Self.Sequence_Count_List'Last
-            then
-               Sequence_Count := @ + 1;
-            end if;
+            -- Always increment the local sequence count so packets within
+            -- a single dump are distinguishable, even if the id is untracked:
+            Sequence_Count := @ + 1;
          end;
       end loop;
 
@@ -208,6 +205,12 @@ package body Component.Memory_Packetizer.Implementation is
       use Command_Execution_Status;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
+      -- Reject a zero packet rate, which would cause the packetization
+      -- loop to spin indefinitely in a sleep-wake cycle:
+      if Arg.Max_Packets = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (The_Time, (Id => Self.Commands.Get_Set_Max_Packet_Rate_Id, Errant_Field_Number => 1, Errant_Field => [others => 0])));
+         return Failure;
+      end if;
       -- Set the rate:
       Do_Set_Max_Packet_Rate (Self, Arg.Max_Packets, Arg.Period);
       -- Update data product:
@@ -223,6 +226,13 @@ package body Component.Memory_Packetizer.Implementation is
       -- Perform action to handle an invalid command.
       Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (Self.Sys_Time_T_Get, (Id => Cmd.Header.Id, Errant_Field_Number => Errant_Field_Number, Errant_Field => Errant_Field)));
    end Invalid_Command;
+
+   -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is
+   begin
+      -- Emit an event so dropped packets are visible in telemetry:
+      Self.Event_T_Send_If_Connected (Self.Events.Packet_Send_Dropped (Self.Sys_Time_T_Get, (Id => Arg.Header.Id)));
+   end Packet_T_Send_Dropped;
 
    -- This procedure is called when a Memory_Dump_Recv_Async message is dropped due to a full queue.
    overriding procedure Memory_Dump_Recv_Async_Dropped (Self : in out Instance; Arg : in Memory_Packetizer_Types.Memory_Dump) is

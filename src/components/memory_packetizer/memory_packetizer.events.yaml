@@ -9,6 +9,9 @@ events:
   - name: Max_Packet_Rate_Set
     description: A new maximum rate has been set for the packetizer.
     param_type: Packets_Per_Period.T
+  - name: Packet_Send_Dropped
+    description: A packetized memory dump packet was dropped because the downstream queue was full.
+    param_type: Packet_Id.T
   - name: Invalid_Command_Received
     description: A command was received with invalid parameters.
     param_type: Invalid_Command_Info.T
