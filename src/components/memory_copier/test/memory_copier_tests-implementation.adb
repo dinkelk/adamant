@@ -21,11 +21,59 @@ with System.Storage_Elements; use System.Storage_Elements;
 
 package body Memory_Copier_Tests.Implementation is
 
-   -- Globals to control task behavior. There is no thread safety here... but this
-   -- is testing code.
-   Task_Send_Response : Boolean := False;
-   Task_Send_Timeout : Boolean := False;
-   Task_Response : Memory_Enums.Memory_Copy_Status.E := Memory_Enums.Memory_Copy_Status.Success;
+   -- Protected object for thread-safe task control state shared between test and simulator task.
+   protected Task_State is
+      procedure Set_Send_Response (Value : in Boolean);
+      function Get_Send_Response return Boolean;
+      procedure Set_Send_Timeout (Value : in Boolean);
+      function Get_Send_Timeout return Boolean;
+      procedure Set_Response (Value : in Memory_Enums.Memory_Copy_Status.E);
+      function Get_Response return Memory_Enums.Memory_Copy_Status.E;
+      procedure Reset;
+   private
+      Send_Response : Boolean := False;
+      Send_Timeout : Boolean := False;
+      Response : Memory_Enums.Memory_Copy_Status.E := Memory_Enums.Memory_Copy_Status.Success;
+   end Task_State;
+
+   protected body Task_State is
+      procedure Set_Send_Response (Value : in Boolean) is
+      begin
+         Send_Response := Value;
+      end Set_Send_Response;
+
+      function Get_Send_Response return Boolean is
+      begin
+         return Send_Response;
+      end Get_Send_Response;
+
+      procedure Set_Send_Timeout (Value : in Boolean) is
+      begin
+         Send_Timeout := Value;
+      end Set_Send_Timeout;
+
+      function Get_Send_Timeout return Boolean is
+      begin
+         return Send_Timeout;
+      end Get_Send_Timeout;
+
+      procedure Set_Response (Value : in Memory_Enums.Memory_Copy_Status.E) is
+      begin
+         Response := Value;
+      end Set_Response;
+
+      function Get_Response return Memory_Enums.Memory_Copy_Status.E is
+      begin
+         return Response;
+      end Get_Response;
+
+      procedure Reset is
+      begin
+         Send_Response := False;
+         Send_Timeout := False;
+         Response := Memory_Enums.Memory_Copy_Status.Success;
+      end Reset;
+   end Task_State;
 
    -------------------------------------------------------------------------
    -- Fixtures:
@@ -34,9 +82,7 @@ package body Memory_Copier_Tests.Implementation is
    overriding procedure Set_Up_Test (Self : in out Instance) is
    begin
       -- Reset task state:
-      Task_Send_Response := False;
-      Task_Send_Timeout := False;
-      Task_Response := Memory_Enums.Memory_Copy_Status.Success;
+      Task_State.Reset;
 
       -- Allocate heap memory to component:
       Self.Tester.Init_Base (Queue_Size => Self.Tester.Component_Instance.Get_Max_Queue_Element_Size * 3);
@@ -85,20 +131,20 @@ package body Memory_Copier_Tests.Implementation is
          -- Increment variables:
          Cnt := @ + 1;
 
-         if Task_Send_Response then
+         if Task_State.Get_Send_Response then
             -- Send a valid response:
             Class_Self.all.Tester.Timeout_Tick_Send (((0, 0), 0)); -- send occasional timeout for coverage reasons
             Sleep (4);
-            Class_Self.all.Tester.Memory_Region_Release_T_Send ((Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Task_Response));
-            Task_Send_Response := False;
-         elsif Task_Send_Timeout then
+            Class_Self.all.Tester.Memory_Region_Release_T_Send ((Region => (Address => Sim_Bytes'Address, Length => Sim_Bytes'Length), Status => Task_State.Get_Response));
+            Task_State.Set_Send_Response (False);
+         elsif Task_State.Get_Send_Timeout then
             -- Send a valid response:
             Sleep (4);
             Class_Self.all.Tester.Timeout_Tick_Send (((0, 0), 0));
             Tick_Count := @ + 1;
             if Tick_Count > 4 then
                Tick_Count := 0;
-               Task_Send_Timeout := False;
+               Task_State.Set_Send_Timeout (False);
             end if;
          else
             -- Sleep:
@@ -122,7 +168,7 @@ package body Memory_Copier_Tests.Implementation is
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 5, Source_Length => 6, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
-      Task_Send_Response := True;
+      Task_State.Set_Send_Response (True);
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Sleep (4);
 
@@ -147,7 +193,7 @@ package body Memory_Copier_Tests.Implementation is
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => T.Scratch'Length, Destination_Address => Dest2'Address)));
 
       -- Execute the command and tell the task to respond.
-      Task_Send_Response := True;
+      Task_State.Set_Send_Response (True);
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Sleep (4);
 
@@ -179,12 +225,12 @@ package body Memory_Copier_Tests.Implementation is
       Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
       Dest : Basic_Types.Byte_Array (0 .. 99) := [others => 44];
    begin
-      -- Send command to copy region 1 byte too large:
+      -- Send command to copy region (will return failure status):
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => 5, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
-      Task_Response := Failure;
-      Task_Send_Response := True;
+      Task_State.Set_Response (Failure);
+      Task_State.Set_Send_Response (True);
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Sleep (4);
 
@@ -215,11 +261,11 @@ package body Memory_Copier_Tests.Implementation is
       Sim_Task : Simulator_Task (Self'Unchecked_Access, Task_Exit'Unchecked_Access);
       Dest : Basic_Types.Byte_Array (0 .. 99) := [others => 44];
    begin
-      -- Send command to copy region 1 byte too large:
+      -- Send command to copy region (will time out):
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => T.Scratch'Length, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
-      Task_Send_Timeout := True;
+      Task_State.Set_Send_Timeout (True);
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Sleep (4);
 
@@ -252,7 +298,7 @@ package body Memory_Copier_Tests.Implementation is
       -- Set scratch return status:
       T.Scratch_Return_Status := Memory_Manager_Enums.Memory_Request_Status.Failure;
 
-      -- Send command to copy region 1 byte too large:
+      -- Send command to copy region (memory will be unavailable):
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => T.Scratch'Length, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
@@ -288,7 +334,7 @@ package body Memory_Copier_Tests.Implementation is
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 0, Source_Length => T.Scratch'Length + 1, Destination_Address => Dest'Address)));
 
       -- Execute the command and tell the task to respond.
-      Task_Send_Response := True;
+      Task_State.Set_Send_Response (True);
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Sleep (4);
 
@@ -312,8 +358,8 @@ package body Memory_Copier_Tests.Implementation is
       T.Command_T_Send (T.Commands.Copy_Memory_Region ((Source_Address => 5, Source_Length => T.Scratch'Length - 4, Destination_Address => T'Address)));
 
       -- Execute the command and tell the task to respond.
-      Task_Response := Failure;
-      Task_Send_Response := True;
+      Task_State.Set_Response (Failure);
+      Task_State.Set_Send_Response (True);
       Natural_Assert.Eq (T.Dispatch_All, 1);
       Sleep (4);
 
@@ -327,7 +373,7 @@ package body Memory_Copier_Tests.Implementation is
       Natural_Assert.Eq (T.Starting_Copy_History.Get_Count, 2);
       Virtual_Memory_Region_Copy_Assert.Eq (T.Starting_Copy_History.Get (2), (Source_Address => 5, Source_Length => T.Scratch'Length - 4, Destination_Address => T'Address));
       Natural_Assert.Eq (T.Memory_Region_Length_Mismatch_History.Get_Count, 2);
-      Invalid_Memory_Region_Length_Assert.Eq (T.Memory_Region_Length_Mismatch_History.Get (2), (Region => (T.Scratch'Address, T.Scratch'Length), Expected_Length => T.Scratch'Length + 1));
+      Invalid_Memory_Region_Length_Assert.Eq (T.Memory_Region_Length_Mismatch_History.Get (2), (Region => (T.Scratch'Address, T.Scratch'Length), Expected_Length => 5 + (T.Scratch'Length - 4)));
 
       -- Check command response:
       Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 2);

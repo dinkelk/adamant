@@ -50,26 +50,19 @@ package body Component.Memory_Copier.Implementation is
    -- The memory region is returned synchronously on this connector. The component waits internally for this response, or times out if the response is not received in time.
    overriding procedure Memory_Region_Release_T_Recv_Sync (Self : in out Instance; Arg : in Memory_Region_Release.T) is
    begin
-      -- First set the protected response with the response from the component.
-      -- In this function we simply store whatever we get. The error handling based on the
-      -- contents of this response are done by this component's task (executing the command).
+      -- Guard against spurious or duplicate responses: only accept when we are actually waiting.
+      if not Self.Sync_Object.Is_Waiting then
+         -- Spurious response received while not waiting — ignore it.
+         return;
+      end if;
+
+      -- Set the protected response with the response from the component.
+      -- The error handling based on the contents of this response are done by this
+      -- component's task (executing the command).
       Self.Response.Set_Var (Arg);
 
-      -- Ok we have stored the response for the component to look at later. Now we signal
-      -- to the component that a response has been received and it can read it.
+      -- Signal to the component that a response has been received and it can read it.
       Self.Sync_Object.Release;
-
-      -- Note, there is a possible race condition here. Think, we could set the response
-      -- within the component, and then release it to allow reading of this data. Before
-      -- the component reads the data, however, we may receive another response, overwriting
-      -- the data the component receives before it can read the old data. This sounds serious,
-      -- but this behavior should never occur, since the downstream components should not ever
-      -- return a response to this component unprovoked.
-      --
-      -- Note, the protected buffer and the sync object are both protected objects, so there
-      -- is no risk of data corruption (which would be a serious problem), there is just risk of
-      -- out of order synchronization, which should not occur if the assembly is designed
-      -- correctly, as described above.
    end Memory_Region_Release_T_Recv_Sync;
 
    -- This procedure is called when a Command_T_Recv_Async message is dropped due to a full queue.
@@ -79,6 +72,22 @@ package body Component.Memory_Copier.Implementation is
       Self.Event_T_Send_If_Connected (Self.Events.Command_Dropped (Self.Sys_Time_T_Get, Arg.Header));
    end Command_T_Recv_Async_Dropped;
 
+   -- This procedure is called when a Memory_Region_Copy_T_Send message is dropped due to a full queue.
+   -- Log the failure so the eventual timeout has root-cause context.
+   overriding procedure Memory_Region_Copy_T_Send_Dropped (Self : in out Instance; Arg : in Memory_Region_Copy.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Copy_Failure (Self.Sys_Time_T_Get,
+         (Region => Arg.Source_Region, Status => Memory_Enums.Memory_Copy_Status.Failure)));
+   end Memory_Region_Copy_T_Send_Dropped;
+
+   -- This procedure is called when a Memory_Region_Release message is dropped due to a full queue.
+   -- Log the leak so operators know scratch memory was not released.
+   overriding procedure Ided_Memory_Region_Release_Dropped (Self : in out Instance; Arg : in Ided_Memory_Region.T) is
+      Ignore : Ided_Memory_Region.T renames Arg;
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Unavailable (Self.Sys_Time_T_Get));
+   end Ided_Memory_Region_Release_Dropped;
+
    -- Helper which requests source memory region and does some basic error handling on it. The returned
    -- region from this function will have the address and length specified by the Virtual_Region parameter.
    function Request_Memory_Region (Self : in out Instance; Virtual_Region : in Virtual_Memory_Region.T; Returned_Physical_Region : out Ided_Memory_Region.T) return Boolean is
@@ -87,10 +96,19 @@ package body Component.Memory_Copier.Implementation is
       Request : constant Memory_Region_Request.T := Self.Memory_Region_Request_T_Get;
       -- Calculate the minimum length that the requested region must have in order for
       -- the virtual memory region to be valid.
-      Min_Length : constant Natural := Virtual_Region.Address + Virtual_Region.Length;
+      -- Guard against overflow: if Address + Length would exceed Natural'Last, fail gracefully.
+      Min_Length : Natural;
    begin
       -- Initialize out parameter to null in case we fail to find memory region
       Returned_Physical_Region := (Id => 0, Region => (Address => System.Null_Address, Length => 0));
+
+      -- Guard against overflow in Address + Length computation:
+      if Virtual_Region.Address > Natural'Last - Virtual_Region.Length then
+         Self.Event_T_Send_If_Connected (Self.Events.Memory_Region_Length_Mismatch (Self.Sys_Time_T_Get,
+            (Region => (Address => System.Null_Address, Length => 0), Expected_Length => 0)));
+         return False;
+      end if;
+      Min_Length := Virtual_Region.Address + Virtual_Region.Length;
 
       -- Check the request memory status:
       case Request.Status is
@@ -194,6 +212,13 @@ package body Component.Memory_Copier.Implementation is
       use Command_Execution_Status;
       Ided_Region : Ided_Memory_Region.T;
    begin
+      -- Reject zero-length copy commands to prevent underflow in End_Index computation.
+      if Arg.Source_Length = 0 then
+         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Command_Received (Self.Sys_Time_T_Get,
+            (Id => 0, Errant_Field_Number => 1, Errant_Field => [others => 0])));
+         return Failure;
+      end if;
+
       -- Send informational event:
       Self.Event_T_Send_If_Connected (Self.Events.Starting_Copy (Self.Sys_Time_T_Get, Arg));
 
@@ -202,7 +227,11 @@ package body Component.Memory_Copier.Implementation is
       if not Self.Request_Memory_Region (Virtual_Region => (Address => Arg.Source_Address, Length => Arg.Source_Length), Returned_Physical_Region => Ided_Region) then
          return Failure;
       end if;
-      pragma Assert (Ided_Region.Region.Length = Arg.Source_Length, "We assume it is this length after the function call.");
+      -- Verify the returned region matches the expected length. If not, fail gracefully.
+      if Ided_Region.Region.Length /= Arg.Source_Length then
+         Self.Ided_Memory_Region_Release (Ided_Region);
+         return Failure;
+      end if;
 
       -- Send Region to the destination
       if not Self.Copy_To_Destination ((Source_Region => Ided_Region.Region, Destination_Address => Arg.Destination_Address)) then
