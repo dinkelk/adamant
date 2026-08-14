@@ -109,25 +109,21 @@ package body Precision_Time_Protocol_Master_Tests.Implementation is
    overriding procedure Test_Follow_Up (Self : in out Instance) is
       T : Component.Precision_Time_Protocol_Master.Implementation.Tester.Instance_Access renames Self.Tester;
    begin
-      -- A follow up should be sent every time we call the follow up connector:
+      -- A follow up sent before any Sync (Transaction_Count = 0) should be suppressed:
       T.Follow_Up_Sys_Time_T_Send (((99, 100)));
       Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 0);
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 1);
-      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (1), (Message_Type => Follow_Up, Transaction_Count => 0, Time_Stamp => (99, 100)));
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get_Count, 1);
-      Packed_U16_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get (1), (Value => 1));
+      -- No PTP message should have been sent since no Sync has occurred yet:
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get_Count, 0);
 
-      -- A follow up should be sent every time we call the follow up connector:
+      -- Another follow up before Sync should also be suppressed:
       T.Follow_Up_Sys_Time_T_Send (((101, 102)));
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 2);
-      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (2), (Message_Type => Follow_Up, Transaction_Count => 0, Time_Stamp => (101, 102)));
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
-      Natural_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get_Count, 2);
-      Packed_U16_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get (2), (Value => 2));
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 0);
+      Natural_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get_Count, 0);
 
       --
       -- Send some ticks to make sure sequence count gets incremented in the follow up
@@ -136,39 +132,39 @@ package body Precision_Time_Protocol_Master_Tests.Implementation is
       -- Send the component ticks, and make sure ptp messages sent at appropriate time:
       T.Tick_T_Send (((0, 0), 0));
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 3);
-      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (3), (Message_Type => Sync, Transaction_Count => 1, Time_Stamp => T.System_Time));
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 1);
+      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (1), (Message_Type => Sync, Transaction_Count => 1, Time_Stamp => T.System_Time));
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Transaction_Number_History.Get_Count, 1);
       Packed_U16_Assert.Eq (T.Transaction_Number_History.Get (1), (Value => 1));
 
       -- Send the component ticks, and make sure ptp messages sent at appropriate time:
       T.Tick_T_Send (((0, 0), 0));
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 1);
       T.Tick_T_Send (((0, 0), 0));
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 1);
       T.Tick_T_Send (((0, 0), 0));
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 4);
-      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (4), (Message_Type => Sync, Transaction_Count => 2, Time_Stamp => T.System_Time));
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 4);
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 2);
+      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (2), (Message_Type => Sync, Transaction_Count => 2, Time_Stamp => T.System_Time));
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
       Natural_Assert.Eq (T.Transaction_Number_History.Get_Count, 2);
       Packed_U16_Assert.Eq (T.Transaction_Number_History.Get (2), (Value => 2));
 
       --
-      -- Ok test sending another follow up
+      -- Ok test sending a follow up after Sync has been sent
       --
 
-      -- A follow up should be sent every time we call the follow up connector:
+      -- A follow up should now be sent since a Sync has been issued:
       T.Follow_Up_Sys_Time_T_Send (((109, 119)));
       Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 5);
-      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (5), (Message_Type => Follow_Up, Transaction_Count => 2, Time_Stamp => (109, 119)));
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 5);
-      Natural_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get_Count, 3);
-      Packed_U16_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get (3), (Value => 3));
+      Natural_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get_Count, 3);
+      Ptp_Time_Message_Assert.Eq (T.Ptp_Time_Message_T_Recv_Sync_History.Get (3), (Message_Type => Follow_Up, Transaction_Count => 2, Time_Stamp => (109, 119)));
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 3);
+      Natural_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get_Count, 1);
+      Packed_U16_Assert.Eq (T.Follow_Up_Messages_Sent_History.Get (1), (Value => 1));
 
       -- No events:
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 0);
