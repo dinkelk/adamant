@@ -8,7 +8,7 @@ package body Tester_Interrupt_Handler is
    begin
       -- Increment the count:
       Data.Count := @ + 1;
-      -- Increment the time:
+      -- Reset the time (not under test):
       Data.Time := (0, 0);
    end Handler;
 
