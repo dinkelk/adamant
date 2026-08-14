@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 with AUnit.Assertions; use AUnit.Assertions;
-with Safe_Deallocator;
+with Tester_Allocator;
 
 with Circular_Buffer_Meta.Assertion; use Circular_Buffer_Meta.Assertion;
 with Basic_Types.Representation;
@@ -25,6 +25,14 @@ with Interfaces; use Interfaces;
 
 package body Logger_Tests.Implementation is
 
+   --  Per-test-scaffold instantiation of the target-aware Tester
+   --  allocator. Linux body: heap-allocates per call. bb body: returns
+   --  'Access of a static instance (Jorvik forbids the heap pattern
+   --  when the Tester contains protected components).
+   package Tester_Alloc is new Tester_Allocator
+     (Tester_Inst   => Component_Tester_Package.Instance,
+      Tester_Access => Component_Tester_Package.Instance_Access);
+
    -------------------------------------------------------------------------
    -- Fixtures:
    -------------------------------------------------------------------------
@@ -32,7 +40,7 @@ package body Logger_Tests.Implementation is
    overriding procedure Set_Up_Test (Self : in out Instance) is
    begin
       -- Dynamically allocate the generic component tester:
-      Self.Tester := new Component_Tester_Package.Instance;
+      Self.Tester := Tester_Alloc.Allocate;
 
       -- Set the logger in the component
       Self.Tester.Set_Logger (Self.Logger'Unchecked_Access);
@@ -45,14 +53,13 @@ package body Logger_Tests.Implementation is
    end Set_Up_Test;
 
    overriding procedure Tear_Down_Test (Self : in out Instance) is
-      procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Component_Tester_Package.Instance, Name => Component_Tester_Package.Instance_Access);
    begin
       -- Free component heap:
       Self.Tester.Component_Instance.Final;
       Self.Tester.Final_Base;
 
-      -- Free the tester:
-      Free_If_Testing (Self.Tester);
+      -- Release the tester via the target-aware allocator.
+      Tester_Alloc.Free (Self.Tester);
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
