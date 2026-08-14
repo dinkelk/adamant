@@ -85,4 +85,10 @@ begin
    Put ("Destroy queue test... ");
    My_Queue.Destroy;
    Put_Line ("passed.");
+
+   --  Sentinel for the cross test runner. The renode test rule
+   --  matches this case-insensitively as a manual-test pass marker
+   --  (since this test is not an AUnit suite and doesn't emit
+   --  AUnit's "Total Tests Run" summary).
+   Put_Line ("=== ALL TESTS PASSED ===");
 end Test;

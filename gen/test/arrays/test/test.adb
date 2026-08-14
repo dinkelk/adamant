@@ -877,4 +877,6 @@ begin
    end;
    Put_Line ("passed.");
    Put_Line ("");
+   --  Sentinel for the cross test runner (manual-test pass marker).
+   Put_Line ("=== ALL TESTS PASSED ===");
 end Test;
