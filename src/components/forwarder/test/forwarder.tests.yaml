@@ -2,8 +2,12 @@
 description: This is a unit test suite for the Forwarder component.
 tests:
   - name: Test_Init
-    description: This unit test tests initialization.
+    description: Verifies that no data is forwarded before Set_Up, and that Set_Up publishes the initial forwarding state data product as Enabled.
   - name: Test_Enable_Disable_Forwarding
-    description: This unit test sends commands to enable and disable forwarding and make sure it functions correctly.
+    description: Verifies that Disable_Forwarding stops data flow and Enable_Forwarding resumes it, with correct events, data products, and command responses.
+  - name: Test_Idempotent_Commands
+    description: Verifies that sending Enable when already enabled (or Disable when already disabled) succeeds without emitting redundant events or data products.
+  - name: Test_Init_Disabled
+    description: Verifies that initializing with forwarding disabled causes Set_Up to publish a Disabled data product and that data is dropped from startup.
   - name: Test_Invalid_Command
-    description: This unit test exercises that an invalid command throws the appropriate event.
+    description: Verifies that a command with invalid argument buffer length returns Length_Error and emits an Invalid_Command_Received event.
