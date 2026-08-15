@@ -23,12 +23,15 @@ tests:
     description: Downstream returns Parameter_Error on Get.
   - name: Test_Get_Pointer_Rejected
     description: An external Get_Pointer request is rejected by the forwarder without contacting the downstream; emits Get_Pointer_Not_Supported event and returns Parameter_Error.
+  # Test_Dump_Command_No_Dump_Connector must run before any scenario that
+  # calls Connect_Memory_Dump: on cross targets the static Tester is reused
+  # across scenarios and a connector, once wired, cannot be unwired.
+  - name: Test_Dump_Command_No_Dump_Connector
+    description: Dump command with no Memory_Dump_Send connector wired; Dump_Failed event fires with a zero-length sentinel region and the command response is Failure, without contacting the downstream.
   - name: Test_Dump_Command_Success
     description: Dump command issues internal Get; downstream writes bytes; Active_Parameters packet emitted with CRC prefix.
   - name: Test_Dump_Command_Failure
     description: Downstream rejects internal Get during Dump; Dump_Failed event fires and command response is Failure.
-  - name: Test_Dump_Command_No_Dump_Connector
-    description: Dump command with no Memory_Dump_Send connector wired; Dump_Failed event fires with a zero-length sentinel region and the command response is Failure, without contacting the downstream.
   - name: Test_Dump_On_Change
     description: After a successful Set with Dump_On_Change=True, an Active_Parameters packet is auto-emitted.
   - name: Test_Dump_On_Change_Failure

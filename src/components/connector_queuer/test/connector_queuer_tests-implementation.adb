@@ -35,6 +35,11 @@ package body Connector_Queuer_Tests.Implementation is
       -- Make necessary connections between tester and component:
       Self.Tester.Connect;
 
+      -- Reset the tester's drop counter. On cross targets the static
+      -- Tester is reused across scenarios, so drops recorded by an
+      -- earlier scenario would otherwise leak into this one's counts.
+      Self.Tester.T_Send_Dropped_Count := 0;
+
       -- Call the component set up method that the assembly would normally call.
       Self.Tester.Component_Instance.Set_Up;
    end Set_Up_Test;
