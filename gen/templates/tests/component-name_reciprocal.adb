@@ -474,7 +474,17 @@ package body Component.{{ name }}_Reciprocal is
       declare
          use Serializer_Types;
          Item : {{ p.type }};
+         --  Zero-fill the whole Item record before any partial copy.
+         --  Without this, when deserialization fails (e.g. a
+         --  packetizer truncated the input), only the first
+         --  P.Header.Buffer_Length bytes get overlaid and the trailing
+         --  bytes of Item retain whatever was on the stack -- showing
+         --  up as 0xFF / garbage in test assertions and in any
+         --  Representation.To_Tuple_String log output.
+         Item_As_Bytes : Basic_Types.Byte_Array (0 .. {{ p.type_package }}.Size_In_Bytes - 1)
+            with Import, Convention => Ada, Address => Item'Address;
       begin
+         Item_As_Bytes := [others => 0];
          if Packet_Deserializer.From_Byte_Array (Item, P.Buffer) /= Success then
             -- Deserialization failed, so let's just manually copy what we can:
             declare

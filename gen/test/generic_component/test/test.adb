@@ -31,4 +31,6 @@ begin
    New_Line;
 
    Tester.Final_Base;
+   --  Sentinel for the cross test runner (manual-test pass marker).
+   Put_Line ("=== ALL TESTS PASSED ===");
 end Test;

@@ -86,6 +86,13 @@ package body Component.Memory_Manager.Implementation is
          Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Memory_Region_Status (Self.Sys_Time_T_Get, (State => Current_State)));
       end Force_Release;
 
+      procedure Reset is
+         use Memory_Manager_Enums.Memory_State;
+      begin
+         Current_State := Available;
+         Current_Id := 0;
+      end Reset;
+
       function Get_State return Memory_Manager_Enums.Memory_State.E is
       begin
          return Current_State;
@@ -131,6 +138,20 @@ package body Component.Memory_Manager.Implementation is
       Self.Region := (Address => Self.Bytes.all'Address, Length => Self.Bytes.all'Length);
       Self.Virtual_Region := (Address => 0, Length => Self.Bytes.all'Length);
    end Init;
+
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  Arbiter's Current_State / Current_Id record defaults fire only
+   --  on heap allocation. Tear_Down_Test calls Final to put the
+   --  protected arbiter back into a freshly-Init'd state for the
+   --  next scenario.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Arbiter.Reset;
+   end Final;
 
    -- Use set up procedure to update initial data products:
    overriding procedure Set_Up (Self : in out Instance) is

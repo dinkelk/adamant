@@ -24,6 +24,20 @@ package body Component.Parameter_Table_Forwarder.Implementation is
       Self.Dump_On_Change := Dump_Parameters_On_Change;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. The bareboard
+   --  Tester is a static singleton across scenarios, so the stored
+   --  table header (version/CRC), update time, and packet sequence
+   --  counts carry over and later scenarios' status assertions see
+   --  the previous scenario's table state.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Table_Size := 0;
+      Self.Dump_On_Change := False;
+      Self.Stored_Header := (Crc_Table => [0, 0], Version => 0.0);
+      Self.Table_Update_Time := 0;
+      Self.Packets.Reset_Sequence_Counts;
+   end Final;
+
    ---------------------------------------
    -- Helper functions:
    ---------------------------------------

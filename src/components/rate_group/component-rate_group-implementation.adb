@@ -24,6 +24,21 @@ package body Component.Rate_Group.Implementation is
       Self.Timing_Report_Delay_Ticks := Timing_Report_Delay_Ticks;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. The bareboard
+   --  Tester is a static singleton across scenarios, so the timer's
+   --  max-time high-water marks and the tick counters carry over and
+   --  suppress the time-exceeded events later scenarios assert on.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Timer.Reset;
+      Self.Issue_Time_Exceeded_Events := False;
+      Self.Ticks_Per_Timing_Report := 1;
+      Self.Timing_Report_Delay_Ticks := 1;
+      Self.Num_Ticks := 0;
+      Self.Ticks_Since_Startup := 0;
+      Self.Num_Cycle_Slips := 0;
+   end Final;
+
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------

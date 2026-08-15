@@ -34,6 +34,16 @@ package body {{ name }} is
 
 {% endif %}
    -----------------------------------------------
+   -- Sequence count reset:
+   -----------------------------------------------
+   not overriding procedure Reset_Sequence_Counts (Self : in out Instance) is
+   begin
+{% for p in packets %}
+      Self.{{ p.name }}_Sequence_Count := 0;
+{% endfor %}
+   end Reset_Sequence_Counts;
+
+   -----------------------------------------------
    -- Getter function for global packet IDs:
    -----------------------------------------------
 {% for p in packets %}

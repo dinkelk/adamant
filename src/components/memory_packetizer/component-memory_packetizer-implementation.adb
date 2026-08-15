@@ -46,7 +46,18 @@ package body Component.Memory_Packetizer.Implementation is
    begin
       if Self.Sequence_Count_List /= null then
          Free_If_Testing (Self.Sequence_Count_List);
+         Self.Sequence_Count_List := null;
       end if;
+      --  Reset per-scenario rate-limiting state for cross-test reuse.
+      --  Cross-compiled tests share a static Tester instance across
+      --  scenarios; the record-default initialization fires only on
+      --  heap allocation, so without this reset the next scenario
+      --  inherits the previous scenario's stale window state and the
+      --  rate limiter delays until a stale Next_Period_Start, which
+      --  on renode causes the test runner to time out before AUnit
+      --  can emit its summary.
+      Self.Next_Period_Start := Ada.Real_Time.Time_First;
+      Self.Num_Packets_Sent := 0;
    end Final;
 
    function Get_Sequence_Count_Entry_Index (Self : in out Instance; Id : in Packet_Types.Packet_Id) return Natural is

@@ -22,6 +22,14 @@ package Component.Ccsds_Product_Extractor.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Data_Product_Extraction_List : in not null Product_Extractor_Types.Extracted_Product_List_Access);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
    function Less_Than (Left, Right : Ccsds_Product_Apid_List) return Boolean with
       Inline => True;
    function Greater_Than (Left, Right : Ccsds_Product_Apid_List) return Boolean with

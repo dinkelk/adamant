@@ -45,6 +45,14 @@ package body Component.Command_Protector.Implementation is
    not overriding procedure Final (Self : in out Instance) is
    begin
       Self.Protected_Command_List.Destroy;
+      --  Reset per-scenario state for cross-test reuse. Cross-compiled
+      --  tests reuse a static Tester instance across scenarios; the
+      --  arm-state and reject/forward-count record defaults fire only
+      --  on heap allocation. Drop the arm state back to Unarmed and
+      --  zero the counters so the next scenario starts clean.
+      Self.Command_Arm_State.Unarm;
+      Self.Protected_Command_Reject_Count := 0;
+      Self.Protected_Command_Forward_Count := 0;
    end Final;
 
    -- Send out data products:

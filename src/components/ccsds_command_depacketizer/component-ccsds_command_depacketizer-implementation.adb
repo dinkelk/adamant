@@ -24,6 +24,20 @@ package body Component.Ccsds_Command_Depacketizer.Implementation is
    end Set_Up;
 
    ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  protected counters' record defaults fire only on heap
+   --  allocation. Tear_Down_Test calls Final to put the counters
+   --  back to zero for the next scenario.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Rejected_Packet_Count.Reset_Count;
+      Self.Accepted_Packet_Count.Reset_Count;
+   end Final;
+
+   ---------------------------------------
    -- Private functions:
    ---------------------------------------
 

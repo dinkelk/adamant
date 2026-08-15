@@ -19,8 +19,6 @@ with Invalid_Parameters_Memory_Region_Length.Assertion; use Invalid_Parameters_M
 with Invalid_Parameters_Memory_Region_Crc.Assertion; use Invalid_Parameters_Memory_Region_Crc.Assertion;
 with Parameter_Table_Header;
 with Crc_16;
-with Byte_Array_Pointer;
-with Memory_Packetizer_Types;
 with System;
 
 package body Parameter_Store_Tests.Implementation is
@@ -51,16 +49,23 @@ package body Parameter_Store_Tests.Implementation is
 
       -- NOTE: Connect + Component_Instance.Set_Up are intentionally NOT called
       -- here because Set_Up asserts exactly-one-of Packet_T_Send /
-      -- Memory_Dump_Send is connected. Each test selects its dump pathway by
-      -- calling either Self.Tester.Connect (Packet.T path)
-      -- or Self.Tester.Connect_Memory_Dump_Path (Memory_Dump path), then
-      -- Self.Tester.Component_Instance.Set_Up.
+      -- Memory_Dump_Send is connected. Each test wires the Packet.T pathway
+      -- by calling Self.Tester.Connect, then
+      -- Self.Tester.Component_Instance.Set_Up. The Memory_Dump pathway
+      -- scenarios live in the sibling test_memory_dump/ directory, since on
+      -- cross targets the static Tester's connector wiring cannot be undone
+      -- between scenarios.
    end Set_Up_Test;
 
    overriding procedure Tear_Down_Test (Self : in out Instance) is
    begin
       -- Free component heap:
       Self.Tester.Final_Base;
+      -- Reset per-scenario component state for cross-test reuse:
+      -- the bareboard Tester is a static singleton, so without this
+      -- the packet generator's Sequence_Count carries over from the
+      -- prior scenario.
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
@@ -540,8 +545,13 @@ package body Parameter_Store_Tests.Implementation is
       T.Connect;
       T.Component_Instance.Set_Up;
 
-      -- Send 3 commands to fill up queue.
-      Cmd.Header.Arg_Buffer_Length := Cmd.Arg_Buffer'Length;
+      -- Send 3 commands to fill up queue. Set Id above Num_Commands
+      -- (=1) so the tester's Log_Incoming_Command falls through to the
+      -- "not recognized" path. Linux happens to leave the uninit Id
+      -- as a large value (also above Num_Commands), but bareboard's
+      -- Initialize_Scalars zeroes it which is below Id_Base (=1) and
+      -- the Id - Id_Base subtraction underflows -> CONSTRAINT_ERROR.
+      Cmd.Header := (Source_Id => 0, Id => 16#FFFF#, Arg_Buffer_Length => Cmd.Arg_Buffer'Length);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);
@@ -592,99 +602,5 @@ package body Parameter_Store_Tests.Implementation is
       Natural_Assert.Eq (T.Invalid_Command_Received_History.Get_Count, 1);
       Invalid_Command_Info_Assert.Eq (T.Invalid_Command_Received_History.Get (1), (Id => T.Commands.Get_Dump_Parameter_Store_Id, Errant_Field_Number => Interfaces.Unsigned_32'Last, Errant_Field => [0, 0, 0, 0, 0, 0, 0, 22]));
    end Test_Invalid_Command;
-
-   overriding procedure Test_Memory_Dump_Path (Self : in out Instance) is
-      T : Component.Parameter_Store.Implementation.Tester.Instance_Access renames Self.Tester;
-      Dump : Memory_Packetizer_Types.Memory_Dump;
-   begin
-      -- Wire the Memory_Dump dump pathway (no Packet_T_Send) and run Set_Up:
-      T.Connect_Memory_Dump_Path;
-      T.Component_Instance.Set_Up;
-
-      -- No traffic on either pathway yet:
-      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 0);
-      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
-
-      -- Issue the dump command:
-      T.Command_T_Send (T.Commands.Dump_Parameter_Store);
-      Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Command_Response_T_Recv_Sync_History.Get_Count, 1);
-      Command_Response_Assert.Eq (
-         T.Command_Response_T_Recv_Sync_History.Get (1),
-         (Source_Id => 0, Registration_Id => 0, Command_Id => T.Commands.Get_Dump_Parameter_Store_Id, Status => Success));
-
-      -- Exactly one Memory_Dump emitted; no Packet.T on this path:
-      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
-
-      Dump := T.Memory_Dump_Recv_Sync_History.Get (1);
-
-      -- Stored_Parameters APID == 0 (only packet defined for this component).
-      Natural_Assert.Eq (Natural (Dump.Id), 0);
-      -- The Memory_Dump points at the full parameter table buffer (zero-copy):
-      Natural_Assert.Eq (Byte_Array_Pointer.Length (Dump.Memory_Pointer), Bytes'Length);
-      Byte_Array_Assert.Eq (Byte_Array_Pointer.To_Byte_Array (Dump.Memory_Pointer), Bytes);
-
-      -- Dumped_Parameters event fired once:
-      Natural_Assert.Eq (T.Dumped_Parameters_History.Get_Count, 1);
-
-      -- A second dump command bumps everything by one:
-      T.Command_T_Send (T.Commands.Dump_Parameter_Store);
-      Natural_Assert.Eq (T.Dispatch_All, 1);
-      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 2);
-      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
-      Natural_Assert.Eq (T.Dumped_Parameters_History.Get_Count, 2);
-   end Test_Memory_Dump_Path;
-
-   overriding procedure Test_Memory_Dump_Path_Auto_Dump_On_Change (Self : in out Instance) is
-      use Parameter_Enums.Parameter_Table_Update_Status;
-      use Parameter_Enums.Parameter_Table_Operation_Type;
-      T : Component.Parameter_Store.Implementation.Tester.Instance_Access renames Self.Tester;
-      -- Build a valid (CRC-correct) parameter table:
-      Table : aliased Basic_Types.Byte_Array := [0 .. 99 => 17];
-      Crc : Crc_16.Crc_16_Type;
-      Region : constant Memory_Region.T := (Address => Table'Address, Length => Table'Length);
-      Expected_Table_Bytes : Basic_Types.Byte_Array (0 .. 99) := Table;
-      Dump : Memory_Packetizer_Types.Memory_Dump;
-   begin
-      -- Wire the Memory_Dump dump pathway (no Packet_T_Send) and run Set_Up:
-      T.Connect_Memory_Dump_Path;
-      T.Component_Instance.Set_Up;
-
-      -- Stamp version + CRC into both the staging table and the comparison
-      -- copy so the component's bytes match Expected_Table_Bytes after the Set:
-      Table (Table'First .. Table'First + Parameter_Table_Header.Size_In_Bytes - 1) :=
-         Parameter_Table_Header.Serialization.To_Byte_Array ((Crc_Table => [0, 0], Version => 1.0));
-      Crc := Crc_16.Compute_Crc_16 (Table (Table'First + Parameter_Table_Header.Crc_Section_Length .. Table'Last));
-      Table (Table'First .. Table'First + Parameter_Table_Header.Size_In_Bytes - 1) :=
-         Parameter_Table_Header.Serialization.To_Byte_Array ((Crc_Table => Crc, Version => 1.0));
-      Expected_Table_Bytes (Table'First .. Table'First + Parameter_Table_Header.Size_In_Bytes - 1) :=
-         Parameter_Table_Header.Serialization.To_Byte_Array ((Crc_Table => Crc, Version => 1.0));
-
-      -- Send the memory region (Set) -- fixture has Dump_Parameters_On_Change => True,
-      -- so this should auto-dump through the Memory_Dump pathway:
-      T.Parameters_Memory_Region_T_Send ((Region => Region, Operation => Set));
-      Natural_Assert.Eq (T.Dispatch_All, 1);
-
-      -- Component's bytes were updated:
-      Byte_Array_Assert.Eq (Bytes, Expected_Table_Bytes);
-
-      -- Exactly one Memory_Dump fired automatically; nothing on the Packet path:
-      Natural_Assert.Eq (T.Memory_Dump_Recv_Sync_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Packet_T_Recv_Sync_History.Get_Count, 0);
-
-      Dump := T.Memory_Dump_Recv_Sync_History.Get (1);
-      Natural_Assert.Eq (Natural (Dump.Id), 0);
-      Natural_Assert.Eq (Byte_Array_Pointer.Length (Dump.Memory_Pointer), Bytes'Length);
-      Byte_Array_Assert.Eq (Byte_Array_Pointer.To_Byte_Array (Dump.Memory_Pointer), Expected_Table_Bytes);
-
-      -- Release/event bookkeeping:
-      Natural_Assert.Eq (T.Parameter_Table_Updated_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Dumped_Parameters_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Parameters_Memory_Region_Release_T_Recv_Sync_History.Get_Count, 1);
-      Parameters_Memory_Region_Release_Assert.Eq (
-         T.Parameters_Memory_Region_Release_T_Recv_Sync_History.Get (1),
-         (Region, Success));
-   end Test_Memory_Dump_Path_Auto_Dump_On_Change;
 
 end Parameter_Store_Tests.Implementation;

@@ -50,6 +50,16 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       Self.Extraction_List := Data_Product_Extraction_List;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. The bareboard
+   --  Tester is a static singleton across scenarios, so the products
+   --  tree retains the previous scenario's entries and the duplicate
+   --  and capacity assertions in Init fire on re-initialization.
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Extracted_Products_Tree.Destroy;
+      Self.Extraction_List := null;
+   end Final;
+
    ---------------------------------------
    -- Set up procedure:
    ---------------------------------------

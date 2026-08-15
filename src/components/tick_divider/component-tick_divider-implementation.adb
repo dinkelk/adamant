@@ -53,6 +53,20 @@ package body Component.Tick_Divider.Implementation is
       end case;
    end Init;
 
+   --  Reset per-scenario state for cross-test reuse. Cross-compiled
+   --  tests reuse a static Tester instance across scenarios; the
+   --  internal tick counter and rollover bound are initialized via
+   --  record default which fires only on heap allocation, and
+   --  Init only sets Max_Count in Internal mode -- so without this
+   --  reset the next scenario sees stale values from the prior run
+   --  (a Tick_Counter-mode scenario after an Internal-mode scenario
+   --  inherits the prior Max_Count, which the test asserts on).
+   not overriding procedure Final (Self : in out Instance) is
+   begin
+      Self.Count := Interfaces.Unsigned_32'First;
+      Self.Max_Count := Interfaces.Unsigned_32'First;
+   end Final;
+
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------

@@ -21,6 +21,12 @@ package Apid_Tree is
    --
    procedure Init (Self : in out Instance; Downsample_List : in Ccsds_Downsample_Packet_List_Access);
 
+   --  Destroy the tree storage and reset all per-instance counters
+   --  back to defaults. Used by tests that share a static instance
+   --  across scenarios; without this the underlying binary tree's
+   --  Size leaks across Init calls and an Add eventually fails.
+   procedure Destroy (Self : in out Instance);
+
    -- Function to fetch the event range. This helps keep the component in sync with the package
    function Filter_Packet (Self : in out Instance; Apid : in Ccsds_Apid_Type; Count : out Unsigned_16) return Filter_Action_Status;
    -- Function to get the pointer for the array. This is so that we can quickly copy the whole thing into the state packet

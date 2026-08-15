@@ -39,6 +39,14 @@ package Component.Parameters.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Parameter_Table_Entries : in not null Parameters_Component_Types.Parameter_Table_Entry_List_Access; Table_Id : in Parameter_Types.Parameter_Table_Id; Dump_Parameters_On_Change : in Boolean := False);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:

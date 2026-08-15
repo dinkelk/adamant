@@ -60,6 +60,10 @@ package body Parameter_Table_Forwarder_Tests.Implementation is
    overriding procedure Tear_Down_Test (Self : in out Instance) is
    begin
       Self.Tester.Final_Base;
+      -- Reset component state for the next scenario. Cross-compiled
+      -- tests reuse a static Tester instance and the record-default
+      -- initialization fires only on heap allocation.
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
@@ -814,7 +818,12 @@ package body Parameter_Table_Forwarder_Tests.Implementation is
       T : Component.Parameter_Table_Forwarder.Implementation.Tester.Instance_Access renames Self.Tester;
       Cmd : Command.T;
    begin
-      Cmd.Header.Arg_Buffer_Length := Cmd.Arg_Buffer'Length;
+      -- Set Id above the registered command range so the tester's
+      -- Log_Incoming_Command falls through to the "not recognized" path.
+      -- Linux happens to leave the uninit Id as a large value, but
+      -- bareboard's Initialize_Scalars zeroes it which is below Id_Base
+      -- and the Id - Id_Base subtraction underflows -> CONSTRAINT_ERROR.
+      Cmd.Header := (Source_Id => 0, Id => 16#FFFF#, Arg_Buffer_Length => Cmd.Arg_Buffer'Length);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);
@@ -841,7 +850,9 @@ package body Parameter_Table_Forwarder_Tests.Implementation is
       Region : constant Memory_Region.T := (Address => Memory'Address, Length => Test_Table_Size);
    begin
       -- Fill the queue with 3 commands to leave no room for the region.
-      Cmd.Header.Arg_Buffer_Length := Cmd.Arg_Buffer'Length;
+      -- Explicit header init for bareboard Initialize_Scalars (see
+      -- Test_Command_Dropped).
+      Cmd.Header := (Source_Id => 0, Id => 16#FFFF#, Arg_Buffer_Length => Cmd.Arg_Buffer'Length);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);
       T.Command_T_Send (Cmd);

@@ -25,6 +25,14 @@ package Component.Rate_Group.Implementation is
    --
    overriding procedure Init (Self : in out Instance; Ticks_Per_Timing_Report : in Interfaces.Unsigned_16 := 1; Timing_Report_Delay_Ticks : in Interfaces.Unsigned_16 := 3; Issue_Time_Exceeded_Events : in Boolean := False);
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- The component class instance record:

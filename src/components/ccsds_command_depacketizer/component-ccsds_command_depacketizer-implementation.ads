@@ -14,6 +14,14 @@ package Component.Ccsds_Command_Depacketizer.Implementation is
    -- The component class instance record:
    type Instance is new Ccsds_Command_Depacketizer.Base_Instance with private;
 
+   ---------------------------------------
+   -- Final Procedure
+   ---------------------------------------
+   -- Reset per-scenario state for cross-test reuse. Called from
+   -- Tear_Down_Test to put the instance back into a clean state for
+   -- the next scenario.
+   not overriding procedure Final (Self : in out Instance);
+
 private
 
    -- Instantiate protected 8 bit counter:

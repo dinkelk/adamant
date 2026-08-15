@@ -23,6 +23,12 @@ package body Tests.Implementation is
       -- Make necessary connections between tester and component:
       Self.Tester.Connect;
 
+      -- Reset the tester's simulated clock. On cross targets the static
+      -- Tester is reused across scenarios, so the per-connector-call time
+      -- increments would otherwise accumulate and skew the deterministic
+      -- wall (cycle) time deltas this test asserts on.
+      Self.Tester.System_Time := (0, 0);
+
       -- Initialize the component:
       Self.Tester.Component_Instance.Init (Ticks_Per_Timing_Report => 1, Timing_Report_Delay_Ticks => 0, Issue_Time_Exceeded_Events => True);
    end Set_Up_Test;
@@ -31,6 +37,10 @@ package body Tests.Implementation is
    begin
       -- Free component heap:
       Self.Tester.Final_Base;
+      -- Reset component state for the next scenario. Cross-compiled
+      -- tests reuse a static Tester instance and the record-default
+      -- initialization fires only on heap allocation.
+      Self.Tester.Component_Instance.Final;
    end Tear_Down_Test;
 
    -------------------------------------------------------------------------
