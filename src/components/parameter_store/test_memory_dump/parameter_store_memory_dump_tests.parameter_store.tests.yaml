@@ -1,0 +1,7 @@
+---
+description: This is a unit test suite for the Memory_Dump dump pathway of the Parameter Store component. It lives in its own test directory (separate from the Packet.T pathway suite) because the component's Set_Up asserts that exactly one dump pathway is connected, and on cross targets the static Tester's connector wiring cannot be undone between scenarios.
+tests:
+  - name: Test_Memory_Dump_Path
+    description: This unit test wires the Memory_Dump_Send dump pathway and verifies that the Dump command emits a Memory_Dump record (with the Stored_Parameters APID and a pointer/length matching the managed bytes), with no Packet.T emitted on this pathway.
+  - name: Test_Memory_Dump_Path_Auto_Dump_On_Change
+    description: This unit test wires the Memory_Dump_Send dump pathway and verifies that an auto-dump-on-change after a parameter table upload fires through the Memory_Dump connector.
