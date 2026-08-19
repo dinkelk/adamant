@@ -1,0 +1,5 @@
+---
+type: Long_Float
+format: F64
+description: A simple array of Long_Floats
+length: 3
