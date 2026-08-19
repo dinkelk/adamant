@@ -16,6 +16,8 @@ with Eight_Bit_Type_Array.Validation;
 with Unaligned_Array.Validation;
 with Enum_Array.Validation;
 with Float_Array.Validation;
+with Float64_Array.Validation;
+with Ranged_Float_Array.Validation;
 with Complex_Float_Array.Validation;
 with Complex_Array_Le.Validation;
 with Float_Array;
@@ -454,6 +456,178 @@ begin
                "BE Pack/Unpack mismatch (shifted) at index" & J'Image);
          end loop;
       end;
+   end;
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   --  Regression test for Validation.Valid on float arrays: 'Valid applied
+   --  directly to an element of an array with a non-native
+   --  Scalar_Storage_Order is evaluated by GNAT on the element's raw
+   --  storage bytes, without the byte swap the storage order requires.
+   --  On a little endian host that made the big endian Valid accept +Inf,
+   --  -Inf and NaN (their byte-reversed patterns look like denormals) and
+   --  reject perfectly valid values whose byte-reversed pattern lands on a
+   --  NaN exponent (again 0x3A77EE7F). The validation autocode now copies
+   --  each element to a native-order local first.
+   --
+   --  Bytes are constructed directly (no float writes) so the test is
+   --  independent of validity-check compiler switches.
+   Put_Line ("Float_Array Validation.Valid NaN/Inf/byte-order test:");
+   declare
+      subtype Fa_Bytes is Basic_Types.Byte_Array (0 .. Float_Array.Size_In_Bytes - 1);
+
+      --  Build a byte array of 12 identical big endian F32 patterns, then
+      --  overwrite one element with a different pattern.
+      function Make (
+         Fill : in Basic_Types.Byte_Array;
+         Special : in Basic_Types.Byte_Array;
+         Special_Index : in Natural
+      ) return Fa_Bytes is
+         Result : Fa_Bytes;
+      begin
+         for J in 0 .. Float_Array.Length - 1 loop
+            Result (J * 4 .. J * 4 + 3) := Fill;
+         end loop;
+         Result (Special_Index * 4 .. Special_Index * 4 + 3) := Special;
+         return Result;
+      end Make;
+
+      --  Big endian byte patterns:
+      P_One   : constant Basic_Types.Byte_Array (0 .. 3) := [16#3F#, 16#80#, 16#00#, 16#00#];  -- 1.0
+      P_Inf   : constant Basic_Types.Byte_Array (0 .. 3) := [16#7F#, 16#80#, 16#00#, 16#00#];  -- +Inf
+      P_Ninf  : constant Basic_Types.Byte_Array (0 .. 3) := [16#FF#, 16#80#, 16#00#, 16#00#];  -- -Inf
+      P_Nan   : constant Basic_Types.Byte_Array (0 .. 3) := [16#7F#, 16#C0#, 16#00#, 16#00#];  -- quiet NaN
+      P_Snan  : constant Basic_Types.Byte_Array (0 .. 3) := [16#FF#, 16#80#, 16#00#, 16#01#];  -- signaling NaN
+      --  9.45784093e-4 = 0x3A77EE7F: valid, but its byte-reversed pattern
+      --  0x7FEE773A has an all-ones exponent (a NaN):
+      P_Trap  : constant Basic_Types.Byte_Array (0 .. 3) := [16#3A#, 16#77#, 16#EE#, 16#7F#];
+      --  Denormal 0x0000C07F: valid, byte-reverses to the canonical quiet
+      --  NaN 0x7FC00000:
+      P_Trap2 : constant Basic_Types.Byte_Array (0 .. 3) := [16#00#, 16#00#, 16#C0#, 16#7F#];
+
+      function Rev (B : in Basic_Types.Byte_Array) return Basic_Types.Byte_Array is
+         ([B (B'Last), B (B'Last - 1), B (B'Last - 2), B (B'First)]);
+
+      Field_Number : Unsigned_32 := 0;
+   begin
+      --  Big endian Valid:
+      pragma Assert (Float_Array.Validation.Valid (Make (P_One, P_Trap, 5), Ignore),
+         "BE float array with valid values (incl. NaN-on-reverse pattern) should be valid.");
+      pragma Assert (Float_Array.Validation.Valid (Make (P_Trap2, P_Trap, 0), Ignore),
+         "BE float array of valid denormals should be valid.");
+      pragma Assert (not Float_Array.Validation.Valid (Make (P_One, P_Inf, 3), Field_Number),
+         "BE float array containing +Inf should be invalid.");
+      pragma Assert (Field_Number = 4, "Errant field for +Inf at index 3 should be 4.");
+      pragma Assert (not Float_Array.Validation.Valid (Make (P_One, P_Ninf, 0), Field_Number),
+         "BE float array containing -Inf should be invalid.");
+      pragma Assert (Field_Number = 1, "Errant field for -Inf at index 0 should be 1.");
+      pragma Assert (not Float_Array.Validation.Valid (Make (P_One, P_Nan, 11), Field_Number),
+         "BE float array containing NaN should be invalid.");
+      pragma Assert (Field_Number = 12, "Errant field for NaN at index 11 should be 12.");
+      pragma Assert (not Float_Array.Validation.Valid (Make (P_One, P_Snan, 7), Field_Number),
+         "BE float array containing signaling NaN should be invalid.");
+      pragma Assert (Field_Number = 8, "Errant field for sNaN at index 7 should be 8.");
+
+      --  Subrange that excludes the invalid element should be valid:
+      pragma Assert (Float_Array.Validation.Valid (Make (P_One, P_Nan, 11), Ignore, 0, 10),
+         "BE float array subrange excluding NaN should be valid.");
+      pragma Assert (not Float_Array.Validation.Valid (Make (P_One, P_Nan, 11), Ignore, 10, 11),
+         "BE float array subrange including NaN should be invalid.");
+
+      --  Little endian Valid_Le (patterns byte-reversed):
+      pragma Assert (Float_Array.Validation.Valid_Le (Make (Rev (P_One), Rev (P_Trap), 5), Ignore),
+         "LE float array with valid values (incl. NaN-on-reverse pattern) should be valid.");
+      pragma Assert (not Float_Array.Validation.Valid_Le (Make (Rev (P_One), Rev (P_Inf), 3), Field_Number),
+         "LE float array containing +Inf should be invalid.");
+      pragma Assert (Field_Number = 4, "Errant field for LE +Inf at index 3 should be 4.");
+      pragma Assert (not Float_Array.Validation.Valid_Le (Make (Rev (P_One), Rev (P_Nan), 2), Field_Number),
+         "LE float array containing NaN should be invalid.");
+      pragma Assert (Field_Number = 3, "Errant field for LE NaN at index 2 should be 3.");
+   end;
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   --  Same checks for Long_Float (F64) elements:
+   Put_Line ("Float64_Array Validation.Valid NaN/Inf/byte-order test:");
+   declare
+      subtype F64_Bytes is Basic_Types.Byte_Array (0 .. Float64_Array.Size_In_Bytes - 1);
+
+      function Make (
+         Fill : in Basic_Types.Byte_Array;
+         Special : in Basic_Types.Byte_Array;
+         Special_Index : in Natural
+      ) return F64_Bytes is
+         Result : F64_Bytes;
+      begin
+         for J in 0 .. Float64_Array.Length - 1 loop
+            Result (J * 8 .. J * 8 + 7) := Fill;
+         end loop;
+         Result (Special_Index * 8 .. Special_Index * 8 + 7) := Special;
+         return Result;
+      end Make;
+
+      --  Big endian byte patterns:
+      P_One  : constant Basic_Types.Byte_Array (0 .. 7) := [16#3F#, 16#F0#, 0, 0, 0, 0, 0, 0];  -- 1.0
+      P_Inf  : constant Basic_Types.Byte_Array (0 .. 7) := [16#7F#, 16#F0#, 0, 0, 0, 0, 0, 0];  -- +Inf
+      P_Nan  : constant Basic_Types.Byte_Array (0 .. 7) := [16#7F#, 16#F8#, 0, 0, 0, 0, 0, 0];  -- quiet NaN
+      --  Valid double whose byte-reversed pattern has an all-ones exponent
+      --  (0x7FF80000000000F03F, a NaN):
+      P_Trap : constant Basic_Types.Byte_Array (0 .. 7) := [16#3F#, 16#F0#, 0, 0, 0, 0, 16#F8#, 16#7F#];
+
+      Field_Number : Unsigned_32 := 0;
+   begin
+      pragma Assert (Float64_Array.Validation.Valid (Make (P_One, P_Trap, 1), Ignore),
+         "BE F64 array with valid values (incl. NaN-on-reverse pattern) should be valid.");
+      pragma Assert (not Float64_Array.Validation.Valid (Make (P_One, P_Inf, 2), Field_Number),
+         "BE F64 array containing +Inf should be invalid.");
+      pragma Assert (Field_Number = 3, "Errant field for F64 +Inf at index 2 should be 3.");
+      pragma Assert (not Float64_Array.Validation.Valid (Make (P_One, P_Nan, 0), Field_Number),
+         "BE F64 array containing NaN should be invalid.");
+      pragma Assert (Field_Number = 1, "Errant field for F64 NaN at index 0 should be 1.");
+   end;
+   Put_Line ("passed.");
+   Put_Line ("");
+
+   --  Range-constrained float elements: the copy + 'Valid in the generated
+   --  validation must also enforce the element subtype's range.
+   Put_Line ("Ranged_Float_Array Validation.Valid range test:");
+   declare
+      subtype Rf_Bytes is Basic_Types.Byte_Array (0 .. Ranged_Float_Array.Size_In_Bytes - 1);
+
+      function Make (
+         Fill : in Basic_Types.Byte_Array;
+         Special : in Basic_Types.Byte_Array;
+         Special_Index : in Natural
+      ) return Rf_Bytes is
+         Result : Rf_Bytes;
+      begin
+         for J in 0 .. Ranged_Float_Array.Length - 1 loop
+            Result (J * 4 .. J * 4 + 3) := Fill;
+         end loop;
+         Result (Special_Index * 4 .. Special_Index * 4 + 3) := Special;
+         return Result;
+      end Make;
+
+      --  Big endian byte patterns (element subtype range is -1.0 .. 1.0):
+      P_Half : constant Basic_Types.Byte_Array (0 .. 3) := [16#3F#, 16#00#, 16#00#, 16#00#];  -- 0.5
+      P_One  : constant Basic_Types.Byte_Array (0 .. 3) := [16#3F#, 16#80#, 16#00#, 16#00#];  -- 1.0 (boundary)
+      P_Big  : constant Basic_Types.Byte_Array (0 .. 3) := [16#3F#, 16#C0#, 16#00#, 16#00#];  -- 1.5 (out of range)
+      P_Nan  : constant Basic_Types.Byte_Array (0 .. 3) := [16#7F#, 16#C0#, 16#00#, 16#00#];  -- quiet NaN
+      --  9.45784093e-4 = 0x3A77EE7F: in range, byte-reverses to a NaN:
+      P_Trap : constant Basic_Types.Byte_Array (0 .. 3) := [16#3A#, 16#77#, 16#EE#, 16#7F#];
+
+      Field_Number : Unsigned_32 := 0;
+   begin
+      pragma Assert (Ranged_Float_Array.Validation.Valid (Make (P_Half, P_One, 1), Ignore),
+         "Ranged float array with in-range values should be valid.");
+      pragma Assert (Ranged_Float_Array.Validation.Valid (Make (P_Half, P_Trap, 2), Ignore),
+         "Ranged float array with in-range NaN-on-reverse pattern should be valid.");
+      pragma Assert (not Ranged_Float_Array.Validation.Valid (Make (P_Half, P_Big, 1), Field_Number),
+         "Ranged float array with out-of-range value should be invalid.");
+      pragma Assert (Field_Number = 2, "Errant field for out-of-range value at index 1 should be 2.");
+      pragma Assert (not Ranged_Float_Array.Validation.Valid (Make (P_Half, P_Nan, 0), Field_Number),
+         "Ranged float array containing NaN should be invalid.");
+      pragma Assert (Field_Number = 1, "Errant field for NaN at index 0 should be 1.");
    end;
    Put_Line ("passed.");
    Put_Line ("");
