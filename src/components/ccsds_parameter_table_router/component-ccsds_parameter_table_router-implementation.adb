@@ -302,11 +302,13 @@ package body Component.Ccsds_Parameter_Table_Router.Implementation is
 
          -- Validate: at most one Load_From per entry:
          declare
-            Load_From_Count : Natural := 0;
+            Found_Load_From : Boolean := False;
          begin
             for Dest of Table_Ent.Destinations.all loop
                if Dest.Load_From then
-                  Load_From_Count := @ + 1;
+                  -- At most one Load_From per entry:
+                  pragma Assert (not Found_Load_From);
+                  Found_Load_From := True;
                end if;
                -- Make sure destination connector index is in range:
                pragma Assert (
@@ -314,8 +316,6 @@ package body Component.Ccsds_Parameter_Table_Router.Implementation is
                   and then Dest.Connector_Index <= Self.Connector_Parameters_Memory_Region_T_Send'Last
                );
             end loop;
-            -- At most one Load_From per entry:
-            pragma Assert (Load_From_Count <= 1);
          end;
 
          -- Make sure the table ID is not already in the tree:
@@ -381,7 +381,8 @@ package body Component.Ccsds_Parameter_Table_Router.Implementation is
       use Parameter_Table_Buffer;
 
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
-      Table_Status_Val : Ccsds_Parameter_Table_Router_Enums.Table_Status.E := Table_Update_Success;
+      -- Set by every branch of the case statement below:
+      Table_Status_Val : Ccsds_Parameter_Table_Router_Enums.Table_Status.E;
 
       -- Helper to increment the reject counter, publish the reject DP, and emit the given event.
       procedure Reject_Packet (Evnt : in Event.T) is
