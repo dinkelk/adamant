@@ -75,6 +75,8 @@ package body Component.Parameters.Implementation is
             if Idx = Self.Entries.all'First then
                -- First entry must have Entry_Id = 0
                pragma Assert (Param_Entry.Entry_Id = 0, "First parameter entry must have Entry_Id = 0, but found Entry_Id = " & Parameter_Types.Parameter_Table_Entry_Id'Image (Param_Entry.Entry_Id) & ".");
+               pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                  "This assertion is intentionally designed to raise an exception if the first parameter entry is not zero-indexed during initialization validation.");
             else
                declare
                   Prev_Entry : Parameters_Component_Types.Parameter_Table_Entry renames Self.Entries.all (Idx - 1);
@@ -86,6 +88,8 @@ package body Component.Parameters.Implementation is
                      " has Entry_Id = " & Parameter_Types.Parameter_Table_Entry_Id'Image (Param_Entry.Entry_Id) &
                      ", but previous entry has Entry_Id = " & Parameter_Types.Parameter_Table_Entry_Id'Image (Prev_Entry.Entry_Id) & "."
                   );
+                  pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                     "This assertion is intentionally designed to raise an exception if parameter Entry_Ids are out of order during initialization validation.");
                end;
             end if;
 
@@ -95,6 +99,8 @@ package body Component.Parameters.Implementation is
                "Destination index for Parameter '" & Parameter_Id'Image (Param_Entry.Id) & " is out of range: " & Connector_Index_Type'Image (Param_Entry.Component_Id) & ". Must be between '" &
                Connector_Index_Type'Image (Self.Connector_Parameter_Update_T_Provide'First) & "' and '" & Connector_Index_Type'Image (Self.Connector_Parameter_Update_T_Provide'Last) & "'."
             );
+            pragma Annotate (GNATSAS, Intentional, "conditional raise",
+               "This assertion is intentionally designed to raise an exception if a parameter destination component ID is outside the arrayed connector's index range during initialization validation.");
 
             -- Make sure that the component ID is connected to a connector that is indeed connected.
             pragma Assert (Self.Is_Parameter_Update_T_Provide_Connected (Param_Entry.Component_Id),
@@ -107,9 +113,15 @@ package body Component.Parameters.Implementation is
                procedure Validate_Parameter_Layout is
                begin
                   pragma Assert (Param_Entry.Start_Index = Current_Byte, "Unexpected byte layout in parameter table at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
+                  pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                     "This assertion is intentionally designed to raise an exception if the parameter table byte layout has deadspace or overlap during initialization validation.");
                   pragma Assert (Param_Entry.End_Index >= Param_Entry.Start_Index, "end_Index must be greater than start_Index at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
-                  pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index + 1 <= Parameter_Types.Parameter_Buffer_Length_Type'Last,
+                  -- Phrased with subtraction only so the check itself cannot overflow on a
+                  -- pathological table (the previous assertion guarantees End_Index >= Start_Index).
+                  pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index <= Parameter_Types.Parameter_Buffer_Length_Type'Last - 1,
                      "Parameter ID '" & Parameter_Id'Image (Param_Entry.Id) & "' is too large to fit in the parameter record.");
+                  pragma Annotate (GNATSAS, Intentional, "conditional raise",
+                     "This assertion is intentionally designed to raise an exception if a parameter is too large for the parameter record during initialization validation.");
                   Current_Byte := Param_Entry.End_Index + 1;
                end Validate_Parameter_Layout;
             begin
@@ -165,6 +177,12 @@ package body Component.Parameters.Implementation is
    -- The caller of this function provides the buffer, and the buffer must be large enough
    -- to hold the entire parameter table.
    function Fetch_Parameters (Self : in out Instance; Buffer : in out Basic_Types.Byte_Array) return Parameter_Enums.Parameter_Update_Status.E is
+      use type Parameters_Component_Types.Parameter_Table_Entry_List_Access;
+      -- The parameter entry table is provided at Init from a not null access and
+      -- validated there before any other use of this component; the analyzer
+      -- cannot track this initialize-before-use lifecycle across calls. With
+      -- assertions enabled in all builds this is also checked at runtime.
+      pragma Assume (Self.Entries /= null);
       use Parameter_Enums.Parameter_Update_Status;
       use Parameter_Types;
       use Basic_Types;
@@ -703,6 +721,12 @@ package body Component.Parameters.Implementation is
    --    These are the commands for the Parameters component.
    -- Update the active parameter value in a component for a parameter table entry with the given ID, Length, and Value. If multiple parameters share the same entry ID (grouped parameters), all will be updated.
    overriding function Update_Parameter (Self : in out Instance; Arg : in Parameter_Table_Entry.T) return Command_Execution_Status.E is
+      use type Parameters_Component_Types.Parameter_Table_Entry_List_Access;
+      -- The parameter entry table is provided at Init from a not null access and
+      -- validated there before any other use of this component; the analyzer
+      -- cannot track this initialize-before-use lifecycle across calls. With
+      -- assertions enabled in all builds this is also checked at runtime.
+      pragma Assume (Self.Entries /= null);
       use Parameter_Enums.Parameter_Update_Status;
       use Parameter_Enums.Parameter_Table_Update_Status;
       use Command_Execution_Status;
