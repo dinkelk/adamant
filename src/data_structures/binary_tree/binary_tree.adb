@@ -49,7 +49,6 @@ package body Binary_Tree with SPARK_Mode => On is
          -- of the list up one index. If the found index is at
          -- the end then this loop will be skipped.
          for Index in Insert_Index .. Self.Size loop
-            pragma Loop_Invariant (Self.Size = Self.Size'Loop_Entry);
             Next_Element := Self.Tree (Index);
             Self.Tree (Index) := This_Element;
             This_Element := Next_Element;
@@ -78,7 +77,6 @@ package body Binary_Tree with SPARK_Mode => On is
       -- in the array. This will keep the list sorted and
       -- compact.
       for Index in Element_Index .. Self.Size - 1 loop
-         pragma Loop_Invariant (Self.Size = Self.Size'Loop_Entry);
          Self.Tree (Index) := Self.Tree (Index + 1);
       end loop;
 
@@ -98,8 +96,10 @@ package body Binary_Tree with SPARK_Mode => On is
 
       -- Perform binary search on sorted list:
       while Low_Index <= High_Index loop
+         -- The search range stays within the elements held, so every probed index is in range.
          pragma Loop_Invariant (Low_Index >= Self.Tree'First);
          pragma Loop_Invariant (High_Index <= Self.Size);
+         -- The search range shrinks every iteration, so the loop terminates.
          pragma Loop_Variant (Decreases => High_Index - Low_Index);
          declare
             Mid_Index : constant Positive := Low_Index + ((High_Index - Low_Index) / 2);
