@@ -1,4 +1,4 @@
 ---
-description: GNATprove configuration for the binary tree package. The target is silver, absence of runtime errors, including proof of the defensive assertions.
+description: GNATprove configuration for the binary tree package. The target is gold, functional correctness of the sorted sequence model and of the search, on top of absence of runtime errors.
 level: 2
-mode: "silver"
+mode: "gold"
