@@ -36,7 +36,7 @@
 -- Two elements neither of which is less than the other are equivalent, and
 -- Search treats equivalent elements as matches. These properties cannot be
 -- expressed as contracts on the generic formal operators, so they are stated
--- as ghost lemmas in the private part of this package and assumed there.
+-- as ghost lemmas in the Binary_Tree.Lemmas child package and assumed there.
 --
 generic
    type Element_Type is private;
@@ -291,33 +291,5 @@ private
    -- these accessors when they appear in the contracts above:
    function Get_Size (Self : in Instance) return Natural is (Self.Size);
    function Get_Capacity (Self : in Instance) return Positive is (Self.Tree'Length);
-
-   --
-   -- Ordering axioms. These ghost lemmas state the assumptions about the
-   -- generic formal operators described at the top of this package. They
-   -- cannot be proved here since nothing is known about the formal
-   -- operators, so their bodies assume them. Every instantiation whose
-   -- operators form a strict weak ordering with ">" the converse of "<"
-   -- satisfies them.
-   --
-
-   -- "<" is asymmetric:
-   procedure Lemma_Asymmetric (Left, Right : in Element_Type)
-      with Ghost,
-           Global => null,
-           Post => not (Left < Right and then Right < Left);
-
-   -- "not <" is transitive:
-   procedure Lemma_Not_Less_Transitive (A, B, C : in Element_Type)
-      with Ghost,
-           Global => null,
-           Pre => not (B < A) and then not (C < B),
-           Post => not (C < A);
-
-   -- ">" is the converse of "<":
-   procedure Lemma_Greater_Is_Converse (Left, Right : in Element_Type)
-      with Ghost,
-           Global => null,
-           Post => (Left > Right) = (Right < Left);
 
 end Binary_Tree;
