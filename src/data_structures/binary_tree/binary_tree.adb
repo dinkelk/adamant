@@ -1,16 +1,23 @@
 with Safe_Deallocator;
 
-package body Binary_Tree is
+package body Binary_Tree with SPARK_Mode => On is
    ----------------------------------
    -- Public sub programs:
    ----------------------------------
 
-   procedure Init (Self : in out Instance; Maximum_Size : in Positive) is
+   -- The body is not analyzed by SPARK since it performs the heap allocation
+   -- that owns the element storage for the rest of the tree's life. The
+   -- postcondition holds because the precondition provides an empty tree and
+   -- the allocation below is indexed from 1 with the requested positive size.
+   procedure Init (Self : in out Instance; Maximum_Size : in Positive) with SPARK_Mode => Off is
    begin
       Self.Tree := new Element_Array (Positive'First .. Positive'First + Maximum_Size - 1);
    end Init;
 
-   procedure Destroy (Self : in out Instance) is
+   -- The body is not analyzed by SPARK since conditional deallocation is
+   -- outside the SPARK ownership model. The postcondition holds because
+   -- Clear sets the size to zero below.
+   procedure Destroy (Self : in out Instance) with SPARK_Mode => Off is
       procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Element_Array, Name => Element_Array_Access);
    begin
       Free_If_Testing (Self.Tree);
@@ -42,6 +49,7 @@ package body Binary_Tree is
          -- of the list up one index. If the found index is at
          -- the end then this loop will be skipped.
          for Index in Insert_Index .. Self.Size loop
+            pragma Loop_Invariant (Self.Size = Self.Size'Loop_Entry);
             Next_Element := Self.Tree (Index);
             Self.Tree (Index) := This_Element;
             This_Element := Next_Element;
@@ -70,6 +78,7 @@ package body Binary_Tree is
       -- in the array. This will keep the list sorted and
       -- compact.
       for Index in Element_Index .. Self.Size - 1 loop
+         pragma Loop_Invariant (Self.Size = Self.Size'Loop_Entry);
          Self.Tree (Index) := Self.Tree (Index + 1);
       end loop;
 
@@ -89,6 +98,9 @@ package body Binary_Tree is
 
       -- Perform binary search on sorted list:
       while Low_Index <= High_Index loop
+         pragma Loop_Invariant (Low_Index >= Self.Tree'First);
+         pragma Loop_Invariant (High_Index <= Self.Size);
+         pragma Loop_Variant (Decreases => High_Index - Low_Index);
          declare
             Mid_Index : constant Positive := Low_Index + ((High_Index - Low_Index) / 2);
             Current_Element : Element_Type renames Self.Tree (Mid_Index);
@@ -126,16 +138,6 @@ package body Binary_Tree is
    begin
       Self.Size := 0;
    end Clear;
-
-   function Get_Size (Self : in Instance) return Natural is
-   begin
-      return Self.Size;
-   end Get_Size;
-
-   function Get_Capacity (Self : in Instance) return Positive is
-   begin
-      return Self.Tree'Length;
-   end Get_Capacity;
 
    function Get_First_Index (Self : in Instance) return Positive is
    begin
