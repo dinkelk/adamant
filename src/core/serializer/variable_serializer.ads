@@ -50,9 +50,9 @@ package Variable_Serializer with SPARK_Mode => On is
    -- These functions may produce an error if the length of a variable field
    -- is invalid.
    function To_Byte_Array (Dest : out Basic_Types.Byte_Array; Src : in T; Num_Bytes_Serialized : out Natural) return Serialization_Status
-      with Side_Effects;
+      with Side_Effects, Relaxed_Initialization => Dest;
    function To_Byte_Array (Dest : out Basic_Types.Byte_Array; Src : in T) return Serialization_Status
-      with Side_Effects;
+      with Side_Effects, Relaxed_Initialization => Dest;
 
    -- Convert byte array to type, return number of bytes deserialized:
    -- These functions may produce an error if the length of a variable field
