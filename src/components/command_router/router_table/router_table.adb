@@ -33,9 +33,11 @@ package body Router_Table is
    function Add (Self : in out Instance; An_Entry : Command_Registration.U) return Add_Status is
       Ignore_1 : Command_Registration.U;
       Ignore_2 : Natural;
+      Found : Boolean;
    begin
       -- Make sure the command Id is not already in the table:
-      if Self.Table.Search (An_Entry, Ignore_1, Ignore_2) then
+      Self.Table.Search (An_Entry, Ignore_1, Ignore_2, Found);
+      if Found then
          return Id_Conflict;
       end if;
 
@@ -55,9 +57,11 @@ package body Router_Table is
       Ignore : Positive;
       Registration_To_Find : constant Command_Registration.U := (Registration_Id => 0, Command_Id => Cmd_Id);
       Registration_Found : Command_Registration.U;
+      Found : Boolean;
    begin
       -- Using ID, binary search the table ranges to find the correct entry:
-      if not Self.Table.Search (Registration_To_Find, Registration_Found, Ignore) then
+      Self.Table.Search (Registration_To_Find, Registration_Found, Ignore, Found);
+      if not Found then
          Registration_Id := Command_Types.Command_Registration_Id'Last;
          return Id_Not_Found;
       end if;

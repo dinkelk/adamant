@@ -33,7 +33,7 @@ package body Component.Command_Protector.Implementation is
             Ret : Boolean;
          begin
             -- Make sure the Command ID is not already stored in our list.
-            Ret := Self.Protected_Command_List.Search (Command_Identifier, Ignore_1, Ignore_2);
+            Self.Protected_Command_List.Search (Command_Identifier, Ignore_1, Ignore_2, Ret);
             pragma Assert (not Ret, "Duplicate command ID '" & Command_Id'Image (Command_Identifier) & "' not allowed protected command ID list!");
             -- Add ID to the list:
             Ret := Self.Protected_Command_List.Add (Command_Identifier);
@@ -105,8 +105,10 @@ package body Component.Command_Protector.Implementation is
       Id_To_Find : Command_Id renames Arg.Header.Id;
       Ignore_Found_Id : Command_Id;
       Ignore_Found_Index : Natural;
-      Is_Protected_Command : constant Boolean := Self.Protected_Command_List.Search (Id_To_Find, Ignore_Found_Id, Ignore_Found_Index);
+      Is_Protected_Command : Boolean;
    begin
+      Self.Protected_Command_List.Search (Id_To_Find, Ignore_Found_Id, Ignore_Found_Index, Is_Protected_Command);
+
       -- Based on the arm/unarmed state we do things differently.
       case State is
          -- In an armed state, we forward on the command no matter what, and transition to the armed state.
