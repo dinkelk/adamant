@@ -147,6 +147,11 @@ package body Variable_Database with SPARK_Mode => On is
          -- The database stays valid and keeps its range, so every Id of the range is still held.
          pragma Loop_Invariant (Is_Valid (Self));
          pragma Loop_Invariant (First_Id (Self) = First_Id (Self)'Loop_Entry and then Last_Id (Self) = Last_Id (Self)'Loop_Entry);
+         -- Entries before this one are no longer overridden and kept their values; the rest are untouched.
+         pragma Loop_Invariant (for all I in First_Id (Self) .. Last_Id (Self) =>
+                                  States (Self) (I) = (if I >= Id then States (Self)'Loop_Entry (I)
+                                                       elsif States (Self)'Loop_Entry (I) = Empty then Empty
+                                                       else Filled));
          Stat := Self.Clear_Override (Id);
          pragma Assert (Stat = Success);
       end loop;
@@ -156,6 +161,8 @@ package body Variable_Database with SPARK_Mode => On is
    begin
       -- Go through each entry and return True if any are overridden.
       for Id in Self.Db_Table'Range loop
+         -- Nothing before this entry is overridden.
+         pragma Loop_Invariant (for all I in Self.Db_Table'Range => (if I < Id then Self.Db_Table (I).State /= Override));
          if Self.Db_Table (Id).State = Override then
             return True;
          end if;
