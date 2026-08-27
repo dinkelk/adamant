@@ -278,8 +278,10 @@ package {{ name }} is
 {% endfor %}
    end record;
 
-   -- Access type for {{ volatile_descriptor }}_T
-   type {{ volatile_descriptor }}_T_Access is access all {{ volatile_descriptor }}_T;
+   -- Access type for {{ volatile_descriptor }}_T. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type {{ volatile_descriptor }}_T_Access is access all {{ volatile_descriptor }}_T
+      with Volatile => True;
 
 {% endif %}
 {% if endianness in ["either", "little"] %}
@@ -309,8 +311,10 @@ package {{ name }} is
 {% endfor %}
    end record;
 
-   -- Access type for {{ volatile_descriptor }}_T_Le
-   type {{ volatile_descriptor }}_T_Le_Access is access all {{ volatile_descriptor }}_T_Le;
+   -- Access type for {{ volatile_descriptor }}_T_Le. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type {{ volatile_descriptor }}_T_Le_Access is access all {{ volatile_descriptor }}_T_Le
+      with Volatile => True;
 
 {% endif %}
 {% else %}
@@ -331,8 +335,10 @@ package {{ name }} is
            Alignment => 1,
            Volatile => True;
 
-   -- Access type for Volatile_T
-   type Volatile_T_Access is access all Volatile_T;
+   -- Access type for Volatile_T. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type Volatile_T_Access is access all Volatile_T
+      with Volatile => True;
 
 {% endif %}
 {% if endianness in ["either", "little"] %}
@@ -352,8 +358,10 @@ package {{ name }} is
            Alignment => 1,
            Volatile => True;
 
-   -- Access type for Volatile_T_Le
-   type Volatile_T_Le_Access is access all Volatile_T_Le;
+   -- Access type for Volatile_T_Le. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type Volatile_T_Le_Access is access all Volatile_T_Le
+      with Volatile => True;
 
 {% endif %}
 {% if size == 32 or size == 16 or size == 8 %}
@@ -379,8 +387,10 @@ package {{ name }} is
            Volatile => True,
            Atomic => True;
 
-   -- Access type for Atomic_T
-   type Atomic_T_Access is access all Atomic_T;
+   -- Access type for Atomic_T. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type Atomic_T_Access is access all Atomic_T
+      with Volatile => True;
 
 {% endif %}
 {% if endianness in ["either", "little"] %}
@@ -401,8 +411,10 @@ package {{ name }} is
            Volatile => True,
            Atomic => True;
 
-   -- Access type for Atomic_T_Le
-   type Atomic_T_Le_Access is access all Atomic_T_Le;
+   -- Access type for Atomic_T_Le. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type Atomic_T_Le_Access is access all Atomic_T_Le
+      with Volatile => True;
 
 {% endif %}
 {% if endianness in ["either", "big"] %}
@@ -423,8 +435,10 @@ package {{ name }} is
            Volatile => True,
            Volatile_Full_Access => True;
 
-   -- Access type for Register_T
-   type Register_T_Access is access all Register_T;
+   -- Access type for Register_T. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type Register_T_Access is access all Register_T
+      with Volatile => True;
 
 {% endif %}
 {% if endianness in ["either", "little"] %}
@@ -445,8 +459,10 @@ package {{ name }} is
            Volatile => True,
            Volatile_Full_Access => True;
 
-   -- Access type for Register_T_Le
-   type Register_T_Le_Access is access all Register_T_Le;
+   -- Access type for Register_T_Le. It is volatile like the type it designates, which
+   -- SPARK requires of an access type to a volatile type.
+   type Register_T_Le_Access is access all Register_T_Le
+      with Volatile => True;
 
 {% endif %}
 {% else %}
