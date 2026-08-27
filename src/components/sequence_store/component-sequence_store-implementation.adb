@@ -44,12 +44,14 @@ package body Component.Sequence_Store.Implementation is
          Ignore_Element : Sequence_Lookup_Element;
          Ignore_Index : Positive;
          Ret : Boolean;
+         Found : Boolean;
       begin
          -- Initialize out parameter:
          Status := Success;
 
          -- First make sure that the sequence ID is not already found in the tree:
-         if Tree.Search (Element => Element_To_Add, Element_Found => Ignore_Element, Element_Index => Ignore_Index) then
+         Tree.Search (Element => Element_To_Add, Element_Found => Ignore_Element, Element_Index => Ignore_Index, Found => Found);
+         if Found then
             Status := Duplicate_Id;
          else
             -- OK, there is no sequence with this ID found in the tree. Let's add it.
@@ -66,12 +68,14 @@ package body Component.Sequence_Store.Implementation is
          Ignore_Element : Sequence_Lookup_Element;
          Index_To_Remove : Positive;
          Ret : Boolean;
+         Found : Boolean;
       begin
          -- Initialize out parameter:
          Status := Success;
 
          -- First make sure that the sequence ID can found in the tree:
-         if Tree.Search (Element => Element_To_Remove, Element_Found => Ignore_Element, Element_Index => Index_To_Remove) then
+         Tree.Search (Element => Element_To_Remove, Element_Found => Ignore_Element, Element_Index => Index_To_Remove, Found => Found);
+         if Found then
             -- OK, we found the element, remove it.
             Ret := Tree.Remove (Element_Index => Index_To_Remove);
             pragma Assert (Ret, "We just found this index. We should always be able to remove it.");
@@ -85,12 +89,14 @@ package body Component.Sequence_Store.Implementation is
          Element_To_Find : constant Sequence_Lookup_Element := (Id => Id, Slot => Sequence_Store_Types.Slot_Number'First);
          Element_Found : Sequence_Lookup_Element;
          Ignore_Index : Positive;
+         Found : Boolean;
       begin
          -- Initialize out parameter:
          Slot := Sequence_Store_Types.Slot_Number'First;
 
          -- First make sure that the sequence ID can found in the tree:
-         if Tree.Search (Element => Element_To_Find, Element_Found => Element_Found, Element_Index => Ignore_Index) then
+         Tree.Search (Element => Element_To_Find, Element_Found => Element_Found, Element_Index => Ignore_Index, Found => Found);
+         if Found then
             -- Set the slot:
             Slot := Element_Found.Slot;
             return Success;

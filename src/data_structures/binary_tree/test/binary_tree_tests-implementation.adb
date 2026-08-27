@@ -34,6 +34,7 @@ package body Binary_Tree_Tests.Implementation is
       Ignore : Positive;
       Tree_Index : Positive;
       Ignore_Index : Positive;
+      Found : Boolean;
    begin
       Put_Line ("Start Test_Tree...");
       -- Make sure tree looks good empty
@@ -90,32 +91,43 @@ package body Binary_Tree_Tests.Implementation is
 
       -- Search the tree:
       -- Smallest Tree_Element:
-      Boolean_Assert.Eq (Self.Tree.Search (1, Tree_Element, Tree_Index), True);
+      Self.Tree.Search (1, Tree_Element, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Natural_Assert.Eq (Tree_Element, 1);
       Natural_Assert.Eq (Tree_Index, 1);
 
       -- Largest:
-      Boolean_Assert.Eq (Self.Tree.Search (110, Tree_Element, Tree_Index), True);
+      Self.Tree.Search (110, Tree_Element, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Natural_Assert.Eq (Tree_Element, 110);
       Natural_Assert.Eq (Tree_Index, 10);
 
       -- Medium:
-      Boolean_Assert.Eq (Self.Tree.Search (16, Tree_Element, Ignore), True);
+      Self.Tree.Search (16, Tree_Element, Ignore, Found);
+      Boolean_Assert.Eq (Found, True);
       Natural_Assert.Eq (Tree_Element, 16);
-      Boolean_Assert.Eq (Self.Tree.Search (35, Tree_Element, Ignore), True);
+      Self.Tree.Search (35, Tree_Element, Ignore, Found);
+      Boolean_Assert.Eq (Found, True);
       Natural_Assert.Eq (Tree_Element, 35);
 
       -- Duplicate:
-      Boolean_Assert.Eq (Self.Tree.Search (17, Tree_Element, Ignore), True);
+      Self.Tree.Search (17, Tree_Element, Ignore, Found);
+      Boolean_Assert.Eq (Found, True);
       Natural_Assert.Eq (Tree_Element, 17);
 
       -- Non existent Tree_Elements:
-      Boolean_Assert.Eq (Self.Tree.Search (2, Ignore, Ignore_Index), False);
-      Boolean_Assert.Eq (Self.Tree.Search (11, Ignore, Ignore_Index), False);
-      Boolean_Assert.Eq (Self.Tree.Search (27, Ignore, Ignore_Index), False);
-      Boolean_Assert.Eq (Self.Tree.Search (56, Ignore, Ignore_Index), False);
-      Boolean_Assert.Eq (Self.Tree.Search (8, Ignore, Ignore_Index), False);
-      Boolean_Assert.Eq (Self.Tree.Search (10_001, Ignore, Ignore_Index), False);
+      Self.Tree.Search (2, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
+      Self.Tree.Search (11, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
+      Self.Tree.Search (27, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
+      Self.Tree.Search (56, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
+      Self.Tree.Search (8, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
+      Self.Tree.Search (10_001, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
 
       -- Clear the tree:
       Natural_Assert.Eq (Self.Tree.Get_Capacity, 10);
@@ -135,6 +147,7 @@ package body Binary_Tree_Tests.Implementation is
       Ignore : Positive;
       Tree_Index : Positive;
       Ignore_Index : Positive;
+      Found : Boolean;
    begin
       Put_Line ("Start Test_Tree_Removal...");
       -- Make sure tree looks good empty
@@ -148,7 +161,8 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
       -- Remove Tree_Element
-      Boolean_Assert.Eq (Self.Tree.Search (16, Ignore, Tree_Index), True);
+      Self.Tree.Search (16, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 0);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
@@ -161,7 +175,8 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
       -- Remove Tree_Element
-      Boolean_Assert.Eq (Self.Tree.Search (16, Ignore, Tree_Index), True);
+      Self.Tree.Search (16, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 1);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
@@ -174,7 +189,8 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
       -- Remove Tree_Element
-      Boolean_Assert.Eq (Self.Tree.Search (5, Ignore, Tree_Index), True);
+      Self.Tree.Search (5, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 2);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
@@ -187,7 +203,8 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
       -- Remove Tree_Element
-      Boolean_Assert.Eq (Self.Tree.Search (4, Ignore, Tree_Index), True);
+      Self.Tree.Search (4, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 3);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
@@ -200,7 +217,8 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
       -- Remove Tree_Element
-      Boolean_Assert.Eq (Self.Tree.Search (6, Ignore, Tree_Index), True);
+      Self.Tree.Search (6, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 4);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
@@ -211,25 +229,30 @@ package body Binary_Tree_Tests.Implementation is
       Boolean_Assert.Eq (Self.Tree.Remove (100), False);
 
       -- Empty tree:
-      Boolean_Assert.Eq (Self.Tree.Search (99, Ignore, Tree_Index), True);
+      Self.Tree.Search (99, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 3);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
-      Boolean_Assert.Eq (Self.Tree.Search (3, Ignore, Tree_Index), True);
+      Self.Tree.Search (3, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 2);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
-      Boolean_Assert.Eq (Self.Tree.Search (105, Ignore, Tree_Index), True);
+      Self.Tree.Search (105, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 1);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
-      Boolean_Assert.Eq (Self.Tree.Search (88, Ignore, Tree_Index), True);
+      Self.Tree.Search (88, Ignore, Tree_Index, Found);
+      Boolean_Assert.Eq (Found, True);
       Boolean_Assert.Eq (Self.Tree.Remove (Tree_Index), True);
       Natural_Assert.Eq (Self.Tree.Get_Size, 0);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);
 
       -- Nothing in tree:
-      Boolean_Assert.Eq (Self.Tree.Search (88, Ignore, Ignore_Index), False);
+      Self.Tree.Search (88, Ignore, Ignore_Index, Found);
+      Boolean_Assert.Eq (Found, False);
       Boolean_Assert.Eq (Self.Tree.Remove (1), False);
       Natural_Assert.Eq (Self.Tree.Get_Size, 0);
       Boolean_Assert.Eq (Positive_B_Tree_Tester.Issorted (Self.Tree.all), True);

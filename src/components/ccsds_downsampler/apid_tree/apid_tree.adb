@@ -24,7 +24,7 @@ package body Apid_Tree is
       -- For each item in the list, add the apid and filter factor to the internal tree
       for Id of Downsample_List.all loop
          -- Make sure we don't add multiple of the same apid
-         Search_Status := Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0)), Ignore_2, Ignore_1);
+         Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0)), Ignore_2, Ignore_1, Search_Status);
          pragma Assert (not Search_Status, "Downsampler tree cannot add multiple nodes of the same APID.");
 
          Add_Status := Self.Downsample_Entry.Add (((Apid => Id.Apid, Filter_Factor => Id.Filter_Factor, Filter_Count => 0)));
@@ -37,8 +37,9 @@ package body Apid_Tree is
       Fetched_Entry : Ccsds_Downsampler_Tree_Entry;
       Tree_Index : Positive;
       Return_Status : Filter_Action_Status;
-      Search_Status : constant Boolean := Self.Downsample_Entry.Search (((Apid => Apid, Filter_Factor => 1, Filter_Count => 0)), Fetched_Entry, Tree_Index);
+      Search_Status : Boolean;
    begin
+      Self.Downsample_Entry.Search (((Apid => Apid, Filter_Factor => 1, Filter_Count => 0)), Fetched_Entry, Tree_Index, Search_Status);
       case Search_Status is
          -- If we couldn't find the packet, then increment the pass count and move on
          when False =>
@@ -79,8 +80,9 @@ package body Apid_Tree is
    function Set_Filter_Factor (Self : in out Instance; Apid : in Ccsds_Apid_Type; New_Filter_Factor : in Unsigned_16; Tree_Index : out Positive) return Filter_Factor_Set_Status is
       Fetched_Entry : Ccsds_Downsampler_Tree_Entry;
       Index : Positive;
-      Search_Status : constant Boolean := Self.Downsample_Entry.Search ((Apid => Apid, Filter_Factor => 1, Filter_Count => 0), Fetched_Entry, Index);
+      Search_Status : Boolean;
    begin
+      Self.Downsample_Entry.Search ((Apid => Apid, Filter_Factor => 1, Filter_Count => 0), Fetched_Entry, Index, Search_Status);
       -- set the index output variable just in case we don't find the entry
       Tree_Index := Positive'First;
       case Search_Status is
