@@ -6601,6 +6601,28 @@ We provide a description as well as specify the new \texttt{level} and \texttt{m
 
 The \texttt{redo prove} command can be run from any directory that contains Ada or SPARK source code. Code without the \texttt{SPARK\_Mode => On} aspect will be ignored by \texttt{GNATprove} and not analyzed. The results of the analysis are printed to the terminal and also saved in \texttt{build/prove/prove.txt}. Packages written in SPARK can be included in other SPARK or plain Ada packages using the usual \texttt{with} syntax.
 
+\subsubsection{Using Packed Records and Arrays from SPARK} \label{Using Packed Records from SPARK}
+
+SPARK packages can use Adamant packed records and packed arrays directly. Every part of the generated code may be referenced from SPARK: the record and array types themselves, the \texttt{Pack}, \texttt{Unpack} and \texttt{Swap\_Endianness} conversions, the \texttt{Serialization} and \texttt{Serialization\_Le} packages, the \texttt{Serialized\_Length} functions, the \texttt{Validation}, \texttt{Representation} and \texttt{C} child packages, and the variable length record serializer. The generated packages do not carry \texttt{SPARK\_Mode} themselves. Their declarations are legal SPARK, and their bodies overlay memory, which is outside the SPARK memory model, so \texttt{GNATprove} treats calls into them as trusted boundary operations and proves the SPARK code that uses them. The generated \texttt{Assertion} package is callable from SPARK as well, but it depends on the unit test framework, so it belongs in SPARK test code. \\
+
+The example below exercises each of these from a packed record and a variable length record. It validates a byte array before deserializing it, which is the pattern to follow for bytes received from outside the system: \\
+
+\textit{spark\_packed\_record.ads:}
+\adacodef{../example_architecture/spark_packed_record/spark_packed_record.ads}
+
+\textit{spark\_packed\_record.adb:}
+\adacodef{../example_architecture/spark_packed_record/spark_packed_record.adb}
+
+and the same for a packed array, including a proved loop over its elements: \\
+
+\textit{spark\_packed\_array.ads:}
+\adacodef{../example_architecture/spark_packed_record/spark_packed_array.ads}
+
+\textit{spark\_packed\_array.adb:}
+\adacodef{../example_architecture/spark_packed_record/spark_packed_array.adb}
+
+Note that the generated functions with \texttt{out} parameters (\texttt{Valid}, \texttt{Serialized\_Length}, the \texttt{Unchecked} serialization functions and the variable length \texttt{To\_Byte\_Array} and \texttt{From\_Byte\_Array}) carry the \texttt{Side\_Effects} aspect. SPARK requires such a function to be called as the whole right hand side of an assignment, as shown, rather than inside a larger expression. \\
+
 
 \subsection{The Last Chance Handler} \label{The Last Chance Handler}
 
