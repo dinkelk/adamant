@@ -14,10 +14,13 @@ package Serializer_Prover with SPARK_Mode => On is
    pragma Assertion_Policy (Pre => Ignore, Post => Ignore);
 
    -- A simple fixed size type to serialize:
+   -- The size clauses matter: SPARK accepts an overlay of a value only when the
+   -- size of its type is known at compile time, as it is for generated packed types.
    type Example_Record is record
       A : Basic_Types.Byte;
       B : Basic_Types.Byte;
-   end record;
+   end record
+      with Size => 16, Object_Size => 16;
 
    package Example_Serializer is new Serializer (Example_Record);
 
@@ -27,8 +30,8 @@ package Serializer_Prover with SPARK_Mode => On is
    -- Serialize into a caller provided buffer that may be larger than the value:
    procedure Store (Value : in Example_Record; Dest : out Basic_Types.Byte_Array; Num_Bytes : out Natural)
       with
-         -- The buffer holds at least one serialized value.
-         Pre => Dest'Length >= Example_Serializer.Serialized_Length;
+         -- The buffer is exactly one serialized value long.
+         Pre => Dest'Length = Example_Serializer.Serialized_Length;
 
    -- The length functions a variable length type provides. This example type
    -- always serializes to its full size.
@@ -41,7 +44,7 @@ package Serializer_Prover with SPARK_Mode => On is
 
    -- Serialize a value with the variable length serializer:
    function Variable_Store (Value : in Example_Record; Dest : out Basic_Types.Byte_Array; Num_Bytes : out Natural) return Serializer_Types.Serialization_Status
-      with Side_Effects;
+      with Side_Effects, Relaxed_Initialization => Dest;
 
    -- Deserialize a value with the variable length serializer:
    function Variable_Load (Bytes : in Basic_Types.Byte_Array; Value : out Example_Record; Num_Bytes : out Natural) return Serializer_Types.Serialization_Status

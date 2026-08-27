@@ -5,10 +5,18 @@ with Basic_Types;
 -- using overlays.
 generic
    type T is private;
--- The declarations of this package are in SPARK, so that SPARK code can
--- instantiate it directly. The body overlays memory, which is outside the
--- SPARK memory model, so it is not analyzed.
+-- This package is in SPARK. Serialization converts a value to its bytes with
+-- an unchecked conversion, which SPARK permits between types of the same size,
+-- so those bodies are proved free of runtime errors. Deserialization produces a value of T from
+-- arbitrary bytes, which may not be a valid value of T; SPARK can only admit
+-- that with the Potentially_Invalid aspect, which GNATprove 15 does not yet
+-- support, so those bodies are not analyzed and SPARK callers should validate
+-- the bytes before deserializing them.
 package Serializer with SPARK_Mode => On is
+
+   -- The contracts in this package exist for proof with GNATprove only. The
+   -- assertion policy below disables them at runtime.
+   pragma Assertion_Policy (Pre => Ignore, Post => Ignore);
    -- Note: 'Object_Size is used here because it represents the actual
    -- size of the type when instantiated in memory, not the minimum
    -- size of the type (as the 'Size attribute specifies)
@@ -17,7 +25,9 @@ package Serializer with SPARK_Mode => On is
    Serialized_Length : constant Natural := T'Object_Size / Basic_Types.Byte'Object_Size; -- in bytes
    -- Byte_Array type:
    subtype Byte_Array_Index is Natural range 0 .. (Serialized_Length - 1);
-   subtype Byte_Array is Basic_Types.Byte_Array (Byte_Array_Index);
+   -- The bounds are written out rather than given by Byte_Array_Index so that SPARK
+   -- accepts overlays of this type.
+   subtype Byte_Array is Basic_Types.Byte_Array (0 .. Serialized_Length - 1);
 
    -- Note: All the subprograms below convert from a type to a byte array or a byte
    -- array to a type. They perform similarly to an unchecked conversion between the
@@ -56,8 +66,13 @@ package Serializer with SPARK_Mode => On is
    -- a Constraint_Error will likely be called, or a segmentation fault may occur.
    -- Use the To_Byte_Array function above whenever possible.
    function To_Byte_Array_Unchecked (Dest : out Basic_Types.Byte_Array; Src : in T) return Natural
-      with Side_Effects;
-   procedure To_Byte_Array_Unchecked (Dest : out Basic_Types.Byte_Array; Src : in T);
+      with Side_Effects,
+           -- The destination is exactly one serialized value long.
+           Pre => Dest'Length = Serialized_Length;
+   procedure To_Byte_Array_Unchecked (Dest : out Basic_Types.Byte_Array; Src : in T)
+      with
+         -- The destination is exactly one serialized value long.
+         Pre => Dest'Length = Serialized_Length;
    function To_Byte_Array_Unchecked (Src : in T) return Basic_Types.Byte_Array;
 
    -- Same as the functions above, but the length of the src array is not checked.
@@ -70,7 +85,15 @@ package Serializer with SPARK_Mode => On is
    -- your intended behavior, then you might be in trouble. Use the From_Byte_Array
    -- function above whenever possible.
    function From_Byte_Array_Unchecked (Dest : out T; Src : in Basic_Types.Byte_Array) return Natural
-      with Side_Effects;
-   procedure From_Byte_Array_Unchecked (Dest : out T; Src : in Basic_Types.Byte_Array);
-   function From_Byte_Array_Unchecked (Src : in Basic_Types.Byte_Array) return T;
+      with Side_Effects,
+           -- The source holds at least one serialized value.
+           Pre => Src'Length >= Serialized_Length;
+   procedure From_Byte_Array_Unchecked (Dest : out T; Src : in Basic_Types.Byte_Array)
+      with
+         -- The source holds at least one serialized value.
+         Pre => Src'Length >= Serialized_Length;
+   function From_Byte_Array_Unchecked (Src : in Basic_Types.Byte_Array) return T
+      with
+         -- The source holds at least one serialized value.
+         Pre => Src'Length >= Serialized_Length;
 end Serializer;
