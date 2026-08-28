@@ -3,3 +3,5 @@ description: This is a unit test suite for the Connector Protector.
 tests:
   - name: Test_Protected_Call
     description: This unit test invokes the protected connector and makes sure the arguments are passed through synchronously, as expected.
+  - name: Test_Concurrent_Protection
+    description: This unit test spawns multiple tasks that concurrently invoke the protected connector and verifies all calls are serialized and none are lost.

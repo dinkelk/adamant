@@ -70,4 +70,36 @@ package body Connector_Protector_Tests.Implementation is
       Tick_Assert.Eq (T.T_Recv_Sync_History.Get (3), ((7, 8), 9));
    end Test_Protected_Call;
 
+   overriding procedure Test_Concurrent_Protection (Self : in out Instance) is
+      T : Component_Tester_Package.Instance_Access renames Self.Tester;
+      Task_Count : constant := 10;
+      Calls_Per_Task : constant := 50;
+
+      task type Caller_Task is
+         entry Start (Id : in Natural);
+      end Caller_Task;
+
+      task body Caller_Task is
+         My_Id : Natural;
+      begin
+         accept Start (Id : in Natural) do
+            My_Id := Id;
+         end Start;
+         for I in 1 .. Calls_Per_Task loop
+            T.T_Send (((My_Id, I), My_Id + I));
+         end loop;
+      end Caller_Task;
+
+      Tasks : array (1 .. Task_Count) of Caller_Task;
+   begin
+      -- Start all tasks to create contention on the protected connector:
+      for I in Tasks'Range loop
+         Tasks (I).Start (I);
+      end loop;
+      -- Block exit waits for all tasks to complete.
+
+      -- Verify all calls were received (none lost due to concurrency):
+      Natural_Assert.Eq (T.T_Recv_Sync_History.Get_Count, Task_Count * Calls_Per_Task);
+   end Test_Concurrent_Protection;
+
 end Connector_Protector_Tests.Implementation;
