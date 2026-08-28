@@ -1,0 +1,4 @@
+---
+description: GNATprove configuration for the serializer generics. Their bodies are outside SPARK, so the target is silver on the prover package that instantiates and calls them, which verifies that the declarations are legal SPARK.
+level: 2
+mode: "silver"
