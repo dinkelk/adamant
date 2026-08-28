@@ -50,6 +50,12 @@ package Variable_Database with SPARK_Mode => On is
    -- Object type:
    type Instance is tagged private;
 
+   -- The state of an entry: Empty until a value is stored, Filled once one
+   -- has been, and Override while an override value is in place. An
+   -- overridden entry ignores updates and returns the override value until
+   -- the override is cleared, which leaves it Filled.
+   type Entry_State is (Empty, Filled, Override);
+
    -- Ghost predicate stating that the database is in a valid, initialized
    -- state: its table has been allocated by Init. This is the precondition
    -- of every operation that touches the table. It takes a class-wide
@@ -72,6 +78,18 @@ package Variable_Database with SPARK_Mode => On is
       with Ghost,
            Pre => Is_Valid (Self);
 
+   -- Ghost model of the database: the state of every entry it holds, indexed
+   -- by Id. The contracts below describe each operation by its effect on
+   -- this model.
+   type State_Array is array (Id_Type range <>) of Entry_State
+      with Ghost;
+   function States (Self : in Instance'Class) return State_Array
+      with Ghost,
+           -- The database is valid.
+           Pre => Is_Valid (Self),
+           -- The model covers exactly the Ids held.
+           Post => States'Result'First = First_Id (Self) and then States'Result'Last = Last_Id (Self);
+
    -- Return types:
    type Update_Status is (Success, Id_Out_Of_Range, Serialization_Failure);
    type Fetch_Status is (Success, Id_Out_Of_Range, Data_Not_Available);
@@ -81,24 +99,35 @@ package Variable_Database with SPARK_Mode => On is
    procedure Init (Self : in out Instance; Minimum_Id : in Id_Type; Maximum_Id : in Id_Type)
       with
          -- The database is valid and holds exactly the Ids from Minimum_Id to Maximum_Id.
-         Post => Is_Valid (Self) and then (for all Id in Id_Type => Contains (Self, Id) = (Id in Minimum_Id .. Maximum_Id));
+         Post => Is_Valid (Self)
+            and then (for all Id in Id_Type => Contains (Self, Id) = (Id in Minimum_Id .. Maximum_Id))
+            and then (for all Id in First_Id (Self) .. Last_Id (Self) => States (Self) (Id) = Empty);
    procedure Destroy (Self : in out Instance);
    function Update (Self : in out Instance; Id : in Id_Type; Value : in T) return Update_Status
       with
          Side_Effects,
          -- The database is valid.
          Pre'Class => Is_Valid (Self),
-         -- The database is still valid, holds the same Ids, and the update fails with Id_Out_Of_Range exactly when the Id is not held.
+         -- The database is still valid, holds the same Ids, and the update fails with Id_Out_Of_Range exactly when the Id is not held. No other
+         -- entry changes. An overridden entry is left alone and the update reports Success. Otherwise the entry is Filled on Success and its
+         -- state is unchanged on Serialization_Failure.
          Post => Is_Valid (Self)
             and then First_Id (Self) = First_Id (Self)'Old and then Last_Id (Self) = Last_Id (Self)'Old
-            and then (Update'Result = Id_Out_Of_Range) = (not Contains (Self, Id));
+            and then (Update'Result = Id_Out_Of_Range) = (not Contains (Self, Id))
+            and then (for all I in First_Id (Self) .. Last_Id (Self) => (if I /= Id then States (Self) (I) = States (Self)'Old (I)))
+            and then (if Contains (Self, Id) then
+                        (if States (Self)'Old (Id) = Override then Update'Result = Success and then States (Self) (Id) = Override
+                         elsif Update'Result = Success then States (Self) (Id) = Filled
+                         else States (Self) (Id) = States (Self)'Old (Id)));
    function Fetch (Self : in Instance; Id : in Id_Type; Value : out T) return Fetch_Status
       with
          Side_Effects,
          -- The database is valid.
          Pre'Class => Is_Valid (Self),
-         -- The fetch fails with Id_Out_Of_Range exactly when the Id is not held.
-         Post => (Fetch'Result = Id_Out_Of_Range) = (not Contains (Self, Id));
+         -- The fetch fails with Id_Out_Of_Range exactly when the Id is not held, with Data_Not_Available exactly when the entry is Empty, and
+         -- succeeds otherwise.
+         Post => (Fetch'Result = Id_Out_Of_Range) = (not Contains (Self, Id))
+            and then (if Contains (Self, Id) then (Fetch'Result = Data_Not_Available) = (States (Self) (Id) = Empty));
    pragma Annotate (GNATprove, Intentional, "might not be set", "Value is only meaningful when Fetch returns Success, and callers check the status before using it. There is no value of the private type T to write on the failure paths.");
 
    -- Backdoor features:
@@ -109,32 +138,44 @@ package Variable_Database with SPARK_Mode => On is
          Side_Effects,
          -- The database is valid.
          Pre'Class => Is_Valid (Self),
-         -- The database is still valid, holds the same Ids, and the override fails with Id_Out_Of_Range exactly when the Id is not held.
+         -- The database is still valid, holds the same Ids, and the override fails with Id_Out_Of_Range exactly when the Id is not held. No other
+         -- entry changes. On Success the entry is Override, otherwise its state is unchanged.
          Post => Is_Valid (Self)
             and then First_Id (Self) = First_Id (Self)'Old and then Last_Id (Self) = Last_Id (Self)'Old
-            and then (Override'Result = Id_Out_Of_Range) = (not Contains (Self, Id));
+            and then (Override'Result = Id_Out_Of_Range) = (not Contains (Self, Id))
+            and then (for all I in First_Id (Self) .. Last_Id (Self) => (if I /= Id then States (Self) (I) = States (Self)'Old (I)))
+            and then (if Contains (Self, Id) then
+                        (if Override'Result = Success then States (Self) (Id) = Override else States (Self) (Id) = States (Self)'Old (Id)));
    -- Allow future updates to take effect again.
    function Clear_Override (Self : in out Instance; Id : in Id_Type) return Clear_Override_Status
       with
          Side_Effects,
          -- The database is valid.
          Pre'Class => Is_Valid (Self),
-         -- The database is still valid, holds the same Ids, and the clear succeeds exactly when the Id is held.
+         -- The database is still valid, holds the same Ids, and the clear succeeds exactly when the Id is held. No other entry changes. The
+         -- entry is Filled if it held a value, whether overridden or not, and stays Empty otherwise.
          Post => Is_Valid (Self)
             and then First_Id (Self) = First_Id (Self)'Old and then Last_Id (Self) = Last_Id (Self)'Old
-            and then (Clear_Override'Result = Success) = Contains (Self, Id);
+            and then (Clear_Override'Result = Success) = Contains (Self, Id)
+            and then (for all I in First_Id (Self) .. Last_Id (Self) => (if I /= Id then States (Self) (I) = States (Self)'Old (I)))
+            and then (if Contains (Self, Id) then
+                        States (Self) (Id) = (if States (Self)'Old (Id) = Empty then Empty else Filled));
    -- Clear_Override for all entries in the database.
    procedure Clear_Override_All (Self : in out Instance)
       with
          -- The database is valid.
          Pre'Class => Is_Valid (Self),
-         -- The database is still valid and holds the same Ids.
-         Post => Is_Valid (Self) and then First_Id (Self) = First_Id (Self)'Old and then Last_Id (Self) = Last_Id (Self)'Old;
+         -- The database is still valid and holds the same Ids, no entry is overridden any more, and every entry that held a value still does.
+         Post => Is_Valid (Self) and then First_Id (Self) = First_Id (Self)'Old and then Last_Id (Self) = Last_Id (Self)'Old
+            and then (for all I in First_Id (Self) .. Last_Id (Self) =>
+                        States (Self) (I) = (if States (Self)'Old (I) = Empty then Empty else Filled));
    -- Returns True if any entries are currently being overridden.
    function Any_Overridden (Self : in Instance) return Boolean
       with
          -- The database is valid.
-         Pre'Class => Is_Valid (Self);
+         Pre'Class => Is_Valid (Self),
+         -- True exactly when some entry is overridden.
+         Post => Any_Overridden'Result = (for some I in First_Id (Self) .. Last_Id (Self) => States (Self) (I) = Override);
 
 private
 
@@ -156,7 +197,6 @@ private
    -- Empty - The database entry has not been stored to yet.
    -- Filled - The database entry has been stored to.
    -- Override - The database entry has been overridden.
-   type Entry_State is (Empty, Filled, Override);
 
    -- An entry into the database. It stores the value as well as the
    -- valid/invalid status. A value is valid if it has been successfully
@@ -181,5 +221,7 @@ private
       (Self.Db_Table /= null and then Self.Db_Table'First in Id_Type and then Self.Db_Table'Last in Id_Type);
    function First_Id (Self : in Instance'Class) return Id_Type is (Self.Db_Table'First);
    function Last_Id (Self : in Instance'Class) return Id_Type is (Self.Db_Table'Last);
+   function States (Self : in Instance'Class) return State_Array is
+      [for Id in Self.Db_Table'Range => Self.Db_Table (Id).State];
 
 end Variable_Database;
