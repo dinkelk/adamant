@@ -1,6 +1,6 @@
 ---
 events:
-  - name: Max_Send_Per_Tick_Set
+  - name: Max_Sends_Per_Tick_Set
     description: A new maximum sends per tick rate has been set for the limiter.
     param_type: Packed_U16.T
   - name: Data_Dropped
