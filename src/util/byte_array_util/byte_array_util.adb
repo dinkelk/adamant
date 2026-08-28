@@ -1,5 +1,3 @@
-with Interfaces; use Interfaces;
-
 package body Byte_Array_Util with SPARK_Mode => On is
 
    -- See the note in the package specification. All contracts are for proof
@@ -90,11 +88,8 @@ package body Byte_Array_Util with SPARK_Mode => On is
       Value := [0, 0, 0, 0];
 
       -- Validate offset and size. Size must be <= 32 bits. The size + offset must not overflow
-      -- the size of the byte array. Size must be greater than zero. The comparison is done in
-      -- 64 bits so that it cannot itself overflow for any offset or array length.
-      if Size > Poly_32_Type'Object_Size or else
-          Long_Long_Integer (Offset) + Long_Long_Integer (Size) > Long_Long_Integer (Src'Length) * Long_Long_Integer (Byte'Object_Size)
-      then
+      -- the size of the byte array. Size must be greater than zero.
+      if not Field_Fits (Offset, Size, Src'Length) then
          return Error;
       end if;
 
@@ -175,11 +170,8 @@ package body Byte_Array_Util with SPARK_Mode => On is
       Value_To_Set : Poly_32_Type := Value;
    begin
       -- Validate offset and size. Size must be <= 32 bits. The size + offset must not overflow
-      -- the size of the byte array. Size must be greater than zero. The comparison is done in
-      -- 64 bits so that it cannot itself overflow for any offset or array length.
-      if Size > Poly_32_Type'Object_Size or else
-          Long_Long_Integer (Offset) + Long_Long_Integer (Size) > Long_Long_Integer (Dest'Length) * Long_Long_Integer (Byte'Object_Size)
-      then
+      -- the size of the byte array. Size must be greater than zero.
+      if not Field_Fits (Offset, Size, Dest'Length) then
          return Error;
       end if;
       pragma Annotate (GNATSAS, Intentional, "condition predetermined", "Defensive check - no current callers use Size > 32, but kept for safety");
@@ -188,13 +180,8 @@ package body Byte_Array_Util with SPARK_Mode => On is
       declare
          -- Calculate the limit that, if exceeded, would mean truncation would occur.
          Limit : constant Unsigned_32 := Shift_Right (16#FFFFFFFF#, Unsigned_32'Object_Size - Size);
-         -- Calculate the unsigned integer value of the polytype. We do this manually to
-         -- avoid any dependency on a packed record in this low level package. This assumes
-         -- the value stored is in big endian.
-         Value_Int : constant Unsigned_32 := Unsigned_32 (Value (Poly_32_Type'First + 3)) +
-            Shift_Left (Unsigned_32 (Value (Poly_32_Type'First + 2)), 8) +
-            Shift_Left (Unsigned_32 (Value (Poly_32_Type'First + 1)), 16) +
-            Shift_Left (Unsigned_32 (Value (Poly_32_Type'First + 0)), 24);
+         -- Calculate the unsigned integer value of the polytype, which is stored in big endian:
+         Value_Int : constant Unsigned_32 := To_Unsigned_32 (Value);
       begin
          -- See if truncation would occur:
          if Value_Int > Limit then
@@ -250,6 +237,10 @@ package body Byte_Array_Util with SPARK_Mode => On is
       begin
          -- Copy each byte from the source poly type to the correct location in the destination byte array
          for Src_Idx in reverse First_Src_Idx .. Last_Src_Idx loop
+            -- The destination index stays within the bytes holding the field, and only those bytes
+            -- have been written so far.
+            pragma Loop_Invariant (Dest_Idx in First_Dest_Idx .. Last_Dest_Idx);
+            pragma Loop_Invariant (for all I in Dest'Range => (if I < First_Dest_Idx or else I > Last_Dest_Idx then Dest (I) = Dest'Loop_Entry (I)));
             -- Write the source bits to the destination byte that apply here. Some of the bits in
             -- this source byte might belong in the next destination byte based on the offset. That
             -- case is handled below.
