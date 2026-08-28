@@ -1,0 +1,6 @@
+---
+description: Events for the Gps_Time component.
+events:
+  - name: Time_Conversion_Error
+    description: The conversion from Ada.Real_Time.Time to Sys_Time.T resulted in overflow or underflow. The returned time may be saturated.
+    param_type: Sys_Time.T
