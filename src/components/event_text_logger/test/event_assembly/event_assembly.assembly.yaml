@@ -1,5 +1,5 @@
 ---
-description: This is an assembly for testing the text_to_events component.
+description: This is an assembly for testing the event_text_logger component.
 with:
   - Event_Assembly_Event_To_Text
 ########################################
