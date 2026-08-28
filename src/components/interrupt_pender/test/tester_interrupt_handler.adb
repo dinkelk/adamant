@@ -8,7 +8,7 @@ package body Tester_Interrupt_Handler is
    begin
       -- Increment the count:
       Data.Count := @ + 1;
-      -- Increment the time:
+      -- Zero out the time (will be set by the component after wake-up):
       Data.Time := (0, 0);
    end Handler;
 
