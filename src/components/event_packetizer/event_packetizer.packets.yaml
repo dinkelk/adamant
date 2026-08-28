@@ -2,4 +2,4 @@
 description: Packets for the event packetizer
 packets:
   - name: Events_Packet
-    description: This packet contains events as subpackets.
+    description: This packet contains serialized events as sub-packets. Each sub-packet consists of a serialized Event_Header followed by the event's parameter bytes (length specified by Param_Buffer_Length in the header). The packet may be partially filled if a partial packet timeout occurs or a Send_Packet command is received.

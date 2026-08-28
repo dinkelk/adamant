@@ -11,7 +11,7 @@ private
    overriding procedure Set_Up_Test (Self : in out Instance);
    overriding procedure Tear_Down_Test (Self : in out Instance);
 
-   -- This unit test exercises the nominal behavior of the event packetizer with 3 internal packets.
+   -- This unit test exercises the nominal behavior of the event packetizer with 2 internal packets.
    overriding procedure Test_Nominal_Packetization (Self : in out Instance);
    -- This unit test exercises the partial packet timeout feature.
    overriding procedure Test_Partial_Packet_Timeout (Self : in out Instance);
@@ -23,6 +23,10 @@ private
    overriding procedure Test_Dropped_Events (Self : in out Instance);
    -- This unit test exercises the behavior of the packetizer when it is uninitialized.
    overriding procedure Uninitialized (Self : in out Instance);
+   -- This unit test verifies that events sent after Destroy are safely dropped and do not cause a use-after-free.
+   overriding procedure Test_Destroy_Then_Insert (Self : in out Instance);
+   -- This unit test verifies that an invalid command is rejected with a failure response.
+   overriding procedure Test_Invalid_Command (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Event_Packetizer_Tests.Base_Instance with record
