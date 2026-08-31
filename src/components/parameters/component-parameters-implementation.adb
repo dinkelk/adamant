@@ -7,7 +7,6 @@ with Parameter_Enums;
 with Byte_Array_Pointer.Packed;
 with Basic_Types;
 with Memory_Region;
-with Parameter_Table_Header;
 with Parameter_Table_Util;
 with Serializer_Types;
 with Parameter;
@@ -108,7 +107,7 @@ package body Component.Parameters.Implementation is
                begin
                   pragma Assert (Param_Entry.Start_Index = Current_Byte, "Unexpected byte layout in parameter table at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
                   pragma Assert (Param_Entry.End_Index >= Param_Entry.Start_Index, "end_Index must be greater than start_Index at ID '" & Parameter_Id'Image (Param_Entry.Id) & "'.");
-                  pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index + 1 <= Parameter_Types.Parameter_Buffer_Length_Type'Last,
+                  pragma Assert (Param_Entry.End_Index - Param_Entry.Start_Index <= Parameter_Types.Parameter_Buffer_Length_Type'Last - 1,
                      "Parameter ID '" & Parameter_Id'Image (Param_Entry.Id) & "' is too large to fit in the parameter record.");
                   Current_Byte := Param_Entry.End_Index + 1;
                end Validate_Parameter_Layout;
@@ -142,8 +141,9 @@ package body Component.Parameters.Implementation is
       -- Length of the parameter data in bytes:
       Self.Parameter_Table_Data_Length := Self.Entries.all (Self.Entries.all'Last).End_Index + 1;
       -- Length of the parameter table in total in bytes:
+      pragma Assert (Parameter_Table_Header.Size_In_Bytes + Self.Parameter_Table_Data_Length + Crc_16.Crc_16_Type'Length <= Packet_Types.Packet_Buffer_Type'Length,
+         "The parameter table must not be larger than the maximum size packet!");
       Self.Parameter_Table_Length := Parameter_Table_Header.Size_In_Bytes + Self.Parameter_Table_Data_Length;
-      pragma Assert (Self.Parameter_Table_Length + Crc_16.Crc_16_Type'Length <= Packet_Types.Packet_Buffer_Type'Length, "The parameter table must not be larger than the maximum size packet!");
    end Init;
 
    overriding procedure Set_Up (Self : in out Instance) is
