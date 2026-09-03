@@ -1,0 +1,15 @@
+---
+description: This is a unit test suite for the double buffer store.
+tests:
+  - name: Test_No_Valid_Copy_On_First_Boot
+    description: This test fills both copies with garbage, zeros, and ones and checks that no copy is valid, that a restore reports No_Valid_Copy, and that the restored data is zeroed.
+  - name: Test_Save_Alternates_And_Invalidates
+    description: This test performs a sequence of saves and checks that the writes alternate between copy A and copy B, that the previous copy is invalidated by each save, that the save time is stored, and that each restore returns the newest data. It also checks the header layout in memory.
+  - name: Test_Interrupted_Save
+    description: This test emulates a reboot at each point during a save and checks that the restore returns the newest data that was completely written, taking the later save time when both copies are valid.
+  - name: Test_Corrupt_Copy
+    description: This test corrupts the only valid copy and checks that no valid copy is found, and that the next save recovers the store.
+  - name: Test_Oversized_Allocations
+    description: This test uses byte arrays larger than the store with nonzero first indices and checks that only the first store length bytes are written and that saves and restores are correct, including for zero length data.
+  - name: Test_Typed_Wrapper
+    description: This test instantiates the typed wrapper on a packed record and checks save, restore, and the No_Valid_Copy behavior.
