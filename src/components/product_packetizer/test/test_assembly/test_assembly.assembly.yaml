@@ -9,6 +9,15 @@ components:
     execution: passive
   - type: Test_Component_2
     execution: passive
+  # A second instance of Test_Component_1 that publishes its Data_Product_A
+  # under the first instance's Data_Product_A ID. This exercises the data
+  # product alias feature of the assembly model.
+  - type: Test_Component_1
+    name: Test_Component_1_Alias_Instance
+    execution: passive
+    data_product_aliases:
+      - data_product: Data_Product_A
+        alias_of: Test_Component_1_Instance.Data_Product_A
   - type: Product_Packetizer
     execution: passive
     init_base:
