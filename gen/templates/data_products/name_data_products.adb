@@ -12,7 +12,7 @@ with Serializer;
 package body {{ name }} is
 
    -----------------------------------------------
-   -- Getter/setter subprograms for data product ID base:
+   -- Getter/setter subprograms for data product IDs:
    -----------------------------------------------
    not overriding function Get_Id_Base (Self : in Instance) return Data_Product_Types.Data_Product_Id is
    begin
@@ -20,22 +20,30 @@ package body {{ name }} is
    end Get_Id_Base;
 
    not overriding procedure Set_Id_Base (Self : in out Instance; Id_Base : in Data_Product_Types.Data_Product_Id) is
+      use Data_Product_Types;
    begin
 {% if (data_products|length) > 1 %}
       -- ID base set too high for data product ID set. This is checked in the assembly model.
       pragma Assert (Natural (Id_Base) + {{ (data_products|length) - 1 }} <= Natural (Data_Product_Types.Data_Product_Id'Last));
 {% endif %}
       Self.Id_Base := Id_Base;
+      for Local_Id in Local_Data_Product_Id_Type loop
+         Self.Ids (Local_Id) := Id_Base + Local_Data_Product_Id_Type'Enum_Rep (Local_Id);
+      end loop;
    end Set_Id_Base;
+
+   not overriding procedure Override_Id (Self : in out Instance; Local_Id : in Local_Data_Product_Id_Type; Id : in Data_Product_Types.Data_Product_Id) is
+   begin
+      Self.Ids (Local_Id) := Id;
+   end Override_Id;
 
    -----------------------------------------------
    -- Getter function for global data product IDs:
    -----------------------------------------------
 {% for dp in data_products %}
    not overriding function Get_{{ dp.name }}_Id (Self : in Instance) return Data_Product_Types.Data_Product_Id is
-      use Data_Product_Types;
    begin
-      return Self.Id_Base + Local_Data_Product_Id_Type'Enum_Rep ({{ dp.name }}_Id);
+      return Self.Ids ({{ dp.name }}_Id);
    end Get_{{ dp.name }}_Id;
 
 {% endfor %}
