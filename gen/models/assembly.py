@@ -565,7 +565,7 @@ class assembly(subassembly):
         self.parameters = {}  # map of parameter id to parameter model
         self.data_products = {}  # map of data_product id to data product model
         self.data_products_by_name = {}  # map of data_product name to data product model
-        self.num_data_product_aliases = 0
+        self.data_product_aliases = []  # data products that publish under another data product's id
         self.data_dependencies = (
             {}
         )  # map of data_dependency id to list of data dependency models
@@ -1237,14 +1237,14 @@ class assembly(subassembly):
         # own ID is removed from the assembly-wide dictionary. That ID is never published
         # to. The alias stays in the name dictionary so that data dependencies may
         # refer to it, and it resolves to the target's ID.
-        self.num_data_product_aliases = 0
         for suite in alias_suites:
             suite.mark_aliases()
         for suite in alias_suites:
             suite.resolve_aliases(self.data_products_by_name)
             for alias in suite.aliases:
                 del self.data_products[alias.natural_id]
-                self.num_data_product_aliases += 1
+                self.data_product_aliases.append(alias)
+        self.data_product_aliases.sort(key=lambda alias: (alias.id, alias.full_name))
 
         # For each data dependency suite, resolve the ids.
         for suite in self.data_dependency_suites:
