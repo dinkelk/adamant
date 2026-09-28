@@ -43,6 +43,19 @@ package body {{ name }} is
 {% for component in component_kind_dict["set_id_bases"] %}
       {{ component.instance_name }}.Set_Id_Bases{% if component.set_id_bases.parameter_call_string() %} ({{ component.set_id_bases.parameter_call_string() }}){% endif %};
 {% endfor %}
+{% if component_kind_dict["data_product_aliases"] %}
+
+      -----------------------------------
+      -- Data Product Aliases:
+      -----------------------------------
+      -- Each alias publishes under the ID of another component's data product.
+      -- These overrides must follow the Set_Id_Bases calls above.
+{% for component in component_kind_dict["data_product_aliases"] %}
+{% for alias in component.data_products.aliases %}
+      {{ component.instance_name }}.Override_Data_Product_Id (Local_Id => {{ component.data_products.name }}.{{ alias.name }}_Id, Id => {{ alias.id }}); -- alias of {{ alias.alias_of.full_name }}
+{% endfor %}
+{% endfor %}
+{% endif %}
 
       -----------------------------------
       -- Data dependency ID Mapping:

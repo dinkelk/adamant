@@ -103,6 +103,18 @@ class ided_entity(renderable_object):
         if self.type_model:
             self.size = self.type_model.size
 
+        # Alias bookkeeping, used by data products only. An alias publishes
+        # under the ID of its target, another component's entity of the same
+        # type. The assembly resolves alias_of_name to the target entity.
+        self.alias_of_name = None  # unresolved "Instance.Entity" name of the target
+        self.alias_of = None  # the target entity, once resolved
+        self.natural_id = None  # the ID this entity was assigned before it became an alias
+        self.aliases = []  # entities that are aliases of this one
+
+    @property
+    def is_alias(self):
+        return self.alias_of_name is not None
+
     @property
     def type(self):
         if self.datatype:
