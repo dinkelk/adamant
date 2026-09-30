@@ -564,7 +564,8 @@ class assembly(subassembly):
         self.events = {}  # map of event id to event model
         self.parameters = {}  # map of parameter id to parameter model
         self.data_products = {}  # map of data_product id to data product model
-        self.data_products_by_name = {}  # map of data_product id to data product model
+        self.data_products_by_name = {}  # map of data_product name to data product model
+        self.data_product_aliases = []  # data products that publish under another data product's id
         self.data_dependencies = (
             {}
         )  # map of data_dependency id to list of data dependency models
@@ -594,6 +595,7 @@ class assembly(subassembly):
             "commands": [],
             "events": [],
             "data_products": [],
+            "data_product_aliases": [],
             "data_dependencies": [],
             "packets": [],
             "parameters": [],
@@ -852,6 +854,8 @@ class assembly(subassembly):
                     self.component_kind_dict["events"].append(component)
                 if component.data_products:
                     self.component_kind_dict["data_products"].append(component)
+                    if component.data_products.alias_data:
+                        self.component_kind_dict["data_product_aliases"].append(component)
                 if component.data_dependencies:
                     self.component_kind_dict["data_dependencies"].append(component)
                 if component.packets:
@@ -925,6 +929,11 @@ class assembly(subassembly):
                         + (["Ada.Synchronous_Task_Control"]
                            if self.task_list
                            else [])
+                        # The local data product ID type of each component with aliases:
+                        + [
+                            component.data_products.name
+                            for component in self.component_kind_dict["data_product_aliases"]
+                        ]
                     )
                 )
             )
@@ -1212,13 +1221,30 @@ class assembly(subassembly):
                     + " that is too large to fit into a 16-bit integer type. Please adjust the ID bases."
                 )
 
-        # Special handling for data dependencies:
-        if self.data_dependency_suites:
-            # Create a dictionary that maps data product names to data products:
+        # Create a dictionary that maps data product names to data products. This is used
+        # to resolve data product aliases and data dependencies:
+        alias_suites = [
+            component.data_products
+            for component in self.component_kind_dict["data_product_aliases"]
+        ]
+        if self.data_dependency_suites or alias_suites:
             for dp in self.data_products.values():
                 self.data_products_by_name[
                     dp.suite.component.instance_name + "." + dp.name
                 ] = dp
+
+        # Resolve data product aliases. An alias takes on the ID of its target, so its
+        # own ID is removed from the assembly-wide dictionary. That ID is never published
+        # to. The alias stays in the name dictionary so that data dependencies may
+        # refer to it, and it resolves to the target's ID.
+        for suite in alias_suites:
+            suite.mark_aliases()
+        for suite in alias_suites:
+            suite.resolve_aliases(self.data_products_by_name)
+            for alias in suite.aliases:
+                del self.data_products[alias.natural_id]
+                self.data_product_aliases.append(alias)
+        self.data_product_aliases.sort(key=lambda alias: (alias.id, alias.full_name))
 
         # For each data dependency suite, resolve the ids.
         for suite in self.data_dependency_suites:

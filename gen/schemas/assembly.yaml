@@ -159,6 +159,27 @@ mapping:
                     type: int
                     required: True
             required: False
+          # If one of the component's data products should be published under the ID of another
+          # component's data product, list it here. Both data products must have exactly the same
+          # type. The two components then store to the same entry in the product database, and a
+          # data dependency may name either one. The last one to publish wins. This suits
+          # producers that are never active at the same time, and also more than one active
+          # producer when last-writer-wins is intended. Use it sparingly. The alias keeps its
+          # own ID slot in the component's ID block, but nothing is ever published under it.
+          data_product_aliases:
+            seq:
+              - type: map
+                mapping:
+                  # The name of this component's data product that becomes the alias.
+                  data_product:
+                    type: str
+                    required: True
+                  # The data product whose ID the alias publishes under, in the form:
+                  # "External_Component_Instance_Name.Data_Product_Name"
+                  alias_of:
+                    type: str
+                    required: True
+            required: False
           # If the component has values to fill in during component initialization they should be
           # listed here as name value pairs, ie.
           #   "Name => Value"

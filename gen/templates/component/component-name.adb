@@ -248,6 +248,16 @@ package body Component.{{ name }} is
    end Set_Id_Bases;
 
 {% endif %}
+{% if data_products %}
+   -----------------------------------------------------------------------
+   -- Override the ID of a single data product:
+   -----------------------------------------------------------------------
+   not overriding procedure Override_Data_Product_Id (Self : in out Base_Instance; Local_Id : in {{ data_products.name }}.Local_Data_Product_Id_Type; Id : in Data_Product_Types.Data_Product_Id) is
+   begin
+      Self.Data_Products.Override_Id (Local_Id => Local_Id, Id => Id);
+   end Override_Data_Product_Id;
+
+{% endif %}
 {% if map_data_dependencies %}
    -----------------------------------------------------------------------
    -- Initialize the IDs for the component's data dependencies
