@@ -100,10 +100,24 @@ package body {{ name }}.Validation is
             "Valid_Through: caller passed buffer not aligned to T'Alignment"
          );
 
-         -- Overlay T. We know alignment is good so ignore warnings.
+         -- Overlay T through a record that wraps it, so that every element
+         -- below is reached as W.A (Idx). GNAT Pro 25.2 evaluates 'Valid on
+         -- an element of a bare array object with a non native
+         -- Scalar_Storage_Order on the unswapped bytes (fixed upstream in
+         -- FSF GCC by 60f5887173a4), but it copies the element to native
+         -- order first when the prefix climbs through a record component.
+         -- Both shapes mean the same thing, so this stays correct once the
+         -- compiler is fixed.
+         type Wrapped is record
+            A : T;
+         end record
+            with Bit_Order => System.High_Order_First,
+                 Scalar_Storage_Order => System.High_Order_First;
+
+         -- We know alignment is good so ignore warnings.
          pragma Warnings (Off, "specified address*may be inconsistent with alignment");
          pragma Warnings (Off, "program execution may be erroneous");
-         R : T with Import, Convention => Ada, Address => Aligned'Address;
+         W : Wrapped with Import, Convention => Ada, Address => Aligned'Address;
          pragma Warnings (On, "program execution may be erroneous");
          pragma Warnings (On, "specified address*may be inconsistent with alignment");
 {% if packed_type_includes %}
@@ -125,7 +139,7 @@ package body {{ name }}.Validation is
             for Idx in First_Index .. Last_Index loop
                declare
                   Elem_Bytes : {{ element.type_package }}.Serialization.Byte_Array
-                     with Import, Convention => Ada, Address => R (Idx)'Address;
+                     with Import, Convention => Ada, Address => W.A (Idx)'Address;
                begin
                   if not {{ element.type_package }}.Validation.Valid (Elem_Bytes, E_Field) then
                      Errant_Field := Count * {{ element.type_model.num_fields }} + E_Field;
@@ -138,15 +152,15 @@ package body {{ name }}.Validation is
 {% else %}
          for Idx in First_Index .. Last_Index loop
 {% if element.format.length %}
-            for Jdx in R (Idx)'Range loop
-               if not R (Idx)(Jdx)'Valid then
+            for Jdx in W.A (Idx)'Range loop
+               if not W.A (Idx)(Jdx)'Valid then
                   Errant_Field := Count + 1;
                   pragma Annotate (GNATSAS, Intentional, "dead code", "some array elements may not be bit-constrained and thus will always be valid");
                   return False;
                end if;
             end loop;
 {% else %}
-            if not R (Idx)'Valid then
+            if not W.A (Idx)'Valid then
                Errant_Field := Count + 1;
                pragma Annotate (GNATSAS, Intentional, "dead code", "some array elements may not be bit-constrained and thus will always be valid");
                return False;
@@ -223,10 +237,24 @@ package body {{ name }}.Validation is
             "Valid_Le_Through: caller passed buffer not aligned to T_Le'Alignment"
          );
 
-         -- Overlay T. We know alignment is good so ignore warnings.
+         -- Overlay T_Le through a record that wraps it, so that every element
+         -- below is reached as W.A (Idx). GNAT Pro 25.2 evaluates 'Valid on
+         -- an element of a bare array object with a non native
+         -- Scalar_Storage_Order on the unswapped bytes (fixed upstream in
+         -- FSF GCC by 60f5887173a4), but it copies the element to native
+         -- order first when the prefix climbs through a record component.
+         -- Both shapes mean the same thing, so this stays correct once the
+         -- compiler is fixed.
+         type Wrapped is record
+            A : T_Le;
+         end record
+            with Bit_Order => System.Low_Order_First,
+                 Scalar_Storage_Order => System.Low_Order_First;
+
+         -- We know alignment is good so ignore warnings.
          pragma Warnings (Off, "specified address*may be inconsistent with alignment");
          pragma Warnings (Off, "program execution may be erroneous");
-         R : T_Le with Import, Convention => Ada, Address => Aligned'Address;
+         W : Wrapped with Import, Convention => Ada, Address => Aligned'Address;
          pragma Warnings (On, "program execution may be erroneous");
          pragma Warnings (On, "specified address*may be inconsistent with alignment");
 {% if packed_type_includes %}
@@ -248,7 +276,7 @@ package body {{ name }}.Validation is
             for Idx in First_Index .. Last_Index loop
                declare
                   Elem_Bytes : {{ element.type_package }}.Serialization_Le.Byte_Array
-                     with Import, Convention => Ada, Address => R (Idx)'Address;
+                     with Import, Convention => Ada, Address => W.A (Idx)'Address;
                begin
                   if not {{ element.type_package }}.Validation.Valid_Le (Elem_Bytes, E_Field) then
                      Errant_Field := Count * {{ element.type_model.num_fields }} + E_Field;
@@ -261,15 +289,15 @@ package body {{ name }}.Validation is
 {% else %}
          for Idx in First_Index .. Last_Index loop
 {% if element.format.length %}
-            for Jdx in R (Idx)'Range loop
-               if not R (Idx)(Jdx)'Valid then
+            for Jdx in W.A (Idx)'Range loop
+               if not W.A (Idx)(Jdx)'Valid then
                   Errant_Field := Count + 1;
                   pragma Annotate (GNATSAS, Intentional, "dead code", "some array elements may not be bit-constrained and thus will always be valid");
                   return False;
                end if;
             end loop;
 {% else %}
-            if not R (Idx)'Valid then
+            if not W.A (Idx)'Valid then
                Errant_Field := Count + 1;
                pragma Annotate (GNATSAS, Intentional, "dead code", "some array elements may not be bit-constrained and thus will always be valid");
                return False;
