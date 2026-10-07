@@ -2,6 +2,7 @@ from models.component import component_submodel
 from util import ada
 from models.submodels.ided_suite import ided_suite, ided_entity
 from models.submodels.parameter import parameter
+from models.exceptions import ModelException, throw_exception_with_lineno
 import os.path
 
 
@@ -60,6 +61,131 @@ class data_products(component_submodel, ided_suite):
 
         # Rename entities to something more descriptive:
         self.data_products = list(self.entities.values())
+
+        # The data products declared in the model file. Only these exist in the generated
+        # data products package, so only these publish under an overridden ID. Some suites
+        # add data products when the assembly is set, and the component computes the IDs
+        # of those from its ID base.
+        self.declared_names = list(self.entities.keys())
+
+        # The data_product_aliases instance data from the assembly model, and the
+        # data products of this component instance that publish under another
+        # component's data product ID.
+        self.alias_data = []
+        self.aliases = []
+
+    def set_alias_instance_data(self, alias_data):
+        """
+        Called by component, which passes data_product_aliases instance data. The data is
+        only stored here. Some suites add or replace data products when the assembly is
+        set, so the names are looked up later by mark_aliases().
+        """
+        self.alias_data = list(alias_data or [])
+
+    @throw_exception_with_lineno
+    def mark_aliases(self):
+        """
+        Called by assembly before resolve_aliases() is called on any suite. Looks up each
+        alias by name and marks it, so that resolve_aliases() can reject an alias of an alias
+        in any suite.
+        """
+        for data in self.alias_data:
+            name = ada.formatType(data["data_product"])
+            target_name = ada.formatVariable(data["alias_of"])
+
+            if name not in self.entities:
+                raise ModelException(
+                    "No data product of name '"
+                    + str(name)
+                    + "' exists in component '"
+                    + str(self.component.instance_name)
+                    + "'. Data products must be one of: "
+                    + str(list(self.entities.keys()))
+                )
+
+            if name not in self.declared_names:
+                valid = [n for n in self.declared_names if n in self.entities]
+                raise ModelException(
+                    "Data product '"
+                    + str(name)
+                    + "' in component '"
+                    + str(self.component.instance_name)
+                    + "' cannot be an alias. It is added by the component's model when the "
+                    + "assembly is loaded, and the component computes its ID from the ID base. "
+                    + "Only data products declared in the component's data products model can "
+                    + "be aliases: "
+                    + (str(valid) if valid else "none in this component.")
+                )
+
+            entity = self.entities[name]
+            if entity.is_alias:
+                raise ModelException(
+                    "Data product '"
+                    + str(name)
+                    + "' in component '"
+                    + str(self.component.instance_name)
+                    + "' is listed more than once in data_product_aliases."
+                )
+
+            entity.alias_of_name = target_name
+            self.aliases.append(entity)
+
+    @throw_exception_with_lineno
+    def resolve_aliases(self, dp_name_map):
+        """
+        Called by assembly after all data product IDs are assigned, passing a dictionary
+        mapping full, component-instance-qualified data product names to data product
+        objects. Each alias takes on the ID of its target.
+        """
+        for alias in self.aliases:
+            alias_full_name = self.component.instance_name + "." + alias.name
+
+            try:
+                target = dp_name_map[alias.alias_of_name]
+            except KeyError:
+                raise ModelException(
+                    "Cannot find data product '"
+                    + str(alias.alias_of_name)
+                    + "' for data product alias '"
+                    + alias_full_name
+                    + "' in assembly. Data product names should be in the form: "
+                    + "Component_Instance_Name.Data_Product_Name"
+                )
+
+            if target.suite is self:
+                raise ModelException(
+                    "Data product alias '"
+                    + alias_full_name
+                    + "' cannot be an alias of a data product in the same component instance."
+                )
+
+            if target.is_alias:
+                raise ModelException(
+                    "Data product alias '"
+                    + alias_full_name
+                    + "' cannot be an alias of '"
+                    + str(alias.alias_of_name)
+                    + "' because that data product is itself an alias."
+                )
+
+            # Make sure the alias and its target are of the exact same type:
+            if alias.type != target.type or alias.size != target.size:
+                raise ModelException(
+                    "Data product alias '"
+                    + alias_full_name
+                    + "' is an alias of '"
+                    + str(alias.alias_of_name)
+                    + "' but their types do not match ("
+                    + alias.type
+                    + " vs. "
+                    + target.type
+                    + "). The alias and its target types must exactly match."
+                )
+
+            alias.natural_id = alias.id
+            alias.id = target.id
+            alias.alias_of = target
+            target.aliases.append(alias)
 
     def set_component(self, component):
         # Set the id bases parameter:

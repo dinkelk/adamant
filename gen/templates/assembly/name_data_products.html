@@ -5,6 +5,9 @@
       <ul>
         <li><b>Number of Components with Data Products:</b> {{ component_kind_dict['data_products']|length }}</li>
         <li><b>Number of Data Products:</b> {{ data_products|length }}</li>
+{% if data_product_aliases %}
+        <li><b>Number of Data Product Aliases:</b> {{ data_product_aliases|length }}</li>
+{% endif %}
       </ul>
 {% endblock %}
 {% block head %}
@@ -23,5 +26,13 @@
         <td style='font-family: "Courier New", Courier, monospace;'>{% if dp.type_model %}<a class="record_link" href="../../{{ dp.type_model.get_src_dir_from(get_src_dir(full_filename)) }}/build/html/{{ dp.type_package.lower() }}.html">{% endif %}{{ dp.type }}{% if dp.type_model %}</a>{% endif %}</td>
         <td>{% if dp.description %}{{ printMultiLine(dp.description, '') }}{% endif %}</td>
       </tr>
+{% for alias in dp.aliases %}
+      <tr>
+        <td style='font-family: "Courier New", Courier, monospace;'>0x{{ '%04x' % alias.id }} ({{ alias.id }})</b></td>
+        <td style='font-family: "Courier New", Courier, monospace;'><b>{{ alias.suite.component.instance_name }}.{{ alias.name }}</b></td>
+        <td style='font-family: "Courier New", Courier, monospace;'>{% if alias.type_model %}<a class="record_link" href="../../{{ alias.type_model.get_src_dir_from(get_src_dir(full_filename)) }}/build/html/{{ alias.type_package.lower() }}.html">{% endif %}{{ alias.type }}{% if alias.type_model %}</a>{% endif %}</td>
+        <td><i>Alias of {{ dp.suite.component.instance_name }}.{{ dp.name }}.</i> {% if alias.description %}{{ printMultiLine(alias.description, '') }}{% endif %}</td>
+      </tr>
+{% endfor %}
 {% endfor %}
 {% endblock %}

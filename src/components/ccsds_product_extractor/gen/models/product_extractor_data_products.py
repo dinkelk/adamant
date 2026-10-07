@@ -30,8 +30,10 @@ class product_extractor_data_products(data_products):
                 + str(extraction_list)
             )
 
-        # Remove the dummy variable
+        # Remove the dummy variable. It is no longer declared, so an extracted data
+        # product that happens to be named Dummy cannot be an alias.
         self.entities.pop("Dummy")
+        self.declared_names.remove("Dummy")
 
         # loop through the model to get all the data products we need to add
         for apid, products in extraction_list_model.apids.items():

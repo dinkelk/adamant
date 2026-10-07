@@ -42,11 +42,19 @@ package {{ name }} is
    );
 
    -----------------------------------------------
-   -- Setter procedure for data product ID base:
+   -- Setter procedures for data product IDs:
    -----------------------------------------------
    not overriding function Get_Id_Base (Self : in Instance) return Data_Product_Types.Data_Product_Id
       with Inline => True;
+   -- Set the ID of every data product to the ID base plus its local ID.
    not overriding procedure Set_Id_Base (Self : in out Instance; Id_Base : in Data_Product_Types.Data_Product_Id)
+      with Inline => True;
+   -- Override the ID of a single data product. This is nonstandard and is only
+   -- used for a data product that is an alias of another component's data
+   -- product, so that both publish under the same ID. Set_Id_Base resets every
+   -- ID, so an override only takes effect if it is called after Set_Id_Base.
+   -- The assembly autocode makes this call after Set_Id_Bases.
+   not overriding procedure Override_Id (Self : in out Instance; Local_Id : in Local_Data_Product_Id_Type; Id : in Data_Product_Types.Data_Product_Id)
       with Inline => True;
 
    -----------------------------------------------
@@ -85,8 +93,18 @@ package {{ name }} is
    pragma Warnings (On, "condition can only be True if invalid values present");
 
 private
+   -- Table of the ID each data product publishes under. The defaults equal the
+   -- local IDs, which is what unit tests expect. Set_Id_Base and Override_Id fill
+   -- in the assembly-wide IDs.
+   type Id_Table is array (Local_Data_Product_Id_Type) of Data_Product_Types.Data_Product_Id;
+
    type Instance is tagged limited record
       Id_Base : Data_Product_Types.Data_Product_Id := 0;
+      Ids : Id_Table := [
+{% for dp in data_products %}
+         {{ dp.name }}_Id => {{ loop.index0 }}{{ "," if not loop.last }}
+{% endfor %}
+      ];
    end record;
 
 end {{ name }};

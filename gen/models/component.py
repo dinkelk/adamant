@@ -829,6 +829,18 @@ class component(base):
                 self.instance_data["map_data_dependencies"]
             )
 
+        # Check data product aliases:
+        if "data_product_aliases" in self.instance_data:
+            if not self.data_products:
+                raise ModelException(
+                    'component "'
+                    + self.instance_name
+                    + '" has no data products. You cannot specify a "data_product_aliases" section.'
+                )
+            self.data_products.set_alias_instance_data(
+                self.instance_data["data_product_aliases"]
+            )
+
         # Check component task:
         if self.tasks:
             self.tasks.set_instance_data(

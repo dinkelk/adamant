@@ -127,6 +127,18 @@ package Component.{{ name }} is
    not overriding procedure Set_Id_Bases (Self : in out Base_Instance{% if set_id_bases.parameters %}; {{ set_id_bases.parameter_declaration_string() }}{% endif %});
 
 {% endif %}
+{% if data_products %}
+   -----------------------------------------------------------------------
+   -- Override the ID of a single data product:
+   -----------------------------------------------------------------------
+   -- This is nonstandard and is only used for a data product that is an alias
+   -- of another component's data product, so that both publish under the same
+   -- ID. Set_Id_Bases resets every data product ID, so an override only takes
+   -- effect if it is called after Set_Id_Bases. The assembly autocode makes
+   -- this call after Set_Id_Bases.
+   not overriding procedure Override_Data_Product_Id (Self : in out Base_Instance; Local_Id : in {{ data_products.name }}.Local_Data_Product_Id_Type; Id : in Data_Product_Types.Data_Product_Id);
+
+{% endif %}
 {% if map_data_dependencies %}
    -----------------------------------------------------------------------
    -- Initialize the IDs for the component's data dependencies

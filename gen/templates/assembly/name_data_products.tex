@@ -11,6 +11,12 @@ The table below shows the data products for the \VAR{prettyname|e} assembly.
   \texttt{\url{\VAR{dp.suite.component.instance_name}.\VAR{dp.name}}} &
   \texttt{\url{\VAR{dp.type}}}
   \\ \hline
+%- for alias in dp.aliases
+  \texttt{0x\VAR{"%04x" % alias.id } (\VAR{ alias.id })} &
+  \texttt{\url{\VAR{alias.suite.component.instance_name}.\VAR{alias.name}}} (alias) &
+  \texttt{\url{\VAR{alias.type}}}
+  \\ \hline
+%- endfor
 %- endfor
 \end{xltabular}}
 \vspace{5mm} %5mm vertical space
@@ -24,6 +30,13 @@ Data Product Descriptions:
 %- else
     \textit{No description provided.}
 %- endif
+%- for alias in dp.aliases
+  \item \textbf{\texttt{\url{\VAR{alias.suite.component.instance_name}.\VAR{alias.name}}}} -
+    Alias of \texttt{\url{\VAR{dp.suite.component.instance_name}.\VAR{dp.name}}}.
+%- if alias.description
+    \VAR{alias.description|e}
+%- endif
+%- endfor
 %- endfor
 \end{spaceditemize}
 \vspace{5mm} %5mm vertical space
