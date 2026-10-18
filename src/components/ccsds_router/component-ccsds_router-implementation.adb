@@ -33,6 +33,12 @@ package body Component.Ccsds_Router.Implementation is
          end if;
 
          declare
+            -- Note: Last_Sequence_Count is initialized to Ccsds_Sequence_Count_Type'Last (16383).
+            -- This means the first packet received will almost certainly trigger an
+            -- Unexpected_Sequence_Count_Received event for Warn and Drop_Dupes modes,
+            -- since the expected sequence count will be 0 (Last + 1 with wraparound).
+            -- This is intentional — it ensures no packets are silently accepted without
+            -- sequence count validation, even at startup.
             The_Entry : constant Internal_Router_Table_Entry := (Table_Entry => Table_Entry, Last_Sequence_Count => Ccsds_Primary_Header.Ccsds_Sequence_Count_Type'Last);
             Ignore_1 : Internal_Router_Table_Entry;
             Ignore_2 : Natural;
@@ -130,14 +136,21 @@ package body Component.Ccsds_Router.Implementation is
                   -- Warn via event if unexpected sequence count found:
                   Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
                when Drop_Dupes =>
-                  -- Warn via event if unexpected sequence count found:
-                  Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
-                  -- Check for duplicate; report and drop if necessary:
+                  -- Check for duplicate BEFORE updating Last_Sequence_Count.
+                  -- Table_Entry_Found is a snapshot from Search, so we compare
+                  -- against the previous packet's sequence count explicitly.
                   declare
                      use Ccsds_Primary_Header;
-                     Last_Sequence_Count : Ccsds_Primary_Header.Ccsds_Sequence_Count_Type renames Table_Entry_Found.Last_Sequence_Count;
+                     Is_Duplicate : constant Boolean := Arg.Header.Sequence_Count = Table_Entry_Found.Last_Sequence_Count;
                   begin
-                     if Arg.Header.Sequence_Count = Last_Sequence_Count then
+                     -- Warn via event if unexpected sequence count found.
+                     -- Note: Warn_Sequence_Count unconditionally updates Last_Sequence_Count
+                     -- in the tree to the current packet's sequence count. For duplicates this
+                     -- update is idempotent (same value), so it is harmless. The duplicate check
+                     -- above captures the flag before the update to avoid any ordering dependency.
+                     Self.Warn_Sequence_Count (Table_Entry_Found, Found_Entry_Index, Arg.Header);
+                     -- Drop duplicate if necessary:
+                     if Is_Duplicate then
                         Self.Drop_Packet (Arg, Self.Events.Dropped_Duplicate_Packet (Self.Sys_Time_T_Get, Arg.Header));
                         Route_To_Destination := False;
                      end if;

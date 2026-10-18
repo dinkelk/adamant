@@ -11,9 +11,11 @@ from models.assembly import assembly_submodel
 
 class router_table_entry(object):
     def __init__(
-        self, apid, destinations=[], description=None, sequence_check="No_Check"
+        self, apid, destinations=None, description=None, sequence_check="No_Check"
     ):
         self.apid = apid
+        if destinations is None:
+            destinations = []
         self.destinations = list(
             OrderedDict.fromkeys(
                 [ada.formatVariable(component_name) for component_name in destinations]
