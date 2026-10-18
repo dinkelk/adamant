@@ -253,7 +253,7 @@ package body Memory_Manager_Tests.Implementation is
       -- Request the memory region again:
       --
       Bad_Request := T.Memory_Region_Request_T_Get;
-      Memory_Region_Request_Assert.Eq (Bad_Request, ((Id => 0, Region => (To_Address (Integer_Address (0)), 0)), Status => Failure));
+      Memory_Region_Request_Assert.Eq (Bad_Request, ((Id => Interfaces.Unsigned_16'Last, Region => (To_Address (Integer_Address (0)), 0)), Status => Failure));
 
       -- Expect an error event.
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 4);
