@@ -9,7 +9,7 @@ with Ada.Execution_Time;
 with Packet;
 with Protected_Variables;
 
--- This component produces a packet holding the CPU execution time for all tasks and interrupts configured for a particular assembly. It is provided an autocoded data structure upon initialization that contains the tasks and interrupts which it is to monitor. The packet produced contains 3 CPU execution numbers (1 bytes in size ranging from 0 - 100) for each task/interrupt, corresponding to different length time periods. The length of these time periods is also specified at initialization as multiples of the master tick driving the component.
+-- This component produces a packet holding the CPU execution time for all tasks and interrupts configured for a particular assembly. It is provided an autocoded data structure upon initialization that contains the tasks and interrupts which it is to monitor. The packet produced contains 3 CPU execution numbers (1 byte in size ranging from 0 - 100) for each task/interrupt, corresponding to different length time periods. The length of these time periods is also specified at initialization as multiples of the master tick driving the component.
 package Component.Cpu_Monitor.Implementation is
 
    -- The component class instance record:
@@ -31,12 +31,12 @@ package Component.Cpu_Monitor.Implementation is
 private
 
    -- Array of times representing the last time that cpu measurements were taken:
-   type Last_Time_Type is array (Num_Measurement_Periods) of Ada.Real_Time.Time;
+   type Last_Time_Type is array (Measurement_Period_Index) of Ada.Real_Time.Time;
    -- Time measurement array, so we can store this for each task/interrupt:
    type Last_Time_Array is array (Natural range <>) of Last_Time_Type;
    type Last_Time_Array_Access is access all Last_Time_Array;
    -- Array of cpu times representing the last cpu measurements that were taken:
-   type Last_Cpu_Time_Type is array (Num_Measurement_Periods) of Ada.Execution_Time.CPU_Time;
+   type Last_Cpu_Time_Type is array (Measurement_Period_Index) of Ada.Execution_Time.CPU_Time;
    -- Cpu time measurement array, so we can store this for each task/interrupt:
    type Last_Cpu_Time_Array is array (Natural range <>) of Last_Cpu_Time_Type;
    type Last_Cpu_Time_Array_Access is access all Last_Cpu_Time_Array;
