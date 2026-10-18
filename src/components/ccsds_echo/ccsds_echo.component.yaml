@@ -1,5 +1,5 @@
 ---
-description: This component creates Adamant packets whose data is the CCSDS packets sent to it. The main use of this component is to echo a CCSDS stream from uplink back down as downlink.
+description: This component creates Adamant packets whose data is the CCSDS packets sent to it. The main use of this component is to echo a CCSDS stream from uplink back down as downlink. Note that this component has no enable/disable command interface by design; echo suppression is intended to be handled at the assembly level by disconnecting or not connecting the component. This keeps the component simple and stateless for maximum reusability.
 execution: passive
 connectors:
   - description: The CCSDS receive connector.
@@ -7,6 +7,9 @@ connectors:
     kind: recv_sync
   - description: The packet send connector.
     type: Packet.T
+    kind: send
+  - description: Events are sent out of this connector.
+    type: Event.T
     kind: send
   - description: The system time is retrieved via this connector.
     return_type: Sys_Time.T
