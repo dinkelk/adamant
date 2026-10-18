@@ -2,7 +2,7 @@
 description: This is meant to represent the varInfo structure from seq, which is repeatedly used for many instructions.
 fields:
   - name: Id
-    description: If type is 0, this is a literal, if type is 1, this is an index in a local variable array, if the type is 2 this is an index into the internal variable array, globals are not supported.
+    description: "If type is 0, this is a literal, if type is 1, this is an index in a local variable array, if the type is 2 this is an index into the internal variable array, globals are not supported. NOTE: When used as an index (Local or Internal), consuming code MUST validate Id is within the valid range (0-15 for Local, 0-3 for Internal) before use."
     type: Interfaces.Unsigned_32
     format: U32
   - name: Var_Type
