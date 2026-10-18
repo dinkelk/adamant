@@ -2,4 +2,4 @@
 description: Packets for the memory dumper.
 packets:
   - name: Memory_Dump_Packet
-    description: This packet contains memory.
+    description: Provides the packet ID used when sending memory dumps via the Memory_Dump_Send connector.
