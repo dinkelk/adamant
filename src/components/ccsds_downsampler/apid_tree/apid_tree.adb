@@ -14,22 +14,25 @@ package body Apid_Tree is
    end Greater_Than;
 
    procedure Init (Self : in out Instance; Downsample_List : in Ccsds_Downsample_Packet_List_Access) is
+      use Data_Product_Types;
       Add_Status : Boolean;
       Search_Status : Boolean;
       Ignore_1 : Positive;
       Ignore_2 : Ccsds_Downsampler_Tree_Entry;
+      Dp_Idx : Data_Product_Id := Data_Product_Id'First;
    begin
       -- Allocate space for the table:
       Self.Downsample_Entry.Init (Downsample_List'Length);
       -- For each item in the list, add the apid and filter factor to the internal tree
       for Id of Downsample_List.all loop
          -- Make sure we don't add multiple of the same apid
-         Search_Status := Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0)), Ignore_2, Ignore_1);
+         Search_Status := Self.Downsample_Entry.Search (((Apid => Id.Apid, Filter_Factor => 1, Filter_Count => 0, Dp_Index => 0)), Ignore_2, Ignore_1);
          pragma Assert (not Search_Status, "Downsampler tree cannot add multiple nodes of the same APID.");
 
-         Add_Status := Self.Downsample_Entry.Add (((Apid => Id.Apid, Filter_Factor => Id.Filter_Factor, Filter_Count => 0)));
+         Add_Status := Self.Downsample_Entry.Add (((Apid => Id.Apid, Filter_Factor => Id.Filter_Factor, Filter_Count => 0, Dp_Index => Dp_Idx)));
          -- Make sure we don't get a failure for some reason
          pragma Assert (Add_Status, "Downsampler tree too small to hold all APIDs in the input list.");
+         Dp_Idx := Dp_Idx + 1;
       end loop;
    end Init;
 
@@ -37,13 +40,15 @@ package body Apid_Tree is
       Fetched_Entry : Ccsds_Downsampler_Tree_Entry;
       Tree_Index : Positive;
       Return_Status : Filter_Action_Status;
-      Search_Status : constant Boolean := Self.Downsample_Entry.Search (((Apid => Apid, Filter_Factor => 1, Filter_Count => 0)), Fetched_Entry, Tree_Index);
+      Search_Status : constant Boolean := Self.Downsample_Entry.Search (((Apid => Apid, Filter_Factor => 1, Filter_Count => 0, Dp_Index => 0)), Fetched_Entry, Tree_Index);
    begin
       case Search_Status is
          -- If we couldn't find the packet, then increment the pass count and move on
          when False =>
-            -- Update the counter and return the status
-            Self.Num_Passed_Packets := @ + 1;
+            -- Update the counter and return the status (saturate at max to avoid wraparound)
+            if Self.Num_Passed_Packets < Unsigned_16'Last then
+               Self.Num_Passed_Packets := @ + 1;
+            end if;
             Count := Self.Num_Passed_Packets;
             Return_Status := Invalid_Id;
          when True =>
@@ -51,25 +56,37 @@ package body Apid_Tree is
             case Fetched_Entry.Filter_Factor is
                -- When the factor is set to 0, we don't pass anything along.
                when 0 =>
-                  -- Update counter
-                  Self.Num_Filtered_Packets := @ + 1;
+                  -- Update counter (saturate at max to avoid wraparound)
+                  if Self.Num_Filtered_Packets < Unsigned_16'Last then
+                     Self.Num_Filtered_Packets := @ + 1;
+                  end if;
                   Return_Status := Filter;
                   Count := Self.Num_Filtered_Packets;
                -- Use the filter factor value for all other values to determine if it needs to be filtered or not
                when others =>
                   if (Fetched_Entry.Filter_Count mod Fetched_Entry.Filter_Factor) = 0 then
-                     Self.Num_Passed_Packets := @ + 1;
+                     if Self.Num_Passed_Packets < Unsigned_16'Last then
+                        Self.Num_Passed_Packets := @ + 1;
+                     end if;
                      Return_Status := Pass;
                      Count := Self.Num_Passed_Packets;
                   else
                      -- Filtered here
-                     Self.Num_Filtered_Packets := @ + 1;
+                     if Self.Num_Filtered_Packets < Unsigned_16'Last then
+                        Self.Num_Filtered_Packets := @ + 1;
+                     end if;
                      Return_Status := Filter;
                      Count := Self.Num_Filtered_Packets;
                   end if;
             end case;
-            -- If we found the entry in the tree, then make sure we update with the new count for that entry
-            Fetched_Entry.Filter_Count := @ + 1;
+            -- If we found the entry in the tree, then make sure we update with the new count for that entry.
+            -- Use modular counting to prevent unbounded growth and wraparound anomalies.
+            if Fetched_Entry.Filter_Factor > 0 then
+               Fetched_Entry.Filter_Count := (Fetched_Entry.Filter_Count + 1) mod Fetched_Entry.Filter_Factor;
+            else
+               -- Filter_Factor is 0 (filter-all mode); count is unused but keep it bounded
+               Fetched_Entry.Filter_Count := 0;
+            end if;
             Self.Downsample_Entry.Set (Tree_Index, Fetched_Entry);
       end case;
 
@@ -79,7 +96,7 @@ package body Apid_Tree is
    function Set_Filter_Factor (Self : in out Instance; Apid : in Ccsds_Apid_Type; New_Filter_Factor : in Unsigned_16; Tree_Index : out Positive) return Filter_Factor_Set_Status is
       Fetched_Entry : Ccsds_Downsampler_Tree_Entry;
       Index : Positive;
-      Search_Status : constant Boolean := Self.Downsample_Entry.Search ((Apid => Apid, Filter_Factor => 1, Filter_Count => 0), Fetched_Entry, Index);
+      Search_Status : constant Boolean := Self.Downsample_Entry.Search ((Apid => Apid, Filter_Factor => 1, Filter_Count => 0, Dp_Index => 0), Fetched_Entry, Index);
    begin
       -- set the index output variable just in case we don't find the entry
       Tree_Index := Positive'First;

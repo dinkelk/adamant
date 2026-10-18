@@ -30,8 +30,8 @@ package Component.Ccsds_Downsampler.Implementation.Tester is
 
    -- Event history packages:
    package Invalid_Command_Received_History_Package is new Printable_History (Invalid_Command_Info.T, Invalid_Command_Info.Representation.Image);
-   package Modified_Factor_Filter_History_Package is new Printable_History (Filter_Factor_Cmd_Type.T, Filter_Factor_Cmd_Type.Representation.Image);
-   package Factor_Filter_Change_Failed_Invalid_Apid_History_Package is new Printable_History (Filter_Factor_Cmd_Type.T, Filter_Factor_Cmd_Type.Representation.Image);
+   package Filter_Factor_Modified_History_Package is new Printable_History (Filter_Factor_Cmd_Type.T, Filter_Factor_Cmd_Type.Representation.Image);
+   package Filter_Factor_Change_Failed_Invalid_Apid_History_Package is new Printable_History (Filter_Factor_Cmd_Type.T, Filter_Factor_Cmd_Type.Representation.Image);
 
    -- Data product history packages:
    package Total_Packets_Filtered_History_Package is new Printable_History (Packed_U16.T, Packed_U16.Representation.Image);
@@ -49,8 +49,8 @@ package Component.Ccsds_Downsampler.Implementation.Tester is
       Sys_Time_T_Return_History : Sys_Time_T_Return_History_Package.Instance;
       -- Event histories:
       Invalid_Command_Received_History : Invalid_Command_Received_History_Package.Instance;
-      Modified_Factor_Filter_History : Modified_Factor_Filter_History_Package.Instance;
-      Factor_Filter_Change_Failed_Invalid_Apid_History : Factor_Filter_Change_Failed_Invalid_Apid_History_Package.Instance;
+      Filter_Factor_Modified_History : Filter_Factor_Modified_History_Package.Instance;
+      Filter_Factor_Change_Failed_Invalid_Apid_History : Filter_Factor_Change_Failed_Invalid_Apid_History_Package.Instance;
       -- Data product histories:
       Total_Packets_Filtered_History : Total_Packets_Filtered_History_Package.Instance;
       Total_Packets_Passed_History : Total_Packets_Passed_History_Package.Instance;
@@ -88,9 +88,9 @@ package Component.Ccsds_Downsampler.Implementation.Tester is
    -- A command was received with invalid parameters.
    overriding procedure Invalid_Command_Received (Self : in out Instance; Arg : in Invalid_Command_Info.T);
    -- This event indicates that the filter factor for a particular id has been set based on what was commanded.
-   overriding procedure Modified_Factor_Filter (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T);
+   overriding procedure Filter_Factor_Modified (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T);
    -- This event indicates that the command received a Apid it could not find so it fails since it cannot find the id.
-   overriding procedure Factor_Filter_Change_Failed_Invalid_Apid (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T);
+   overriding procedure Filter_Factor_Change_Failed_Invalid_Apid (Self : in out Instance; Arg : in Filter_Factor_Cmd_Type.T);
 
    -----------------------------------------------
    -- Data product handler primitives:
