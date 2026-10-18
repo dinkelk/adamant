@@ -1,0 +1,7 @@
+---
+preamble: |
+   subtype Unit_Short_Float is Short_Float range -1.0 .. 1.0;
+type: Unit_Short_Float
+format: F32
+description: An array of Short_Floats constrained to a unit range, to exercise range validation of float elements.
+length: 3

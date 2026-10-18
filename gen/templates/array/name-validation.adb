@@ -145,6 +145,34 @@ package body {{ name }}.Validation is
                   return False;
                end if;
             end loop;
+{% elif element.has_float %}
+            begin
+               declare
+                  -- 'Valid applied directly to an element of an array with a
+                  -- non-native Scalar_Storage_Order is evaluated by GNAT on the
+                  -- element's raw storage bytes, without the byte swap that the
+                  -- storage order requires (the same check on a record component
+                  -- gets an order-correcting copy first). Copying the element to
+                  -- a local forces the swap, so 'Valid tests the element's value
+                  -- and correctly rejects NaN and infinity bit patterns
+                  -- regardless of storage order.
+                  Element_Copy : constant {{ element.type }} := R (Idx);
+               begin
+                  if not Element_Copy'Valid then
+                     Errant_Field := Count + 1;
+                     return False;
+                  end if;
+               end;
+            exception
+               -- When validity checking is enabled (-gnatVcf and similar) the
+               -- compiler inserts its own check on the copy above and raises
+               -- an exception on invalid data instead of letting 'Valid
+               -- return False. Catch it here so the errant element is still
+               -- reported precisely.
+               when Constraint_Error | Program_Error =>
+                  Errant_Field := Count + 1;
+                  return False;
+            end;
 {% else %}
             if not R (Idx)'Valid then
                Errant_Field := Count + 1;
@@ -268,6 +296,34 @@ package body {{ name }}.Validation is
                   return False;
                end if;
             end loop;
+{% elif element.has_float %}
+            begin
+               declare
+                  -- 'Valid applied directly to an element of an array with a
+                  -- non-native Scalar_Storage_Order is evaluated by GNAT on the
+                  -- element's raw storage bytes, without the byte swap that the
+                  -- storage order requires (the same check on a record component
+                  -- gets an order-correcting copy first). Copying the element to
+                  -- a local forces the swap, so 'Valid tests the element's value
+                  -- and correctly rejects NaN and infinity bit patterns
+                  -- regardless of storage order.
+                  Element_Copy : constant {{ element.type }} := R (Idx);
+               begin
+                  if not Element_Copy'Valid then
+                     Errant_Field := Count + 1;
+                     return False;
+                  end if;
+               end;
+            exception
+               -- When validity checking is enabled (-gnatVcf and similar) the
+               -- compiler inserts its own check on the copy above and raises
+               -- an exception on invalid data instead of letting 'Valid
+               -- return False. Catch it here so the errant element is still
+               -- reported precisely.
+               when Constraint_Error | Program_Error =>
+                  Errant_Field := Count + 1;
+                  return False;
+            end;
 {% else %}
             if not R (Idx)'Valid then
                Errant_Field := Count + 1;
