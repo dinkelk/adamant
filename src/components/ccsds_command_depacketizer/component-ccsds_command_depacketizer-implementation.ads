@@ -8,7 +8,7 @@ with Command;
 with Interfaces;
 with Protected_Variables;
 
--- This component receives CCSDS packets, validates the data within them, and converts them into Adamant commands. Note that the only internal state that this component contains is a packet accept and packet reject count. The component assumes that only a single task is attached to its CCSDS Space Packet invokee connector, and thus these counters are unprotected. If more than one task is attached to the input, a race condition arises around the counters, which may need to become protected.
+-- This component receives CCSDS packets, validates the data within them, and converts them into Adamant commands. Note that the only internal state that this component contains is a packet accept and packet reject count. The counters use protected objects (Generic_Protected_Counter) so individual operations are task-safe; however, the increment-then-read sequence is not atomic. The component assumes that only a single task is attached to its CCSDS Space Packet invokee connector. If more than one task is attached, the non-atomic increment+read sequence may yield stale counter values in data products.
 package Component.Ccsds_Command_Depacketizer.Implementation is
 
    -- The component class instance record:
