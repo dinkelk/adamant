@@ -5,3 +5,4 @@ requirements:
   - text: When an interrupt is received, the component shall pass a user-defined data type to a user-defined custom interrupt handler.
   - text: When an interrupt is received, the component shall pass the user-defined interrupt data to an attached external component.
   - text: The component shall contain a connector which blocks a calling component's execution until an interrupt is received.
+  - text: When the Sys_Time_T_Get connector is connected, the component shall set the time in the interrupt data type using the provided Set_Interrupt_Data_Time procedure after the waiting task resumes from an interrupt.
