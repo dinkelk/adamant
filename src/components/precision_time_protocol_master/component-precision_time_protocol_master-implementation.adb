@@ -130,19 +130,32 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
    -- Receives and forwards the PTP time for a follow-up message (if connected). The time received is an accurate time stamp of when the Sync message was sent. This time can be provided to this component by a lower level component which actually records the time the Sync message leaves the system.
    overriding procedure Follow_Up_Sys_Time_T_Recv_Async (Self : in out Instance; Arg : in Sys_Time.T) is
       use Ptp_Enums.Ptp_Message_Type;
+      use Ptp_State;
    begin
-      -- Send out follow up message with updated time:
-      Self.Ptp_Time_Message_T_Send ((Message_Type => Follow_Up, Transaction_Count => Self.Transaction_Count, Time_Stamp => Arg));
+      -- Only send a Follow_Up if PTP is enabled (or Sync_Once was used) and at least
+      -- one Sync has been sent (Transaction_Count > 0). This prevents spurious Follow_Up
+      -- messages from reaching slaves when no Sync has been issued or PTP is disabled.
+      if Self.State = Enabled and then Self.Transaction_Count > 0 then
+         -- Send out follow up message with updated time:
+         Self.Ptp_Time_Message_T_Send ((Message_Type => Follow_Up, Transaction_Count => Self.Transaction_Count, Time_Stamp => Arg));
 
-      -- Update data products:
-      Self.Follow_Up_Message_Count := @ + 1;
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Follow_Up_Messages_Sent (Arg, (Value => Self.Follow_Up_Message_Count)));
+         -- Update data products:
+         Self.Follow_Up_Message_Count := @ + 1;
+         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Follow_Up_Messages_Sent (Arg, (Value => Self.Follow_Up_Message_Count)));
+      end if;
    end Follow_Up_Sys_Time_T_Recv_Async;
 
    procedure Queue_Overflow_Event (Self : in out Instance) is
    begin
       Self.Event_T_Send_If_Connected (Self.Events.Queue_Overflowed (Self.Sys_Time_T_Get));
    end Queue_Overflow_Event;
+
+   -- This procedure is called when a Ptp_Time_Message_T_Send message is dropped due to a full queue.
+   overriding procedure Ptp_Time_Message_T_Send_Dropped (Self : in out Instance; Arg : in Ptp_Time_Message.T) is
+      Ignore : Ptp_Time_Message.T renames Arg;
+   begin
+      Self.Queue_Overflow_Event;
+   end Ptp_Time_Message_T_Send_Dropped;
 
    -- This procedure is called when a Tick_T_Recv_Async message is dropped due to a full queue.
    overriding procedure Tick_T_Recv_Async_Dropped (Self : in out Instance; Arg : in Tick.T) is
@@ -221,7 +234,10 @@ package body Component.Precision_Time_Protocol_Master.Implementation is
    overriding function Sync_Once (Self : in out Instance) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
-      -- Set new sync period:
+      -- Set the Sync_Once flag. Note: if PTP is currently Enabled, this will cause
+      -- the next Sync to fire at the next tick regardless of Cycle_Count, which may
+      -- disrupt the periodic cadence. Only one Sync is sent per tick due to the
+      -- short-circuit evaluation in the tick handler.
       Self.Sync_Once := True;
 
       -- Send info event:
