@@ -18,6 +18,8 @@ private
    overriding procedure Test_Command_Accept (Self : in out Instance);
    -- This unit test tests that a command on the reject list is dropped by the component.
    overriding procedure Test_Command_Reject (Self : in out Instance);
+   -- This unit test verifies that the reject counter saturates at Unsigned_16'Last instead of wrapping to zero.
+   overriding procedure Test_Counter_Saturation (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Command_Rejector_Tests.Base_Instance with record
