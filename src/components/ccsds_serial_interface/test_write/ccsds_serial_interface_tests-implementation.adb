@@ -42,20 +42,34 @@ package body Ccsds_Serial_Interface_Tests.Implementation is
              (Version => 0, Packet_Type => Ccsds_Packet_Type.Telecommand, Secondary_Header => Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present, Apid => Ccsds_Apid_Type (15), Sequence_Flag => Ccsds_Sequence_Flag.Unsegmented,
                Sequence_Count => Ccsds_Sequence_Count_Type (22), Packet_Length => 10 - 1),
           Data => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, others => 0]);
+      -- Packet with invalid header (Packet_Length larger than data buffer) to trigger Packet_Send_Failed:
+      Packet_Bad : constant Ccsds_Space_Packet.T :=
+         (Header =>
+             (Version => 0, Packet_Type => Ccsds_Packet_Type.Telecommand, Secondary_Header => Ccsds_Secondary_Header_Indicator.Secondary_Header_Not_Present, Apid => Ccsds_Apid_Type (15), Sequence_Flag => Ccsds_Sequence_Flag.Unsegmented,
+               Sequence_Count => Ccsds_Sequence_Count_Type (22), Packet_Length => Unsigned_16'Last),
+          Data => [others => 0]);
    begin
-      -- Put_Line("Starting test.");
+      -- Verify no events have been sent yet:
+      Natural_Assert.Eq (T.Packet_Send_Failed_History.Get_Count, 0);
 
-      -- Expected to send packet:
-      -- Put_Line("Expected to send packet:");
-      -- Put_Line(Ccsds_Space_Packet.Representation.Image(packet_good));
-
-      -- Send a few messages to the component:
+      -- Send a few valid messages to the component:
       for Idx in 5 .. 8 loop
          -- Send the buffer to the component:
          T.Ccsds_Space_Packet_T_Send (Packet_Good);
          -- Execute the component:
          Natural_Assert.Eq (T.Dispatch_All, 1);
       end loop;
+
+      -- No Packet_Send_Failed events should have been emitted for valid packets:
+      Natural_Assert.Eq (T.Packet_Send_Failed_History.Get_Count, 0);
+
+      -- Now send a packet with an invalid CCSDS header to verify the
+      -- Packet_Send_Failed event is emitted:
+      T.Ccsds_Space_Packet_T_Send (Packet_Bad);
+      Natural_Assert.Eq (T.Dispatch_All, 1);
+
+      -- Verify Packet_Send_Failed event was emitted:
+      Natural_Assert.Eq (T.Packet_Send_Failed_History.Get_Count, 1);
    end Test_Packet_Send;
 
 end Ccsds_Serial_Interface_Tests.Implementation;
