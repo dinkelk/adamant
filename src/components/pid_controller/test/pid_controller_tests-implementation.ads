@@ -29,6 +29,10 @@ private
    overriding procedure Test_Set_Controller_Statistic_Duration_Command (Self : in out Instance);
    -- This test makes sure that if the moving_average object is unused, that no statistics come out and nothing breaks.
    overriding procedure Test_Moving_Average_Unused (Self : in out Instance);
+   -- This unit test verifies that parameter validation rejects N_Filter values that would cause derivative filter instability (N*dt >= 2.0).
+   overriding procedure Test_Derivative_Filter_Stability (Self : in out Instance);
+   -- This unit test verifies that parameter validation rejects inverted integral limits (I_Min_Limit > I_Max_Limit).
+   overriding procedure Test_Inverted_Integral_Limits (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Pid_Controller_Tests.Base_Instance with record
