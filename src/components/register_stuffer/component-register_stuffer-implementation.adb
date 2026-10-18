@@ -99,7 +99,8 @@ package body Component.Register_Stuffer.Implementation is
       -- Convert the address to an unsigned 64-bit integer for arithmetic operations
       Start_Address : constant Address_Mod_Type := Address_To_Mod_Type (Arg.Start_Address);
       -- Calculate the bytes to add (4 bytes per element)
-      Bytes_To_Add : constant Address_Mod_Type := Address_Mod_Type (Arg.Num_Registers * Packed_U32.Size_In_Bytes);
+      -- Perform multiplication in modular arithmetic to avoid signed integer overflow:
+      Bytes_To_Add : constant Address_Mod_Type := Address_Mod_Type (Arg.Num_Registers) * Address_Mod_Type (Packed_U32.Size_In_Bytes);
 
       Max_Address : constant Address_Mod_Type := Address_Mod_Type'Last;
 
@@ -195,9 +196,17 @@ package body Component.Register_Stuffer.Implementation is
       -- Get the time:
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Unarm if armed:
+      -- Unarm only if currently armed, to avoid spurious Unarmed events:
       if Self.Protect_Registers then
-         Do_Unarm (Self);
+         declare
+            use Command_Protector_Enums.Armed_State;
+            Ignore_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
+            State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Ignore_Timeout);
+         begin
+            if State = Armed then
+               Do_Unarm (Self);
+            end if;
+         end;
       end if;
 
       -- Make sure the register address is on a 32-bit boundary:
@@ -223,6 +232,11 @@ package body Component.Register_Stuffer.Implementation is
    overriding function Arm_Protected_Write (Self : in out Instance; Arg : in Packed_Arm_Timeout.T) return Command_Execution_Status.E is
       use Command_Execution_Status;
    begin
+      -- Reject arming when register protection is not enabled:
+      if not Self.Protect_Registers then
+         return Failure;
+      end if;
+
       -- Transition to the armed state with the timeout:
       Self.Command_Arm_State.Arm (New_Timeout => Arg.Timeout);
 
@@ -248,21 +262,33 @@ package body Component.Register_Stuffer.Implementation is
       -- Get the time:
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Unarm if armed:
+      -- Unarm only if currently armed, to avoid spurious Unarmed events:
       if Self.Protect_Registers then
-         Do_Unarm (Self);
+         declare
+            use Command_Protector_Enums.Armed_State;
+            Ignore_Timeout : Packed_Arm_Timeout.Arm_Timeout_Type;
+            State : constant Command_Protector_Enums.Armed_State.E := Self.Command_Arm_State.Get_State (Ignore_Timeout);
+         begin
+            if State = Armed then
+               Do_Unarm (Self);
+            end if;
+         end;
       end if;
 
       declare
          Arr : Register_Dump_Packet_Array.T := [others => (Value => 0)];
-         Last_Addr : constant System.Address := Arg.Start_Address + Storage_Offset ((Arg.Num_Registers - 1) * Packed_U32.Size_In_Bytes);
       begin
+         -- Validate addresses before computing Last_Addr to avoid
+         -- Storage_Offset overflow on extreme Num_Registers values:
          if not Self.Is_Address_Valid (Arg.Start_Address) or else
             not Self.Is_End_Address_Valid (Arg)
          then
             return Failure;
          end if;
 
+         declare
+            Last_Addr : constant System.Address := Arg.Start_Address + Storage_Offset ((Arg.Num_Registers - 1) * Packed_U32.Size_In_Bytes);
+         begin
          for Register in 0 .. Arg.Num_Registers - 1 loop
             declare
                -- Define the register at the appropriate address:
@@ -295,6 +321,7 @@ package body Component.Register_Stuffer.Implementation is
                Value => Arr (Arr'First + Arg.Num_Registers - 1).Value
             )
          ));
+         end; -- Last_Addr declare block
       end;
 
       -- Throw info event:
