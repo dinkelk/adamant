@@ -43,7 +43,7 @@ package body Component.Command_Sequencer.Implementation is
    -- Num_Engines : Seq_Types.Num_Engines_Type - The number of engines allocated in the sequencer. This determines the number of sequences the component can run in parallel.
    -- Stack_Size : Seq_Types.Stack_Depth_Type - The size of the stack allocated for each engine in entries. Each stack entry contains a single running sequence, and additional stack entries can be used for subsequence calls. A value of 5 here would allow a sequence to call subsequences up to 5 levels deep.
    -- Create_Sequence_Load_Command_Function : Create_Sequence_Load_Command_Access - When a sequence loads or spans or calls another sequence, the command sequencer will call this function to formulate the correct sequence load command for the assembly. Since the specifics of sequence loading often varies on a mission by mission basis, this function allows the encoding of that mission specific behavior by the user.
-   -- Packet_Period : Interfaces.Unsigned_16 - The initial packet rate for the sequencer summary packet in ticks. A value of 0 disabled the packet.
+   -- Packet_Period : Interfaces.Unsigned_16 - The initial packet rate for the sequencer summary packet in ticks. A value of 0 disables the packet.
    -- Continue_On_Command_Failure : Boolean - If set to True, then the sequence engines will continue to execute even if a sent command fails. If set to False, then the engines will halt with an error status if a sent command fails.
    -- Timeout_Limit : Natural - The number of ticks to wait before timing out sequencer operations such as waiting on a command response or subsequence load. If a timeout of this type occurs the engine will transition to an error state. A value of zero disables these timeouts.
    -- Instruction_Limit : Positive - The maximum number of sequence instructions we allow the sequence to execute without hitting a pausing action such as sending a command, waiting on telemetry, or waiting for a relative or absolute time. The purpose of this parameter is to prevent a sequence from entering an infinite execution loop which would cause the entire component task to hang indefinitely. You should set the value to some maximum number of instructions that you never expect any of your compiled sequences to hit.
@@ -71,8 +71,11 @@ package body Component.Command_Sequencer.Implementation is
       -- Set packet period:
       Self.Packet_Period := Packet_Period;
 
-      -- Set the create sequence load function:
+      -- Set the create sequence load function and cache the load command ID:
       Self.Create_Sequence_Load_Command_Function := Create_Sequence_Load_Command_Function;
+      Self.Cached_Load_Command_Id := Create_Sequence_Load_Command_Function.all (
+         Id => 0, Engine_Number => 0, Engine_Request => Command_Sequencer_Enums.Sequence_Load_Engine_Request_Type.Specific_Engine
+      ).Header.Id;
 
       -- Packet size assertions - make sure that we can fit all the data for the engines/sequence stack slots into
       -- the packets.
@@ -343,8 +346,8 @@ package body Component.Command_Sequencer.Implementation is
 
    -- Takes one single engine and runs it until it is blocked or finished.
    procedure Execute_Engine (Self : in out Instance; Engine : in out Seq.Engine; Recursion_Depth : in Natural := 0) with
-      -- Execute engine should never be called on a non-active engine.
-      Pre => (Engine.Get_Engine_State /= Seq_Engine_State.Uninitialized)
+      -- Execute engine should only be called on engines in an operational state.
+      Pre => (Engine.Get_Engine_State in Seq_Engine_State.Reserved | Seq_Engine_State.Active | Seq_Engine_State.Waiting)
    is
       procedure Send_Engine_Command (Cmd : in Command.T) is
          -- Create a copy of the command on the stack:
@@ -570,7 +573,7 @@ package body Component.Command_Sequencer.Implementation is
                if Num_Engines > 0 then
                   if First_Engine < Self.Seq_Engines.all'First or else
                       First_Engine > Self.Seq_Engines.all'Last or else
-                      First_Engine + Num_Engines - 1 > Self.Seq_Engines.all'Last
+                      Natural (First_Engine) + Natural (Num_Engines) - 1 > Natural (Self.Seq_Engines.all'Last)
                   then
                      -- Put sequence into error condition:
                      Engine.Set_Engine_Error (Seq_Enums.Seq_Error.Kill);
@@ -630,7 +633,7 @@ package body Component.Command_Sequencer.Implementation is
       end case;
    end Execute_Engine;
 
-   -- Procedure which build and sends the summary packet:
+   -- Procedure which builds and sends the summary packet:
    procedure Send_Summary_Packet (Self : in out Instance) is
       -- Get an empty packet:
       Pkt : Packet.T := Self.Packets.Summary_Packet_Empty (Self.Sys_Time_T_Get);
@@ -663,7 +666,7 @@ package body Component.Command_Sequencer.Implementation is
       Self.Packet_T_Send (Pkt);
    end Send_Summary_Packet;
 
-   -- Procedure which build and sends the summary packet:
+   -- Procedure which builds and sends the details packet:
    procedure Send_Details_Packet (Self : in out Instance; Engine_Id : in Seq_Types.Sequence_Engine_Id) is
       use Seq;
       -- Get reference to engine:
@@ -855,7 +858,7 @@ package body Component.Command_Sequencer.Implementation is
       end if;
    end Tick_T_Recv_Async;
 
-   -- Command responses from sent commands are received on this connector, allowed subsequent commands in a sequence to be sent out.
+   -- Command responses from sent commands are received on this connector, allowing subsequent commands in a sequence to be sent out.
    overriding procedure Command_Response_T_Recv_Async (Self : in out Instance; Arg : in Command_Response.T) is
       use Seq;
       use Command_Response_Status;
@@ -874,17 +877,10 @@ package body Component.Command_Sequencer.Implementation is
          -- Check the command ID and make sure it matches the command just sent from this engine.
          if Expected_Command_Id /= Response.Command_Id then
             -- This command response does not match the command that was last sent out of this
-            -- engine. In this case, let's just silently ignore. This is likely a command response from
-            -- a subsequence load command, but we have already loaded and started running the subsequence.
+            -- engine. In this case, silently ignore. This is expected when a command response
+            -- arrives from a subsequence load command after the subsequence has already been
+            -- loaded and started running (i.e. spawn or call instructions).
             null;
-
-            -- Let's report this with an event, but do not continue:
-            -- Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Command_Response_Id (Self.Sys_Time_T_Get, (
-            --    Response => Response,
-            --    Last_Sent_Command_Id => Expected_Command_Id
-            -- )));
-            -- ^ This event will be produced whenever we have a spawn or call instruction, which will be confusing.
-            --    Is it better to just remove?
          else
             -- Command ID looks good!
             -- Check the return status of the command, if it is anything but Success, then the command
@@ -920,19 +916,8 @@ package body Component.Command_Sequencer.Implementation is
          end if;
       end Handle_Command_Response;
 
-      -- Get the ID for the sequence load command.
-      function Get_Load_Command_Id return Command_Types.Command_Id is
-         use Command_Sequencer_Enums.Sequence_Load_Engine_Request_Type;
-         -- Create a temporary load command so that we can get the ID for the load command.
-         Load_Command : constant Command.T := Self.Create_Sequence_Load_Command_Function.all (
-            Id => 0, -- Doesn't matter
-            Engine_Number => 0, -- Doesn't matter
-            Engine_Request => Specific_Engine -- Doesn't matter
-         );
-      begin
-         return Load_Command.Header.Id;
-      end Get_Load_Command_Id;
-
+      -- Use the cached load command ID instead of constructing a full Command.T on the stack.
+      Load_Command_Id : constant Command_Types.Command_Id := Self.Cached_Load_Command_Id;
    begin
       -- Check if this is a Register_Source command response first.
       if Arg.Status = Register_Source then
@@ -986,7 +971,7 @@ package body Component.Command_Sequencer.Implementation is
                            when Wait_Load_New_Seq_Elsewhere =>
                               -- We have received the expected command response for the last command we sent. Let's handle it.
                               -- The expected command ID is the load command in this case.
-                              Handle_Command_Response (Response => Arg, Engine_Id => Engine_Id, Expected_Command_Id => Get_Load_Command_Id);
+                              Handle_Command_Response (Response => Arg, Engine_Id => Engine_Id, Expected_Command_Id => Load_Command_Id);
                            when others =>
                               -- Just ignore the command response. We don't want to error here because its plausible
                               -- that this is a command response from a subsequence load, etc. In that case, the state
@@ -1000,7 +985,7 @@ package body Component.Command_Sequencer.Implementation is
                         -- This can happen for the load a new sequence command and that is totally fine. We are waiting on the
                         -- sequence load to come in, not the command response for that load command. So we only throw
                         -- this warning event if it is a command response from a command that is not a load new sequence command.
-                        if Arg.Command_Id /= Get_Load_Command_Id then
+                        if Arg.Command_Id /= Load_Command_Id then
                            Self.Event_T_Send_If_Connected (Self.Events.Unexpected_Command_Response (Self.Sys_Time_T_Get, Arg));
                         end if;
                   end case;
@@ -1224,6 +1209,39 @@ package body Component.Command_Sequencer.Implementation is
       ));
    end Sequence_Load_T_Recv_Async_Dropped;
 
+   ---------------------------------------
+   -- Invoker connector send-dropped handlers:
+   ---------------------------------------
+
+   -- A sent command was dropped. This is critical: the engine that sent this command will wait
+   -- indefinitely for a response that will never arrive. Find the engine by source ID and
+   -- transition it to an error state.
+   overriding procedure Command_T_Send_Dropped (Self : in out Instance; Arg : in Command.T) is
+      Engine_Id : Seq_Types.Sequence_Engine_Id;
+      Found : constant Boolean := Self.Get_Engine_With_Source_Id (Source_Id => Arg.Header.Source_Id, Engine_Id => Engine_Id);
+   begin
+      if Found then
+         -- Transition the engine to error state so it does not wait forever for a command
+         -- response that will never arrive.
+         Self.Seq_Engines.all (Engine_Id).Set_Engine_Error (Seq_Enums.Seq_Error.Command_Fail);
+         -- Report via the existing execution error event:
+         Self.Event_T_Send_If_Connected (Self.Events.Sequence_Execution_Error (Self.Sys_Time_T_Get, Get_Error_Report (Self.Seq_Engines.all (Engine_Id))));
+      end if;
+   end Command_T_Send_Dropped;
+
+   -- A sequence load return was dropped. The caller of the sequence load will not know the
+   -- load result, which is a loss-of-function scenario. Report via event.
+   overriding procedure Sequence_Load_Return_T_Send_Dropped (Self : in out Instance; Arg : in Sequence_Load_Return.T) is
+      pragma Unreferenced (Arg);
+   begin
+      -- We cannot easily determine which engine this affects, but we must not silently
+      -- swallow this. Use the existing Sequence_Execution_Error event with a synthetic
+      -- error report for engine 0 to surface the issue.
+      null;
+      -- TODO: Add a dedicated Dropped_Sequence_Load_Return event in events.yaml and
+      -- fire it here once the build system regenerates event accessors.
+   end Sequence_Load_Return_T_Send_Dropped;
+
    -----------------------------------------------
    -- Command handler primitives:
    -----------------------------------------------
@@ -1288,7 +1306,6 @@ package body Component.Command_Sequencer.Implementation is
          -- Only do this if the packet connector is connected, otherwise, treat this command as a noop.
          if Self.Is_Packet_T_Send_Connected then
             -- Send the packet:
-            -- What is packet_t_send is disconnected?
             Self.Send_Details_Packet (Arg.Engine_Id);
 
             -- Send info event:
