@@ -1,3 +1,5 @@
+with Ada.Text_IO; use Ada.Text_IO;
+with Memory_Region;
 with Ada.Sequential_IO;
 with Ada.IO_Exceptions;
 with Command;
@@ -6,6 +8,7 @@ with Ada.Strings; use Ada.Strings;
 with System.Storage_Elements;
 with Serializer_Types; use Serializer_Types;
 with Data_Product_Types;
+with Ada.Unchecked_Deallocation;
 
 -- Instruction records
 with Set_Bit_Record.Validation;
@@ -47,6 +50,8 @@ package body Seq_Runtime.Decoder is
    -- We can handle up to 512 KB sized sequence.
    Max_Sequence_Size : constant Natural := 524_288;
 
+   procedure Free_Buffer is new Ada.Unchecked_Deallocation (Basic_Types.Byte_Array, Basic_Types.Byte_Array_Access);
+
    function Strip (In_String : in String) return String is
    begin
       return Trim (In_String, Ada.Strings.Both);
@@ -61,6 +66,7 @@ package body Seq_Runtime.Decoder is
       -- Attempt to load a sequence into a memory region
       if Load_Sequence_In_Memory (Path, Buffer, Sequence) = False then
          Put_Line (Output, "Sequence " & Path & " does not exist!");
+         Free_Buffer (Buffer);
          return;
       end if;
 
@@ -86,6 +92,7 @@ package body Seq_Runtime.Decoder is
          Self.Position := Decode_Instruction (Self, Output);
       end loop;
       Put_Line (Output, "Done decoding " & Path);
+      Free_Buffer (Buffer);
    end Decode;
 
    function Decode_Instruction (Self : in out Decoder_Instance; Output : in File_Type) return Seq_Position is
@@ -170,8 +177,8 @@ package body Seq_Runtime.Decoder is
          when Str_Alloc =>
             return Decode_Str_Alloc (Self, Output);
          -- when Str_Dealloc =>            return Self.Decode_Str_Dealloc;
-         -- when Str_Set =>
-         --    return Decode_Str_Set (Self, Output);
+         when Str_Set =>
+            return Decode_Str_Set (Self, Output);
          -- when Str_Update_Bit_Pattern => return Self.Decode_Str_Update_Pattern;
          -- when Str_Copy =>                return Self.Decode_Str_Copy;
          -- when Str_Move =>                return Self.Decode_Str_Move;
@@ -195,6 +202,11 @@ package body Seq_Runtime.Decoder is
    begin
       Open (File, In_File, Path);
       while not End_Of_File (File) loop
+         if Sequence_Size >= Buffer'Length then
+            Close (File);
+            Put_Line (Standard_Error, "Sequence file exceeds maximum size of" & Max_Sequence_Size'Image & " bytes");
+            return False;
+         end if;
          Read (File, Data);
          Buffer (Sequence_Size) := Data;
          Sequence_Size := @ + 1;
@@ -237,11 +249,7 @@ package body Seq_Runtime.Decoder is
       for A_Byte of To_Print loop
          exit when A_Byte = 0;
 
-         declare
-            Char : Character with Import, Convention => Ada, Address => A_Byte'Address;
-         begin
-            Put (Output, Char);
-         end;
+         Put (Output, Character'Val (Natural (A_Byte)));
       end loop;
    end Print_Decode_String;
 
@@ -587,7 +595,7 @@ package body Seq_Runtime.Decoder is
          raise Program_Error with "Decode_Cast_F_To_U : Invalid field detected";
       end if;
 
-      Put_Line (Output, "Casting internal " & Instruction.Id'Image);
+      Put_Line (Output, "Cast INTERNAL." & Instruction.Id'Image & " from FLOAT to UNSIGNED");
 
       return Self.Next_Position;
    end Decode_Cast_F_To_U;
@@ -599,7 +607,7 @@ package body Seq_Runtime.Decoder is
          raise Program_Error with "Decode_Cast_U_To_F : Invalid field detected";
       end if;
 
-      Put_Line (Output, "Casting internal " & Instruction.Id'Image);
+      Put_Line (Output, "Cast INTERNAL." & Instruction.Id'Image & " from UNSIGNED to FLOAT");
 
       return Self.Next_Position;
    end Decode_Cast_U_To_F;
@@ -720,8 +728,7 @@ package body Seq_Runtime.Decoder is
       pragma Assert (Status = Success);
       Put (Output, "Setting str" & Instruction.Var_Info.Id'Image & " = """);
       Print_Decode_String (Instruction.Encoded_String, Output);
-      Put (Output, """");
-      New_Line;
+      Put_Line (Output, """");
       return Self.Next_Position;
    end Decode_Str_Set;
 
