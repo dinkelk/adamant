@@ -15,12 +15,12 @@ package Component.Connector_Counter_16.Implementation is
 
 private
 
-   -- Instantiate protected 8 bit counter:
-   package Sixteen_Counter is new Protected_Variables.Generic_Protected_Counter (Interfaces.Unsigned_16);
+   -- Instantiate protected 16 bit counter:
+   package U16_Counter is new Protected_Variables.Generic_Protected_Counter (Interfaces.Unsigned_16);
 
    -- The component class instance record:
    type Instance is new Connector_Counter_16.Base_Instance with record
-      Count : Sixteen_Counter.Counter;
+      Count : U16_Counter.Counter;
    end record;
 
    ---------------------------------------
