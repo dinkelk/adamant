@@ -2,6 +2,8 @@
 description: |
   This component is similar to the Connector Queuer component except that it delays (via sleep) the transmission of the sent data for a configurable (at initialization) amount of time prior. When configured to sleep for zero microseconds, this component behaves identically to the Connector Queuer. This component can be used for a variety of purposes, such as 1) serving as an alarm, transmitting data N us after receipt or 2) spacing out the transmission of data, sending out new data every N us.
 
+  Note: The delay is applied after each dequeue operation, so N queued items will take at least N x Delay_Us total time to dispatch. System designers must account for this cumulative latency when using this component as an alarm or in time-critical paths.
+
   Like the Connector Queuer, this component serves as a multi-tasking safe synchronization point for multiple callers. When the T_Recv_Async connector is called, the data is queued. Based on the priority of this component, the data will be safely dequeued in the future, the component will then sleep for the configurable amount of microseconds, and then, finally, the T_Send connector will be called. The queue is implemented using the standard Adamant queue, and thus calls are serviced in FIFO order. The queue protection mechanism effectively makes all downstream connector calls of this component thread-safe.
 execution: active
 with:
