@@ -5,6 +5,8 @@
 -- Includes:
 with Command;
 with Crc_16;
+with Packet_Types;
+with Parameter_Table_Header;
 
 -- The Parameters Component is responsible for updating and reporting the values of the "active" parameters being used in the system. The component does not contain a parameter table itself. Instead it acts as an interface for the rest of the system to component's internal staged parameters. The component allows updating of parameters through a table upload (via Memory_Region.T) or updating of individual parameter values by command. The component also provides a command to fetch all of the parameters held within components and produce a packet with the fetched values. The component can be configured to produce this packet automatically any time a parameter change is requested.
 package Component.Parameters.Implementation is
@@ -41,6 +43,12 @@ package Component.Parameters.Implementation is
 
 private
 
+   -- The parameter table (header plus data) must always fit within a packet
+   -- alongside its CRC, which Init asserts. Encoding the bounds in the type
+   -- makes the invariant visible wherever the length is used.
+   subtype Parameter_Table_Length_Type is Natural range
+      Parameter_Table_Header.Size_In_Bytes .. Packet_Types.Packet_Buffer_Type'Length - Crc_16.Crc_16_Type'Length;
+
    -- The component class instance record:
    type Instance is new Parameters.Base_Instance with record
       Table_Id : Parameter_Types.Parameter_Table_Id := 1;
@@ -51,7 +59,7 @@ private
       Table_Update_Time : Interfaces.Unsigned_32 := 0;
       -- Some useful constants calculated in Init:
       Parameter_Table_Data_Length : Natural := 0;
-      Parameter_Table_Length : Natural := 0;
+      Parameter_Table_Length : Parameter_Table_Length_Type := Parameter_Table_Length_Type'First;
    end record;
 
    ---------------------------------------
