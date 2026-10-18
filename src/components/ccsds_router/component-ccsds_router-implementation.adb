@@ -39,7 +39,7 @@ package body Component.Ccsds_Router.Implementation is
             Ret : Boolean;
          begin
             -- Make sure the APID is not already stored in our table:
-            Ret := Self.Table.Search (The_Entry, Ignore_1, Ignore_2);
+            Self.Table.Search (The_Entry, Ignore_1, Ignore_2, Ret);
             pragma Assert (not Ret, "Duplicate APID '" & Ccsds_Primary_Header.Ccsds_Apid_Type'Image (Table_Entry.Apid) & "' not allowed in router table!");
             -- Add entry to the table:
             Ret := Self.Table.Add (The_Entry);
@@ -114,9 +114,11 @@ package body Component.Ccsds_Router.Implementation is
       Table_Entry_To_Find : constant Internal_Router_Table_Entry := ((Arg.Header.Apid, null, No_Check), 0);
       Table_Entry_Found : Internal_Router_Table_Entry;
       Found_Entry_Index : Natural;
+      Found : Boolean;
    begin
       -- Search for the router table entry associated with the given APID:
-      if Self.Table.Search (Table_Entry_To_Find, Table_Entry_Found, Found_Entry_Index) then
+      Self.Table.Search (Table_Entry_To_Find, Table_Entry_Found, Found_Entry_Index, Found);
+      if Found then
          -- We found an entry, now if the destinations are valid, route to them:
          declare
             Table_Entry : Router_Table_Entry renames Table_Entry_Found.Table_Entry;

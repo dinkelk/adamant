@@ -32,7 +32,7 @@ package body Component.Command_Rejector.Implementation is
             Ret : Boolean;
          begin
             -- Make sure the Command ID is not already stored in our list.
-            Ret := Self.Command_Reject_List.Search (Command_Identifier, Ignore_1, Ignore_2);
+            Self.Command_Reject_List.Search (Command_Identifier, Ignore_1, Ignore_2, Ret);
             pragma Assert (not Ret, "Duplicate command ID '" & Command_Id'Image (Command_Identifier) & "' not allowed command reject list!");
             -- Add ID to the list:
             Ret := Self.Command_Reject_List.Add (Command_Identifier);
@@ -66,8 +66,10 @@ package body Component.Command_Rejector.Implementation is
       Id_To_Find : Command_Id renames Arg.Header.Id;
       Ignore_Found_Id : Command_Id;
       Ignore_Found_Index : Natural;
-      Should_Reject_Command : constant Boolean := Self.Command_Reject_List.Search (Id_To_Find, Ignore_Found_Id, Ignore_Found_Index);
+      Should_Reject_Command : Boolean;
    begin
+      Self.Command_Reject_List.Search (Id_To_Find, Ignore_Found_Id, Ignore_Found_Index, Should_Reject_Command);
+
       -- If command is found in the reject list, then we need to drop it.
       case Should_Reject_Command is
          -- Command found in reject list, drop and report it.

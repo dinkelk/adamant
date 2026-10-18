@@ -40,7 +40,7 @@ package Binary_Tree with SPARK_Mode => On is
    -- assertion policy, and they are also proved.
    pragma Assertion_Policy
       (Pre => Ignore,
-       Pre'Class => Ignore,
+       Pre => Ignore,
        Post => Ignore,
        Post'Class => Ignore,
        Contract_Cases => Ignore,
@@ -61,36 +61,41 @@ package Binary_Tree with SPARK_Mode => On is
    -- they did before the SPARK conversion.
    Max_Tree_Size : constant := Positive'Last - 1;
 
+   -- Every operation below takes a class-wide Self so that none of them is a
+   -- dispatching operation. This keeps prefix notation for callers while
+   -- allowing plain preconditions (SPARK RM 6.1.1 requires class-wide
+   -- contracts on dispatching operations), and it avoids the contract
+   -- wrappers that dispatching operations with class-wide contracts generate,
+   -- which static analysis cannot see through.
+
    -- Ghost predicate stating that the tree is in a valid, initialized state:
    -- storage has been allocated by Init and the number of elements held
    -- fits within that storage. This is the precondition of every operation
-   -- that touches the element storage. It takes a class-wide parameter so
-   -- that it is not a dispatching operation, which would force every derived
-   -- type to override each operation mentioning it (SPARK RM 6.1.1).
+   -- that touches the element storage.
    function Is_Valid (Self : in Instance'Class) return Boolean
       with Ghost;
 
    -- Allocate storage for the tree. The tree must be empty, as it is when
    -- default initialized or after Clear or Destroy.
-   procedure Init (Self : in out Instance; Maximum_Size : in Positive)
+   procedure Init (Self : in out Instance'Class; Maximum_Size : in Positive)
       with
          -- The tree holds no elements and the requested capacity is within the verified maximum.
-         Pre'Class => Get_Size (Self) = 0 and then Maximum_Size <= Max_Tree_Size,
+         Pre => Get_Size (Self) = 0 and then Maximum_Size <= Max_Tree_Size,
          -- The tree is valid, still holds no elements, and its capacity is the requested size.
          Post => Is_Valid (Self) and then Get_Size (Self) = 0 and then Get_Capacity (Self) = Maximum_Size;
    -- Release the tree storage when testing and empty the tree.
-   procedure Destroy (Self : in out Instance)
+   procedure Destroy (Self : in out Instance'Class)
       with
          -- The tree holds no elements.
          Post => Get_Size (Self) = 0;
 
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
    -- Return: True means add was successful. False means there is no more room in the tree.
-   function Add (Self : in out Instance; Element : in Element_Type) return Boolean
+   function Add (Self : in out Instance'Class; Element : in Element_Type) return Boolean
       with
          Side_Effects,
          -- The tree is valid.
-         Pre'Class => Is_Valid (Self),
+         Pre => Is_Valid (Self),
          -- The tree is still valid with the same capacity, the add succeeds exactly when there was
          -- room, and on success the size grew by one, otherwise it is unchanged.
          Post => Is_Valid (Self)
@@ -99,11 +104,11 @@ package Binary_Tree with SPARK_Mode => On is
             and then (if Add'Result then Get_Size (Self) = Get_Size (Self)'Old + 1 else Get_Size (Self) = Get_Size (Self)'Old);
    -- Remove element from tree. This is done in O(n) time where n is the current size of the tree.
    -- Return: True means remove was successful. False means the provided index is not found in the tree.
-   function Remove (Self : in out Instance; Element_Index : in Positive) return Boolean
+   function Remove (Self : in out Instance'Class; Element_Index : in Positive) return Boolean
       with
          Side_Effects,
          -- The tree is valid.
-         Pre'Class => Is_Valid (Self),
+         Pre => Is_Valid (Self),
          -- The tree is still valid with the same capacity, the remove succeeds exactly when the index
          -- was within the size, and on success the size shrank by one, otherwise it is unchanged.
          Post => Is_Valid (Self)
@@ -111,51 +116,52 @@ package Binary_Tree with SPARK_Mode => On is
             and then Remove'Result = (Element_Index <= Get_Size (Self)'Old)
             and then (if Remove'Result then Get_Size (Self) = Get_Size (Self)'Old - 1 else Get_Size (Self) = Get_Size (Self)'Old);
    -- Search for element in tree. This is done in O(log n) where n is the current size of the tree.
-   -- Return: True means element was found. False means it was not. The element and index in the array where it was found are also returned.
-   function Search (Self : in Instance; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive) return Boolean
+   -- Found is True when the element was found, in which case Element_Found and Element_Index hold the
+   -- element and its index in the array. When Found is False, Element_Found is set to the searched
+   -- Element and Element_Index to the sentinel value 1.
+   procedure Search (Self : in Instance'Class; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive; Found : out Boolean)
       with
-         Side_Effects,
          -- The tree is valid.
-         Pre'Class => Is_Valid (Self),
+         Pre => Is_Valid (Self),
          -- On success the returned index is within the size, otherwise it is the sentinel value 1.
-         Post => (if Search'Result then Element_Index <= Get_Size (Self) else Element_Index = 1);
+         Post => (if Found then Element_Index <= Get_Size (Self) else Element_Index = 1);
    -- Get an element via its index. This can be helpful to quickly retrieve an element in O(1) time if you have already obtained its index via "search".
-   function Get (Self : in Instance; Element_Index : in Positive) return Element_Type
+   function Get (Self : in Instance'Class; Element_Index : in Positive) return Element_Type
       with
          -- The tree is valid and the index is within the size.
-         Pre'Class => Is_Valid (Self) and then Element_Index <= Get_Size (Self);
+         Pre => Is_Valid (Self) and then Element_Index <= Get_Size (Self);
    -- Set an element via its index. This can be helpful to quickly set an element in O(1) time if you have already obtained its index via "search".
-   procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type)
+   procedure Set (Self : in out Instance'Class; Element_Index : in Positive; Element : in Element_Type)
       with
          -- The tree is valid and the index is within the size.
-         Pre'Class => Is_Valid (Self) and then Element_Index <= Get_Size (Self),
+         Pre => Is_Valid (Self) and then Element_Index <= Get_Size (Self),
          -- The tree is still valid with the same size and capacity.
          Post => Is_Valid (Self)
             and then Get_Size (Self) = Get_Size (Self)'Old
             and then Get_Capacity (Self) = Get_Capacity (Self)'Old;
    -- Clear the tree. This is done in O(1) time.
-   procedure Clear (Self : in out Instance)
+   procedure Clear (Self : in out Instance'Class)
       with
          -- The tree is valid.
-         Pre'Class => Is_Valid (Self),
+         Pre => Is_Valid (Self),
          -- The tree is still valid with the same capacity and holds no elements.
          Post => Is_Valid (Self)
             and then Get_Size (Self) = 0
             and then Get_Capacity (Self) = Get_Capacity (Self)'Old;
    -- Get functions:
-   function Get_Size (Self : in Instance) return Natural;
-   function Get_Capacity (Self : in Instance) return Positive
+   function Get_Size (Self : in Instance'Class) return Natural;
+   function Get_Capacity (Self : in Instance'Class) return Positive
       with
          -- The tree is valid.
-         Pre'Class => Is_Valid (Self);
+         Pre => Is_Valid (Self);
    -- Functions to get the first and last index in the tree. If the tree is empty, then first returns 1 and last returns 0.
-   function Get_First_Index (Self : in Instance) return Positive
+   function Get_First_Index (Self : in Instance'Class) return Positive
       with
          -- The tree is valid.
-         Pre'Class => Is_Valid (Self),
+         Pre => Is_Valid (Self),
          -- The first index is always 1.
          Post => Get_First_Index'Result = 1;
-   function Get_Last_Index (Self : in Instance) return Natural
+   function Get_Last_Index (Self : in Instance'Class) return Natural
       with
          -- The last index is the number of elements held.
          Post => Get_Last_Index'Result = Get_Size (Self);
@@ -183,7 +189,7 @@ private
 
    -- Expression function completions, so that the proof can see through
    -- these accessors when they appear in the contracts above:
-   function Get_Size (Self : in Instance) return Natural is (Self.Size);
-   function Get_Capacity (Self : in Instance) return Positive is (Self.Tree'Length);
+   function Get_Size (Self : in Instance'Class) return Natural is (Self.Size);
+   function Get_Capacity (Self : in Instance'Class) return Positive is (Self.Tree'Length);
 
 end Binary_Tree;

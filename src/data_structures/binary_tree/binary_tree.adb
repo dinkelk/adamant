@@ -9,7 +9,7 @@ package body Binary_Tree with SPARK_Mode => On is
    -- that owns the element storage for the rest of the tree's life. The
    -- postcondition holds because the precondition provides an empty tree and
    -- the allocation below is indexed from 1 with the requested positive size.
-   procedure Init (Self : in out Instance; Maximum_Size : in Positive) with SPARK_Mode => Off is
+   procedure Init (Self : in out Instance'Class; Maximum_Size : in Positive) with SPARK_Mode => Off is
    begin
       Self.Tree := new Element_Array (Positive'First .. Positive'First + Maximum_Size - 1);
    end Init;
@@ -17,7 +17,7 @@ package body Binary_Tree with SPARK_Mode => On is
    -- The body is not analyzed by SPARK since conditional deallocation is
    -- outside the SPARK ownership model. The postcondition holds because
    -- Clear sets the size to zero below.
-   procedure Destroy (Self : in out Instance) with SPARK_Mode => Off is
+   procedure Destroy (Self : in out Instance'Class) with SPARK_Mode => Off is
       procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Element_Array, Name => Element_Array_Access);
    begin
       Free_If_Testing (Self.Tree);
@@ -25,7 +25,7 @@ package body Binary_Tree with SPARK_Mode => On is
    end Destroy;
 
    -- Add element to tree. This is done in O(n) time where n is the current size of the tree.
-   function Add (Self : in out Instance; Element : in Element_Type) return Boolean is
+   function Add (Self : in out Instance'Class; Element : in Element_Type) return Boolean is
    begin
       -- Make sure tree is not full:
       if Self.Size >= Self.Tree'Last then
@@ -65,7 +65,7 @@ package body Binary_Tree with SPARK_Mode => On is
       return True;
    end Add;
 
-   function Remove (Self : in out Instance; Element_Index : in Positive) return Boolean is
+   function Remove (Self : in out Instance'Class; Element_Index : in Positive) return Boolean is
    begin
       -- Make sure index is in tree:
       if Element_Index > Self.Size then
@@ -87,7 +87,7 @@ package body Binary_Tree with SPARK_Mode => On is
    end Remove;
 
    -- Search for element in tree. This is done in O(log n) where n is the current size of the tree.
-   function Search (Self : in Instance; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive) return Boolean is
+   procedure Search (Self : in Instance'Class; Element : in Element_Type; Element_Found : out Element_Type; Element_Index : out Positive; Found : out Boolean) is
       Low_Index : Natural := Self.Tree'First;
       High_Index : Natural := Self.Size;
    begin
@@ -112,7 +112,8 @@ package body Binary_Tree with SPARK_Mode => On is
             else
                Element_Found := Current_Element;
                Element_Index := Mid_Index;
-               return True;
+               Found := True;
+               return;
             end if;
          end;
       end loop;
@@ -120,26 +121,25 @@ package body Binary_Tree with SPARK_Mode => On is
       -- Initialize out parameters to sane values on failure to find match
       Element_Index := Self.Tree'First;
       Element_Found := Element;
-
-      return False;
+      Found := False;
    end Search;
 
-   function Get (Self : in Instance; Element_Index : in Positive) return Element_Type is
+   function Get (Self : in Instance'Class; Element_Index : in Positive) return Element_Type is
    begin
       return Self.Tree (Element_Index);
    end Get;
 
-   procedure Set (Self : in out Instance; Element_Index : in Positive; Element : in Element_Type) is
+   procedure Set (Self : in out Instance'Class; Element_Index : in Positive; Element : in Element_Type) is
    begin
       Self.Tree (Element_Index) := Element;
    end Set;
 
-   procedure Clear (Self : in out Instance) is
+   procedure Clear (Self : in out Instance'Class) is
    begin
       Self.Size := 0;
    end Clear;
 
-   function Get_First_Index (Self : in Instance) return Positive is
+   function Get_First_Index (Self : in Instance'Class) return Positive is
    begin
       -- If empty, then return 1 as the first index. The last will return 0.
       if Self.Size = 0 then
@@ -149,7 +149,7 @@ package body Binary_Tree with SPARK_Mode => On is
       end if;
    end Get_First_Index;
 
-   function Get_Last_Index (Self : in Instance) return Natural is
+   function Get_Last_Index (Self : in Instance'Class) return Natural is
    begin
       return Self.Size;
    end Get_Last_Index;

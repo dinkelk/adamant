@@ -39,7 +39,7 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       -- Loop through the list of all the products and save them to the binary tree
       for Packet_Products of Data_Product_Extraction_List.all loop
          -- Fill in the binary tree with the products from the list. Assert that we are not adding a duplicate APID in.
-         Search_Status := Self.Extracted_Products_Tree.Search (Packet_Products, Fetched_Entry, Ignore);
+         Self.Extracted_Products_Tree.Search (Packet_Products, Fetched_Entry, Ignore, Search_Status);
          pragma Assert (not Search_Status, "Apid in the tree already exists!");
          Add_Status := Self.Extracted_Products_Tree.Add (Packet_Products);
          pragma Assert (Add_Status, "Product Extractor tree can not hold all APIDs and associated data in the input list.");
@@ -81,8 +81,10 @@ package body Component.Ccsds_Product_Extractor.Implementation is
       Fetched_Entry : Ccsds_Product_Apid_List;
       Ignore : Positive;
       -- Search the tree for the apid of the packet that was just received. If found, there are products to extract
-      Search_Status : constant Boolean := Self.Extracted_Products_Tree.Search (((Apid => Arg.Header.Apid, Extract_List => null)), Fetched_Entry, Ignore);
+      Search_Status : Boolean;
    begin
+      Self.Extracted_Products_Tree.Search (((Apid => Arg.Header.Apid, Extract_List => null)), Fetched_Entry, Ignore, Search_Status);
+
       case Search_Status is
          -- Nothing to extract if the packet APID was not listed
          when False =>

@@ -39,8 +39,10 @@ package body Component.Ccsds_Parameter_Table_Router.Implementation is
       -- comparison only uses Table_Id so this is safe for searching:
       Search_Key : constant Router_Table_Entry := (Table_Id => Table_Id, Destinations => null);
       Ignore : Positive;
+      Is_Found : Boolean;
    begin
-      if Self.Table.Search (Search_Key, Found, Ignore) then
+      Self.Table.Search (Search_Key, Found, Ignore, Is_Found);
+      if Is_Found then
          return True;
       else
          Self.Event_T_Send_If_Connected (Self.Events.Unrecognized_Table_Id (
@@ -324,7 +326,7 @@ package body Component.Ccsds_Parameter_Table_Router.Implementation is
             Ignore_2 : Natural;
             Ret : Boolean;
          begin
-            Ret := Self.Table.Search (Table_Ent, Ignore_1, Ignore_2);
+            Self.Table.Search (Table_Ent, Ignore_1, Ignore_2, Ret);
             -- Duplicate table IDs are not allowed:
             pragma Assert (not Ret);
             -- Add entry to the table:

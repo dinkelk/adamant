@@ -61,7 +61,7 @@ package body Component.Fault_Correction.Implementation is
             end if;
 
             -- Make sure the Fault ID is not already stored in lookup. We require a unique set.
-            Ret := Self.Fault_Response_Lookup.Search (Lookup_Entry, Ignore_1, Ignore_2);
+            Self.Fault_Response_Lookup.Search (Lookup_Entry, Ignore_1, Ignore_2, Ret);
             pragma Assert (not Ret, "Duplicate Fault ID '" & Fault_Id'Image (Lookup_Entry.Id) & "' not allowed in fault response table!");
             -- Add entry to the lookup:
             Ret := Self.Fault_Response_Lookup.Add (Lookup_Entry);
@@ -98,13 +98,16 @@ package body Component.Fault_Correction.Implementation is
          Id => Id,
          Table_Index => Fault_Response_Table_Index'First
       );
+      Ret : Boolean;
+   begin
       -- Search for Fault ID in table.
-      Ret : constant Boolean := Self.Fault_Response_Lookup.Search (
+      Self.Fault_Response_Lookup.Search (
          Element => Lookup_Query,
          Element_Found => Lookup_Entry,
-         Element_Index => Ignore
+         Element_Index => Ignore,
+         Found => Ret
       );
-   begin
+
       -- Make sure entry found otherwise send event and return False;
       case Ret is
          when True =>
