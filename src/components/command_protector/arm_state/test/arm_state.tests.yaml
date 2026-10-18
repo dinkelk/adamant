@@ -1,0 +1,21 @@
+---
+description: Unit tests for the Arm_State protected type
+tests:
+  - name: Test_Initial_State
+    description: Verify initial state is Unarmed with timeout of zero.
+  - name: Test_Arm_And_Get_State
+    description: Verify Arm transitions to Armed with correct timeout.
+  - name: Test_Unarm
+    description: Verify Unarm transitions to Unarmed and resets timeout.
+  - name: Test_Decrement_Timeout
+    description: Verify Decrement_Timeout counts down and transitions to Unarmed at zero.
+  - name: Test_Decrement_When_Unarmed
+    description: Verify Decrement_Timeout is a no-op when Unarmed.
+  - name: Test_Arm_With_Zero_Timeout
+    description: Verify Arm with timeout of zero is rejected (stays Unarmed).
+  - name: Test_Arm_With_Timeout_One
+    description: Verify Arm with timeout of 1 transitions to Unarmed on first decrement.
+  - name: Test_Arm_With_Max_Timeout
+    description: Verify Arm with maximum timeout value works correctly.
+  - name: Test_Rearm_While_Armed
+    description: Verify re-arming while armed resets the timeout.
