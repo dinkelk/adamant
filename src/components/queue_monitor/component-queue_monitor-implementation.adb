@@ -13,7 +13,7 @@ package body Component.Queue_Monitor.Implementation is
    --
    -- Init Parameters:
    -- Queued_Component_List : Component.Component_List_Access - A list of components to monitor.
-   -- Packet_Period : Interfaces.Unsigned_16 - The period (in ticks) of how often to send out the queue usage packet. A value of zero disable sending of the packet.
+   -- Packet_Period : Interfaces.Unsigned_16 - The period (in ticks) of how often to send out the queue usage packet. A value of zero disables sending of the packet.
    --
    overriding procedure Init (Self : in out Instance; Queued_Component_List : in not null Component.Component_List_Access; Packet_Period : in Interfaces.Unsigned_16 := 1) is
    begin
@@ -68,7 +68,12 @@ package body Component.Queue_Monitor.Implementation is
          -- Send packet;
          Self.Packet_To_Send.Header.Time := Self.Sys_Time_T_Get;
          Self.Packet_T_Send (Self.Packet_To_Send);
-         Self.Packet_To_Send.Header.Sequence_Count := @ + 1;
+         -- Wrap sequence count safely to avoid Constraint_Error if type is ranged:
+         if Self.Packet_To_Send.Header.Sequence_Count = Interfaces.Unsigned_16'Last then
+            Self.Packet_To_Send.Header.Sequence_Count := 0;
+         else
+            Self.Packet_To_Send.Header.Sequence_Count := @ + 1;
+         end if;
       end if;
 
       -- Increment the packet count:
@@ -83,6 +88,40 @@ package body Component.Queue_Monitor.Implementation is
       -- Send the return status:
       Self.Command_Response_T_Send_If_Connected ((Source_Id => Arg.Header.Source_Id, Registration_Id => Self.Command_Reg_Id, Command_Id => Arg.Header.Id, Status => Stat));
    end Command_T_Recv_Sync;
+
+   ---------------------------------------
+   -- Dropped message handlers:
+   ---------------------------------------
+   -- Emit an event when a queue usage packet is dropped. This is critical because
+   -- it means queue health telemetry is being silently lost — the very condition
+   -- this component is designed to detect.
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Packet_Send_Dropped (Self.Sys_Time_T_Get, Arg.Header));
+   end Packet_T_Send_Dropped;
+
+   -- Emit an event when a command response is dropped.
+   overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Command_Response_Send_Dropped (Self.Sys_Time_T_Get));
+   end Command_Response_T_Send_Dropped;
+
+   -- Emit an event when a data product is dropped.
+   overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is
+      pragma Unreferenced (Arg);
+   begin
+      Self.Event_T_Send_If_Connected (Self.Events.Data_Product_Send_Dropped (Self.Sys_Time_T_Get));
+   end Data_Product_T_Send_Dropped;
+
+   -- Emit an event when an event message is dropped (note: if the event queue is also full, this will recurse once then stop).
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is
+      pragma Unreferenced (Arg);
+   begin
+      -- Note: If the event connector is also full, this will itself be dropped silently
+      -- (the base class will not recurse infinitely). This is an acceptable limitation.
+      Self.Event_T_Send_If_Connected (Self.Events.Event_Send_Dropped (Self.Sys_Time_T_Get));
+   end Event_T_Send_Dropped;
 
    -----------------------------------------------
    -- Command handler primitives:
