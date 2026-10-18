@@ -2,6 +2,7 @@
 -- Logger Component Implementation Body
 --------------------------------------------------------------------------------
 
+with Ada.Unchecked_Deallocation;
 with Serializer_Types;
 with Byte_Array_Pointer.Packed;
 with Sys_Time;
@@ -68,6 +69,7 @@ package body Component.Logger.Implementation is
       begin
          -- Make sure source has a valid length:
          if Stat /= Success then
+            Num_Bytes_To_Store := 0;
             Status := Serialization_Failure;
          else
             -- Push the data onto the circular buffer:
@@ -149,6 +151,7 @@ package body Component.Logger.Implementation is
          Self.Bytes := Bytes;
          pragma Assert (Meta_Data /= null, "This should never happen.");
          Self.Meta_Data := Meta_Data;
+         Self.Heap_Allocated := False;
          -- Initialize circular buffer with bytes following the meta data storage:
          Self.Buffer.Init (Self.Bytes, Self.Meta_Data);
       else
@@ -156,6 +159,7 @@ package body Component.Logger.Implementation is
          Self.Bytes.all := [others => 0]; -- Initialize to zeros if this is on the heap.
          pragma Assert (Meta_Data = null, "This should never happen.");
          Self.Meta_Data := new Circular_Buffer_Meta.T;
+         Self.Heap_Allocated := True;
          -- Initialize circular buffer with bytes following the meta data storage:
          Self.Buffer.Init (Self.Bytes, Self.Meta_Data);
          -- Save off the initialized meta data. This only makes sense to do if we
@@ -175,9 +179,17 @@ package body Component.Logger.Implementation is
    end Set_Up;
 
    not overriding procedure Final (Self : in out Instance) is
+      procedure Free_Bytes is new Ada.Unchecked_Deallocation (Basic_Types.Byte_Array, Basic_Types.Byte_Array_Access);
+      procedure Free_Meta is new Ada.Unchecked_Deallocation (Circular_Buffer_Meta.T, Circular_Buffer_Meta.T_Access);
    begin
-      Self.Buffer.Destroy;
       Self.Buffer.Set_Mode (Logger_Mode.Disabled);
+      Self.Buffer.Destroy;
+      -- Deallocate heap-allocated memory only if Init allocated it:
+      if Self.Heap_Allocated then
+         Free_Bytes (Self.Bytes);
+         Free_Meta (Self.Meta_Data);
+         Self.Heap_Allocated := False;
+      end if;
    end Final;
 
    ---------------------------------------
