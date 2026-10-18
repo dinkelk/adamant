@@ -1,4 +1,9 @@
 ---
-description: This document specifies a set of requirements for the System Time GPS component
+description: This document specifies a set of requirements for the GPS Time component.
 requirements:
-  - text: FSW will store time as 32 bits of seconds and 32 bits of subseconds.
+  - id: GPS_TIME-001
+    text: The Gps_Time component shall return the current system time in Sys_Time.T (GPS) format when the Sys_Time_T_Return connector is invoked.
+  - id: GPS_TIME-002
+    text: FSW shall store time as 32 bits of seconds and 32 bits of subseconds.
+  - id: GPS_TIME-003
+    text: The Gps_Time component shall report a diagnostic event if the time conversion fails due to overflow or underflow.
