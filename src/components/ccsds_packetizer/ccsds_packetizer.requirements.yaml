@@ -4,3 +4,4 @@ requirements:
   - text: The component shall convert Adamant packets to CCSDS telemetry packets.
   - text: The component shall produce CCSDS packets that include a secondary header with an 8 byte timestamp.
   - text: The component shall produce CCSDS packets that include a 16-bit CRC-CCITT ($x^{16} + x^{12} +x^{5} + 1$) as the last two bytes of the data section.
+  - text: "Precondition: The incoming packet's Buffer_Length field shall not exceed the maximum Packet_Buffer_Type length. A violation of this precondition will result in an Assertion_Error."
