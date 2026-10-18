@@ -20,7 +20,7 @@ package Component.Memory_Packetizer.Implementation is
    -- This initialization function is used to set a threshold for the maximum number of packets that the component will produce in a single time period. A time period is measured in an integer number of seconds. The component also needs to keep track of the sequence counts for each packet ID that it receives. To do this, it needs to allocate internal memory to keep track of the last sequence count for each packet. A maximum number of unique packet ids is provided in this function to allocate the necessary memory to keep track of this information.
    --
    -- Init Parameters:
-   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single second. The component will stop producing packets if the threshold is met, until the end of a second period has elapsed.
+   -- Max_Packets_Per_Time_Period : Natural - The maximum number of packets that this component will produce in a single time period. The component will stop producing packets if the threshold is met, until the end of the current time period has elapsed.
    -- Time_Period_In_Seconds : Positive - The time period in seconds over which to measure the number of packets produced.
    -- Max_Packet_Ids : Positive - The maximum number of unique packet ids that this component is expected to receive during operations. This value is used to allocate a small amount of memory at initialization to keep track of the sequence count for each produced packet. If this memory becomes all used up, any new unique packet ids received will trigger an event and will be emitted with a sequence count of zero. This misconfiguration should easily be detectable during test.
    --
@@ -45,7 +45,7 @@ private
       -- A list of sequence count trackers.
       Sequence_Count_List : Sequence_Count_Tracker_List_Access := null;
       -- The length of the time period.
-      Time_Period_S : Positive; -- in seconds
+      Time_Period_S : Positive := 1; -- in seconds
       Time_Period : Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (1_000);
       -- Time denoting the beginning of the next time period.
       Next_Period_Start : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
@@ -83,7 +83,7 @@ private
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Packet_T_Send message is dropped due to a full queue.
-   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T) is null;
+   overriding procedure Packet_T_Send_Dropped (Self : in out Instance; Arg : in Packet.T);
    -- This procedure is called when a Command_Response_T_Send message is dropped due to a full queue.
    overriding procedure Command_Response_T_Send_Dropped (Self : in out Instance; Arg : in Command_Response.T) is null;
    -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
