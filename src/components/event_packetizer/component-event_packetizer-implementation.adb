@@ -47,6 +47,9 @@ package body Component.Event_Packetizer.Implementation is
       procedure Destroy is
          procedure Free_If_Testing is new Safe_Deallocator.Deallocate_If_Testing (Object => Packet_Array, Name => Packet_Array_Access);
       begin
+         -- Mark as uninitialized first, so concurrent access is safe:
+         Initialized := False;
+
          -- Free packet array from heap:
          Free_If_Testing (Packets);
 
@@ -93,7 +96,9 @@ package body Component.Event_Packetizer.Implementation is
          -- Helper procedure to increment the dropped event counter:
          procedure Increment_Events_Dropped is
          begin
-            Events_Dropped := @ + 1;
+            if Events_Dropped < Unsigned_32'Last then
+               Events_Dropped := @ + 1;
+            end if;
             New_Packets_Dropped := True;
          end Increment_Events_Dropped;
 
@@ -104,12 +109,10 @@ package body Component.Event_Packetizer.Implementation is
             Num_Packets_Full := @ + 1;
             pragma Assert (Num_Packets_Full <= Packets'Length);
             -- Increment index:
-            if Index < Packet_Array_Index'Last then
-               Index := @ + 1;
-            end if;
-            -- Check for roll over:
-            if Index > Packets'Last then
+            if Index >= Packets'Last then
                Index := Packets'First;
+            else
+               Index := @ + 1;
             end if;
          end Next_Packet;
 
@@ -250,7 +253,7 @@ package body Component.Event_Packetizer.Implementation is
             return 0;
          else
             Num_Bytes_Not_Full := Num_Packets_Not_Full * Packet_Types.Packet_Buffer_Type'Length;
-            Num_Bytes_Occupied_In_Current_Packet := Packets (Index).Header.Buffer_Length + Packets (Index).Buffer'First;
+            Num_Bytes_Occupied_In_Current_Packet := Packets (Index).Header.Buffer_Length;
             return Num_Bytes_Not_Full - Num_Bytes_Occupied_In_Current_Packet;
          end if;
       end Get_Bytes_Available;
@@ -398,14 +401,15 @@ package body Component.Event_Packetizer.Implementation is
 
    -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:
    overriding procedure Invalid_Command (Self : in out Instance; Cmd : in Command.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type) is
-      pragma Unreferenced (Cmd);
       pragma Unreferenced (Errant_Field_Number);
       pragma Unreferenced (Errant_Field);
    begin
-      -- The command was invalid. The only way this can happen is if the length of the command was invalid. In this case,
-      -- there is only a single command, send_packet, so let's just forget this error happened and send the packet
-      -- anyways. This shouldn't hurt anything.
-      Self.Send_Packet_Next_Tick := True;
+      -- Reject invalid commands. Do not trigger any operational behavior.
+      Self.Command_Response_T_Send_If_Connected ((
+         Source_Id => Cmd.Header.Source_Id,
+         Registration_Id => Self.Command_Reg_Id,
+         Command_Id => Cmd.Header.Id,
+         Status => Command_Execution_Status.Failure));
    end Invalid_Command;
 
 end Component.Event_Packetizer.Implementation;
