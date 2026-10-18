@@ -1,6 +1,9 @@
 ---
-description: The requirements for the Last Chance Handler component.
+description: The requirements for the Last Chance Manager component.
 requirements:
   - text: The component shall provide a nonvolatile last chance handler memory region, where exception occurrence data can be stored by the last chance handler.
   - text: The component shall provide a command to dump the last chance handler memory region.
   - text: The component shall provide a command to clear the last chance handler memory region.
+  - text: The component shall report a data product containing the stack trace depth and bottom address after every dump or startup check.
+  - text: The component shall emit an event when it detects the last chance handler was invoked.
+  - text: The component shall optionally dump the memory region at startup based on an initialization parameter.

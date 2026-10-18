@@ -44,11 +44,33 @@ package body Component.Last_Chance_Manager.Implementation is
 
    -- Report data product:
    overriding procedure Set_Up (Self : in out Instance) is
+      use System;
       The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
       if Self.Dump_Exception_Data_At_Startup then
-         -- Send out our data:
+         -- Send the full packet dump and data product:
          Self.Send_Out_Packet_And_Data_Product (The_Time);
+      else
+         -- Even when startup dump is disabled, always report the data product
+         -- and check for LCH invocation so operators are alerted to prior crashes.
+         declare
+            Stack_Trace_Info : constant Packed_Stack_Trace_Info.T := (
+               Stack_Trace_Depth          => Self.Exception_Data.Stack_Trace_Depth,
+               Stack_Trace_Bottom_Address => Self.Exception_Data.Stack_Trace (0));
+         begin
+            -- Update the data product:
+            Self.Data_Product_T_Send_If_Connected (
+               Self.Data_Products.Lch_Stack_Trace_Info (The_Time, Stack_Trace_Info));
+
+            -- Throw event if we detect that the LCH was called:
+            if Stack_Trace_Info.Stack_Trace_Depth > 0
+              or else Stack_Trace_Info.Stack_Trace_Bottom_Address.Address
+                      /= To_Address (Integer_Address (0))
+            then
+               Self.Event_T_Send_If_Connected (
+                  Self.Events.Last_Chance_Handler_Called (The_Time, Stack_Trace_Info));
+            end if;
+         end;
       end if;
    end Set_Up;
 

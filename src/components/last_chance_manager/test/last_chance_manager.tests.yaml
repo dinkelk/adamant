@@ -7,3 +7,5 @@ tests:
     description: This unit test makes sure the region clear command executes successfully.
   - name: Test_Invalid_Command
     description: This unit test makes sure an invalid command is rejected.
+  - name: Test_Dump_At_Startup_Disabled
+    description: This unit test exercises the Dump_Exception_Data_At_Startup => False path to ensure the data product and LCH-called event are still sent while the packet dump is suppressed.
