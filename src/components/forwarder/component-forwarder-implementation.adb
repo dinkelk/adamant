@@ -58,34 +58,50 @@ package body Component.Forwarder.Implementation is
    overriding function Enable_Forwarding (Self : in out Instance) return Command_Execution_Status.E is
       use Command_Execution_Status;
       use Basic_Enums.Enable_Disable_Type;
-      The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Set state:
-      Self.State.Set_Var (Enabled);
+      -- If already enabled, return success without emitting redundant events/data products:
+      if Self.State.Get_Var = Enabled then
+         return Success;
+      end if;
 
-      -- Update data product:
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Forwarding_State (The_Time, (State => Self.State.Get_Var)));
+      declare
+         The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+      begin
+         -- Set state:
+         Self.State.Set_Var (Enabled);
 
-      -- Send event:
-      Self.Event_T_Send_If_Connected (Self.Events.Forwarding_Enabled (The_Time));
-      return Success;
+         -- Update data product:
+         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Forwarding_State (The_Time, (State => Enabled)));
+
+         -- Send event:
+         Self.Event_T_Send_If_Connected (Self.Events.Forwarding_Enabled (The_Time));
+         return Success;
+      end;
    end Enable_Forwarding;
 
    -- Disable the flow of data.
    overriding function Disable_Forwarding (Self : in out Instance) return Command_Execution_Status.E is
       use Command_Execution_Status;
       use Basic_Enums.Enable_Disable_Type;
-      The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
    begin
-      -- Set state:
-      Self.State.Set_Var (Disabled);
+      -- If already disabled, return success without emitting redundant events/data products:
+      if Self.State.Get_Var = Disabled then
+         return Success;
+      end if;
 
-      -- Update data product:
-      Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Forwarding_State (The_Time, (State => Self.State.Get_Var)));
+      declare
+         The_Time : constant Sys_Time.T := Self.Sys_Time_T_Get;
+      begin
+         -- Set state:
+         Self.State.Set_Var (Disabled);
 
-      -- Send event:
-      Self.Event_T_Send_If_Connected (Self.Events.Forwarding_Disabled (The_Time));
-      return Success;
+         -- Update data product:
+         Self.Data_Product_T_Send_If_Connected (Self.Data_Products.Forwarding_State (The_Time, (State => Disabled)));
+
+         -- Send event:
+         Self.Event_T_Send_If_Connected (Self.Events.Forwarding_Disabled (The_Time));
+         return Success;
+      end;
    end Disable_Forwarding;
 
    -- Invalid command handler. This procedure is called when a command's arguments are found to be invalid:
