@@ -35,7 +35,7 @@ package body Component.Interrupt_Servicer.Implementation.Tester is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- The tick send connection.
+   -- The data send connection.
    overriding procedure Interrupt_Data_Type_Recv_Sync (Self : in out Instance; Arg : in Interrupt_Data_Type) is
    begin
       -- Push the argument onto the test history for looking at later:

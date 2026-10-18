@@ -3,3 +3,5 @@ description: This is a unit test suite for the Interrupt Servicer component. It 
 tests:
   - name: Test_Interrupt_Handling
     description: This unit test sends many interrupts to the Interrupt Servicer component and expects it to produce ticks.
+  - name: Test_Burst_Interrupts
+    description: This unit test sends multiple interrupts in rapid succession without sleeping between them to verify no signals are lost under burst conditions.
