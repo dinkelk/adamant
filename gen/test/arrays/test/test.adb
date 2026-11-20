@@ -462,6 +462,43 @@ begin
    Put_Line ("passed.");
    Put_Line ("");
 
+   --  Regression test for Validation.Valid across the Scalar_Storage_Order
+   --  boundary on Short_Float arrays. GNAT Pro 25.2 evaluates 'Valid on an
+   --  element of a bare array object with a non native storage order on
+   --  the unswapped bytes, so a value whose byte reverse is a NaN is
+   --  rejected and a real NaN is accepted. The validation autocode reaches
+   --  the elements through a record component, which the compiler handles
+   --  correctly. The same trap value as above, 0x3A77EE7F, must validate,
+   --  and a quiet NaN, 0x7FC00000, must not, in both storage orders.
+   Put_Line ("Float_Array Validation SSO test:");
+   declare
+      Trap_Pos : constant Short_Float := 9.45784093e-4;  -- 0x3A77EE7F
+      Good : constant Float_Array.T := [2 => Trap_Pos, 7 => -Trap_Pos, others => 1.0];
+      Good_Le : constant Float_Array.T_Le := [2 => Trap_Pos, 7 => -Trap_Pos, others => 1.0];
+      Good_Bytes : Basic_Types.Byte_Array (0 .. Float_Array.Size_In_Bytes - 1)
+         with Import, Convention => Ada, Address => Good'Address;
+      Good_Bytes_Le : Basic_Types.Byte_Array (0 .. Float_Array.Size_In_Bytes - 1)
+         with Import, Convention => Ada, Address => Good_Le'Address;
+      --  Element 3 holds a quiet NaN in each storage order.
+      Nan_Bytes : Basic_Types.Byte_Array (0 .. Float_Array.Size_In_Bytes - 1) := Good_Bytes;
+      Nan_Bytes_Le : Basic_Types.Byte_Array (0 .. Float_Array.Size_In_Bytes - 1) := Good_Bytes_Le;
+   begin
+      Nan_Bytes (12 .. 15) := [16#7F#, 16#C0#, 16#00#, 16#00#];
+      Nan_Bytes_Le (12 .. 15) := [16#00#, 16#00#, 16#C0#, 16#7F#];
+      pragma Assert (Float_Array.Validation.Valid (Good_Bytes, Ignore),
+         "Float_Array with the trap value is invalid, but should be valid.");
+      pragma Assert (Float_Array.Validation.Valid_Le (Good_Bytes_Le, Ignore),
+         "Float_Array (LE) with the trap value is invalid, but should be valid.");
+      pragma Assert (not Float_Array.Validation.Valid (Nan_Bytes, Field_Number),
+         "Float_Array with a NaN is valid, but should not be.");
+      pragma Assert (Field_Number = 4, "Float_Array NaN field number is wrong: " & Field_Number'Image);
+      pragma Assert (not Float_Array.Validation.Valid_Le (Nan_Bytes_Le, Field_Number),
+         "Float_Array (LE) with a NaN is valid, but should not be.");
+      pragma Assert (Field_Number = 4, "Float_Array (LE) NaN field number is wrong: " & Field_Number'Image);
+   end;
+   Put_Line ("passed.");
+   Put_Line ("");
+
    Put_Line ("Testing conversions between CONSTRAINED and UNCONSTRAINED array types: ");
    Put_Line ("Testing Simple_Array.T (constrained) <-> Simple_Array.T_Unconstrained conversions...");
    declare
