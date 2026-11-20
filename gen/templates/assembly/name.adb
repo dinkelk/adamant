@@ -44,6 +44,9 @@ package body {{ name }} is
       -- ID Base Initialization:
       -----------------------------------
 {% for component in component_kind_dict["set_id_bases"] %}
+{% if component.set_parameter_defaults and component.set_parameter_defaults.parameter_call_string() %}
+      {{ component.instance_name }}.Set_Parameter_Defaults ({{ component.set_parameter_defaults.parameter_call_string() }});
+{% endif %}
       {{ component.instance_name }}.Set_Id_Bases{% if component.set_id_bases.parameters %} ({% for par in component.set_id_bases.parameters %}{{ par.name }} => {{ component.instance_name }}_{{ par.name }}{{ ", " if not loop.last }}{% endfor %}){% endif %};
 {% endfor %}
 

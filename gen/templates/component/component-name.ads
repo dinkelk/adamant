@@ -109,6 +109,19 @@ package Component.{{ name }} is
 {% endif %}
 
 {% endif %}
+{% if set_parameter_defaults %}
+   -----------------------------------------------------------------------
+   -- Replace the default values of the component's parameters:
+   -----------------------------------------------------------------------
+{{ printMultiLine(set_parameter_defaults.description, '   -- ') }}
+   not overriding procedure Set_Parameter_Defaults (
+      Self : in out Base_Instance;
+{% for p in set_parameter_defaults.parameters %}
+      {{ p.declaration_string() }}{{ ";" if not loop.last }}
+{% endfor %}
+   );
+
+{% endif %}
 {% if set_id_bases %}
    -----------------------------------------------------------------------
    -- Initialize the Id_Bases for any commands, data products, or events:
